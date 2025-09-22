@@ -20,8 +20,7 @@
       <!-- 定时倒计时显示，通过样式控制可见性 -->
       <div
         :style="{
-          opacity: isTiming ? 1 : 0,
-          height: isTiming ? 'auto' : '0',
+          display: isTiming ? 'block' : 'none',
           overflow: 'hidden'
         }"
         class="run-time"
@@ -569,8 +568,8 @@ const updateACState = (state: Record<string, any>) => {
   bedroomAcState.isAutoSwing.value = state.isAutoSwing; // 是否自动扫风
   bedroomAcState.isScreenDisplay.value = state.isScreenDisplay; // 是否屏显
   isTiming.value = state.isTiming; // 是否定时
-  bedroomAcState.timerStartTimestamp.value = state.timerStartTimestamp; // 定时开始时间戳（毫秒）
-  bedroomAcState.timerEndTimestamp.value = state.timerEndTimestamp; // 定时结束时间戳（毫秒）
+  bedroomAcState.timerStartTimestamp.value = state.timerStartTimestamp ?? 0; // 定时开始时间戳（毫秒）
+  bedroomAcState.timerEndTimestamp.value = state.timerEndTimestamp ?? 0; // 定时结束时间戳（毫秒）
 };
 
 // 组件挂载时监听MQTT状态变化并获取初始状态
@@ -661,13 +660,14 @@ onUnmounted(() => {
     }
 
     .run-time {
+      position: absolute;
+      top: 20px;
+      left: 20px;
       font-size: $font-size-small;
       color: $theme-color; // 定时模式下使用主题色
-      margin-bottom: 30px;
       display: flex;
       align-items: center;
       align-self: flex-start; // 居左显示
-      position: relative;
       font-weight: 500;
 
       i {
@@ -693,6 +693,7 @@ onUnmounted(() => {
     }
 
     .temperature-display {
+      margin-top: 30px;
       margin-bottom: 10px;
       display: flex;
       align-items: center;

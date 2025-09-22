@@ -13,9 +13,6 @@ import com.yuwjoo.myirrc.activity.main.ui.theme.MyIRRCTheme
 import com.yuwjoo.myirrc.common.UpdateChecker
 
 class MainActivity : ComponentActivity() {
-    companion object {
-        var activity: MainActivity? = null
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,8 +27,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
-        activity = this
 
         // 检查更新
         UpdateChecker.checkForUpdates(this)

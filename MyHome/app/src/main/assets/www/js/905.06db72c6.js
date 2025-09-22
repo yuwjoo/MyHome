@@ -1,2 +1,2 @@
 "use strict";(self["webpackChunkmy_home"]=self["webpackChunkmy_home"]||[]).push([[905],{1241:function(n,t){t.A=(n,t)=>{const e=n.__vccOpts||n;for(const[u,c]of t)e[u]=c;return e}},9905:function(n,t,e){e.r(t),e.d(t,{default:function(){return a}});var u=e(6768);const c={class:"album-detail"};function r(n,t){return(0,u.uX)(),(0,u.CE)("div",c,t[0]||(t[0]=[(0,u.Lk)("input",{type:"file"},null,-1)]))}var o=e(1241);const s={},f=(0,o.A)(s,[["render",r]]);var a=f}}]);
-//# sourceMappingURL=905.765b0395.js.map
+//# sourceMappingURL=905.06db72c6.js.map

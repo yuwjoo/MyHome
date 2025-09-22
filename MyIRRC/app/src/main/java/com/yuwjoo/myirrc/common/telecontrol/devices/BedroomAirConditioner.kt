@@ -105,7 +105,6 @@ class BedroomAirConditioner {
                 "cancelTiming" -> cancelTiming() // 取消定时
                 else -> return false
             }
-            Toast.makeText(MainActivity.activity, "执行指令：$action", Toast.LENGTH_LONG).show()
             return true
         }
 
