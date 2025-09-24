@@ -2,7 +2,7 @@ export const routes = [
   {
     path: "/",
     component: () => import("@/layout/layout-main.vue"),
-    redirect: { name: "air-conditioner" },
+    redirect: { name: "albumDetail", params: { id: 1 } },
     children: [
       {
         path: "book-city",

@@ -233,7 +233,7 @@ class UpdateChecker {
             // 获取文件URI
             val apkUri = FileProvider.getUriForFile(
                 context,
-                context.packageName + ".fileprovider",
+                context.packageName + ".fileProvider",
                 apkFile
             )
 
