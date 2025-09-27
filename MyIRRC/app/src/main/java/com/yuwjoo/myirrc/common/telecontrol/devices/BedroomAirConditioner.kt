@@ -2,11 +2,9 @@ package com.yuwjoo.myirrc.common.telecontrol.devices
 
 import android.content.Context.CONSUMER_IR_SERVICE
 import android.hardware.ConsumerIrManager
-import android.widget.Toast
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.yuwjoo.myirrc.MyApplication
-import com.yuwjoo.myirrc.activity.main.MainActivity
 import org.json.JSONObject
 
 /**
@@ -81,7 +79,7 @@ class BedroomAirConditioner {
 
     companion object {
         private val cim =
-            MyApplication.appContext.getSystemService(CONSUMER_IR_SERVICE) as ConsumerIrManager
+            MyApplication.application.getSystemService(CONSUMER_IR_SERVICE) as ConsumerIrManager
         var aCDevice = ACDevice()
 
         /**

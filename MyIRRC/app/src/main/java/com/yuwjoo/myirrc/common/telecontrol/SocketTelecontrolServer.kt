@@ -2,6 +2,7 @@ package com.yuwjoo.myirrc.common.telecontrol
 
 import android.util.Log
 import com.yuwjoo.myirrc.common.telecontrol.devices.BedroomAirConditioner
+import com.yuwjoo.myirrc.common.telecontrol.utils.TelecontrolHelper
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.IOException

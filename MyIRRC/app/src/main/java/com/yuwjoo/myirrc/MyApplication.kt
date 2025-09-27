@@ -8,14 +8,14 @@ import com.yuwjoo.myirrc.service.ForegroundService
 class MyApplication : Application() {
 
     companion object {
-        private lateinit var application: Application
-        val appContext
-            get() = application
+        private lateinit var instance: Application
+        val application
+            get() = instance
     }
 
     override fun onCreate() {
         super.onCreate()
-        application = this
+        instance = this
 
         // 检查红外功能
         val cim = getSystemService(CONSUMER_IR_SERVICE) as ConsumerIrManager

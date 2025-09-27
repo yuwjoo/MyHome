@@ -1,4 +1,4 @@
-package com.yuwjoo.myirrc.common.telecontrol
+package com.yuwjoo.myhome.common.telecontrol.utils
 
 import org.json.JSONObject
 

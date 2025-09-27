@@ -4,7 +4,7 @@ import com.yuwjoo.myhome.activity.main.ui.webview.BridgeConstant
 import com.yuwjoo.myhome.activity.main.ui.webview.getBridge
 import com.yuwjoo.myhome.common.telecontrol.MQTTTelecontrol
 import com.yuwjoo.myhome.common.telecontrol.SocketTelecontrol
-import com.yuwjoo.myhome.common.telecontrol.TelecontrolHelper
+import com.yuwjoo.myhome.common.telecontrol.utils.TelecontrolHelper
 import com.yuwjoo.myhome.common.telecontrol.UDPTelecontrol
 import com.yuwjoo.myhome.utils.webviewbridge.BridgeChannel
 import org.json.JSONObject
