@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.yuwjoo.myirrc.R
 import com.yuwjoo.myirrc.common.telecontrol.MQTTTelecontrolServer
@@ -49,11 +50,18 @@ class ForegroundService : Service() {
         }
     }
 
+    private var wakeLock: PowerManager.WakeLock? = null
+
     /**
      * 服务创建
      */
     override fun onCreate() {
         super.onCreate()
+
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
+        wakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "MyApp::MyWakeLockTag")
+        wakeLock!!.acquire()
+
         MQTTTelecontrolServer.getInstance().connect() // 连接MQTT遥控服务
         SocketTelecontrolServer.getInstance().startServer() // 开启Socket遥控服务
         UDPTelecontrolServer.startReceive() // 开启upd遥控广播接收
@@ -78,6 +86,10 @@ class ForegroundService : Service() {
      */
     override fun onDestroy() {
         super.onDestroy()
+
+        // 当不再需要时释放锁
+        wakeLock?.release()
+
         MQTTTelecontrolServer.getInstance().disconnect() // 断开MQTT连接
         SocketTelecontrolServer.getInstance().stopServer() // 停止Socket服务
         UDPTelecontrolServer.closeReceive() // 关闭upd遥控广播接收

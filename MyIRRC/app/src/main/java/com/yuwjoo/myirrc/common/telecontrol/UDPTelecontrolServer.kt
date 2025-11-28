@@ -10,6 +10,7 @@ import java.net.DatagramSocket
  * UDP遥控服务
  */
 object UDPTelecontrolServer {
+    private const val TAG = "UDPTelecontrolServer"
     const val TOPIC_SCAN_RC_DEVICES = "YHHome/scanRCDevices" // 扫描遥控服务设备消息主题
     const val TOPIC_IS_RC_DEVICE = "YHHome/isRCDevice" // 遥控服务设备应答消息主题
     private const val UDP_SERVER_PORT = 8000 // UDP服务端监听端口

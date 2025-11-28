@@ -5,9 +5,7 @@ import android.app.Application
 class MyApplication : Application() {
 
     companion object {
-        private lateinit var instance: Application
-        val application
-            get() = instance
+        lateinit var instance: Application private set
     }
 
     override fun onCreate() {
