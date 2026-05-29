@@ -1,0 +1,22 @@
+@use "@/assets/style/icon" as *;
+@use "@/assets/style/vant" as *;
+
+@font-face {
+  font-family: "AlimamaDongFangDaKai";
+  src: url("../fonts/alimamaDongFangDaKai/AlimamaDongFangDaKai-Regular.otf") format("opentype"),
+    url("../fonts/alimamaDongFangDaKai/AlimamaDongFangDaKai-Regular.ttf") format("truetype"),
+    url("../fonts/alimamaDongFangDaKai/AlimamaDongFangDaKai-Regular.woff") format("woff"),
+    url("../fonts/alimamaDongFangDaKai/AlimamaDongFangDaKai-Regular.woff2") format("woff2");
+}
+
+body {
+  // font-family: "AlimamaDongFangDaKai" !important;
+}
+
+#app {
+  min-height: 100vh;
+  color: var(--mh-base-text-color);
+  font-size: var(--mh-base-text-size);
+  background-color: var(--mh-page-color-bg);
+  line-height: var(--mh-base-line-height);
+}

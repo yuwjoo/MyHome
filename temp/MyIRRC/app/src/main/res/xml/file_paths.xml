@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 配置应用私有下载目录 -->
+    <external-files-path
+        name="Download"
+        path="Download/" />
+    
+    <!-- 配置应用私有更新目录 -->
+    <external-files-path
+        name="updates"
+        path="Download/updates/" />
+</paths>

@@ -1,0 +1,96 @@
+{
+  "routes": [
+    {
+      "path": "/",
+      "src": "src/pages/HomePage.tsx"
+    },
+    {
+      "path": "/express",
+      "src": "src/pages/ExpressPage.tsx"
+    },
+    {
+      "path": "/cloud",
+      "src": "src/pages/FilesPage.tsx"
+    },
+    {
+      "path": "/profile",
+      "src": "src/pages/ProfilePage.tsx"
+    },
+    {
+      "path": "/user-detail",
+      "src": "src/pages/UserDetailPage.tsx"
+    },
+    {
+      "path": "/login",
+      "src": "src/pages/LoginPage.tsx"
+    },
+    {
+      "path": "/register",
+      "src": "src/pages/RegisterPage.tsx"
+    },
+    {
+      "path": "/search",
+      "src": "src/pages/SearchPage.tsx"
+    },
+    {
+      "path": "/file-detail",
+      "src": "src/pages/FileDetailPage.tsx"
+    },
+    {
+      "path": "/transfer",
+      "src": "src/pages/TransferPage.tsx"
+    }
+  ],
+  "components": [
+    {
+      "name": "AddSheet",
+      "src": "src/components/AddSheet.tsx",
+      "route": "/preview/add-sheet"
+    },
+    {
+      "name": "BottomNav",
+      "src": "src/components/BottomNav.tsx",
+      "route": "/preview/bottom-nav"
+    },
+    {
+      "name": "BreadcrumbNav",
+      "src": "src/components/BreadcrumbNav.tsx",
+      "route": "/preview/breadcrumb-nav"
+    },
+    {
+      "name": "FileActionSheet",
+      "src": "src/components/FileActionSheet.tsx",
+      "route": "/preview/file-action-sheet"
+    },
+    {
+      "name": "FileIconDisplay",
+      "src": "src/components/FileIconDisplay.tsx",
+      "route": "/preview/file-icon-display"
+    },
+    {
+      "name": "FileList",
+      "src": "src/components/FileList.tsx",
+      "route": "/preview/file-list"
+    },
+    {
+      "name": "PullRefreshIndicator",
+      "src": "src/components/PullRefreshIndicator.tsx",
+      "route": "/preview/pull-refresh-indicator"
+    },
+    {
+      "name": "SearchBar",
+      "src": "src/components/SearchBar.tsx",
+      "route": "/preview/search-bar"
+    },
+    {
+      "name": "SelectionFooter",
+      "src": "src/components/SelectionFooter.tsx",
+      "route": "/preview/selection-footer"
+    },
+    {
+      "name": "SelectionHeader",
+      "src": "src/components/SelectionHeader.tsx",
+      "route": "/preview/selection-header"
+    }
+  ]
+}

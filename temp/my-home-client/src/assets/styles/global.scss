@@ -1,0 +1,37 @@
+// 小标题
+.mh-title-sm {
+  font-size: var(--mh-title-text-size-sm);
+  font-weight: var(--mh-title-font-weight-sm);
+  color: var(--mh-title-text-color-sm);
+  line-height: var(--mh-title-line-height-sm);
+}
+
+// 中标题
+.mh-title-md {
+  font-size: var(--mh-title-text-size-md);
+  font-weight: var(--mh-title-font-weight-md);
+  color: var(--mh-title-text-color-md);
+  line-height: var(--mh-title-line-height-md);
+}
+
+// 大标题
+.mh-title-lg {
+  font-size: var(--mh-title-text-size-lg);
+  font-weight: var(--mh-title-font-weight-lg);
+  color: var(--mh-title-text-color-lg);
+  line-height: var(--mh-title-line-height-lg);
+}
+
+// 常规文字
+.mh-base-text {
+  font-size: var(--mh-base-text-size);
+  color: var(--mh-base-text-color);
+  line-height: var(--mh-base-line-height);
+}
+
+// 次要文字
+.mh-secondary-text {
+  font-size: var(--mh-secondary-text-size);
+  color: var(--mh-secondary-text-color);
+  line-height: var(--mh-secondary-line-height);
+}

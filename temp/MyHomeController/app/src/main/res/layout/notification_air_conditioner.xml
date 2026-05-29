@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <!-- 标题栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="格力空调"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end|center_vertical">
+            
+            <TextView
+                android:id="@+id/timer_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textSize="12sp"
+                android:layout_marginEnd="4dp" />
+            
+            <ImageView
+                android:id="@+id/moon_icon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_moon" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 温度显示 -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingVertical="8dp">
+
+        <TextView
+            android:id="@+id/temperature_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:text="26"
+            android:textSize="36sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/temperature_text"
+            android:layout_alignTop="@id/temperature_text"
+            android:layout_marginTop="10dp"
+            android:layout_marginStart="2dp"
+            android:text="°C"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/mode_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/temperature_text"
+            android:layout_below="@id/temperature_text"
+            android:layout_marginStart="8dp"
+            android:text="制冷"
+            android:textSize="14sp" />
+    </RelativeLayout>
+
+    <!-- 状态信息 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_horizontal"
+        android:paddingBottom="4dp">
+        
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="风速高"
+            android:textSize="12sp" />
+        
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="风向上"
+            android:textSize="12sp" />
+        
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="自动风向"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- 控制按钮网格 -->
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:columnCount="3"
+        android:rowCount="3" 
+        android:alignmentMode="alignMargins"
+        android:columnOrderPreserved="false">
+        
+        <!-- 电源按钮 -->
+        <Button
+            android:id="@+id/power_button"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_columnWeight="2"
+            android:text="电源"
+            android:textSize="14sp"
+            android:background="@color/orange"
+            android:textColor="@android:color/white"
+            android:layout_margin="2dp" />
+        
+        <!-- 温度加 -->
+        <Button
+            android:id="@+id/temp_up_button"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_columnWeight="1"
+            android:text="温度 +"
+            android:textSize="14sp"
+            android:layout_margin="2dp" />
+        
+        <!-- 模式 -->
+        <Button
+            android:id="@+id/mode_button"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_columnWeight="1"
+            android:text="模式"
+            android:textSize="14sp"
+            android:layout_margin="2dp" />
+        
+        <!-- 温度减 -->
+        <Button
+            android:id="@+id/temp_down_button"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_columnWeight="1"
+            android:text="温度 -"
+            android:textSize="14sp"
+            android:layout_margin="2dp" />
+        
+        <!-- 扫风 -->
+        <Button
+            android:id="@+id/swing_button"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_columnWeight="1"
+            android:text="扫风"
+            android:textSize="14sp"
+            android:layout_margin="2dp" />
+        
+        <!-- 风向 -->
+        <Button
+            android:id="@+id/wind_direction_button"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_columnWeight="1"
+            android:text="风向"
+            android:textSize="14sp"
+            android:layout_margin="2dp" />
+        
+        <!-- 风速 -->
+        <Button
+            android:id="@+id/wind_speed_button"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_columnWeight="1"
+            android:text="风速"
+            android:textSize="14sp"
+            android:layout_margin="2dp" />
+        
+        <!-- 定时 -->
+        <Button
+            android:id="@+id/timer_button"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_columnWeight="1"
+            android:text="定时"
+            android:textSize="14sp"
+            android:layout_margin="2dp" />
+        
+        <!-- 睡眠 -->
+        <Button
+            android:id="@+id/sleep_button"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_columnWeight="1"
+            android:text="睡眠"
+            android:textSize="14sp"
+            android:layout_margin="2dp" />
+        
+        <!-- 更多 -->
+        <Button
+            android:id="@+id/more_button"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_columnWeight="1"
+            android:text="..."
+            android:textSize="14sp"
+            android:layout_margin="2dp" />
+    </GridLayout>
+</LinearLayout>

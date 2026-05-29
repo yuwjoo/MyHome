@@ -1,0 +1,9 @@
+module.exports = {
+  $schema: "https://json.schemastore.org/prettierrc",
+  semi: true,
+  tabWidth: 2,
+  singleQuote: false,
+  printWidth: 120,
+  trailingComma: "none",
+  endOfLine: "crlf"
+};

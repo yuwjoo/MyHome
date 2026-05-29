@@ -1,0 +1,20 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "智慧家庭"
+    },
+    {
+      "name": "internet_reason",
+      "value": "需要通过互联网加载智能家居控制页面"
+    }
+  ]
+}

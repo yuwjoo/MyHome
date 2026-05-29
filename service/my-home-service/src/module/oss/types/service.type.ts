@@ -1,0 +1,28 @@
+import OSS from 'ali-oss';
+
+/**
+ * oss临时访问凭证数据
+ */
+export type OssTempCredentials = OSS.Credentials & {
+  ExpireSecond: number; // 过期时长（秒）
+};
+
+/**
+ * 签名上传url配置选项
+ */
+export type SignUploadUrlOptions = {
+  object: string; // object名称
+  hash: string; // 文件hash
+  mimeType: string; // 文件mimeType
+  extraHeaders?: Record<string, string | number | boolean>; // 额外请求头
+};
+
+/**
+ * 签名下载url配置选项
+ */
+export type SignDownloadUrlOptions = {
+  object: string; // object名称
+  filename: string; // 文件名称
+  httpCacheExpire?: number; // http缓存过期时间（秒）,默认：30 * 24 * 60 * 60
+  extraQueries?: Record<string, string | number | boolean>; // 额外查询参数
+};

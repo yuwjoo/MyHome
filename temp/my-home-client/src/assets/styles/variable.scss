@@ -1,0 +1,172 @@
+:root {
+  /** 主色 */
+  --mh-color-primary-50: oklch(96.9% 0.016 293.756);
+  --mh-color-primary-100: oklch(94.3% 0.029 294.588);
+  --mh-color-primary-200: oklch(89.4% 0.057 293.283);
+  --mh-color-primary-300: oklch(81.1% 0.111 293.571);
+  --mh-color-primary-400: oklch(70.2% 0.183 293.541);
+  --mh-color-primary: oklch(60.6% 0.25 292.717);
+  --mh-color-primary-600: oklch(54.1% 0.281 293.009);
+  --mh-color-primary-700: oklch(49.1% 0.27 292.581);
+  --mh-color-primary-800: oklch(43.2% 0.232 292.759);
+  --mh-color-primary-900: oklch(38% 0.189 293.745);
+  --mh-color-primary-950: oklch(28.3% 0.141 291.089);
+
+  /** 成功色 */
+  --mh-color-success-50: oklch(98.2% 0.018 155.826);
+  --mh-color-success-100: oklch(96.2% 0.044 156.743);
+  --mh-color-success-200: oklch(92.5% 0.084 155.995);
+  --mh-color-success-300: oklch(87.1% 0.15 154.449);
+  --mh-color-success-400: oklch(79.2% 0.209 151.711);
+  --mh-color-success: oklch(72.3% 0.219 149.579);
+  --mh-color-success-600: oklch(62.7% 0.194 149.214);
+  --mh-color-success-700: oklch(52.7% 0.154 150.069);
+  --mh-color-success-800: oklch(44.8% 0.119 151.328);
+  --mh-color-success-900: oklch(39.3% 0.095 152.535);
+  --mh-color-success-950: oklch(26.6% 0.065 152.934);
+
+  /** 警告色 */
+  --mh-color-warning-50: oklch(98.7% 0.026 102.212);
+  --mh-color-warning-100: oklch(97.3% 0.071 103.193);
+  --mh-color-warning-200: oklch(94.5% 0.129 101.54);
+  --mh-color-warning-300: oklch(90.5% 0.182 98.111);
+  --mh-color-warning-400: oklch(85.2% 0.199 91.936);
+  --mh-color-warning: oklch(79.5% 0.184 86.047);
+  --mh-color-warning-600: oklch(68.1% 0.162 75.834);
+  --mh-color-warning-700: oklch(55.4% 0.135 66.442);
+  --mh-color-warning-800: oklch(47.6% 0.114 61.907);
+  --mh-color-warning-900: oklch(42.1% 0.095 57.708);
+  --mh-color-warning-950: oklch(28.6% 0.066 53.813);
+
+  /** 危险色 */
+  --mh-color-danger-50: oklch(97.1% 0.013 17.38);
+  --mh-color-danger-100: oklch(93.6% 0.032 17.717);
+  --mh-color-danger-200: oklch(88.5% 0.062 18.334);
+  --mh-color-danger-300: oklch(80.8% 0.114 19.571);
+  --mh-color-danger-400: oklch(70.4% 0.191 22.216);
+  --mh-color-danger: oklch(63.7% 0.237 25.331);
+  --mh-color-danger-600: oklch(57.7% 0.245 27.325);
+  --mh-color-danger-700: oklch(50.5% 0.213 27.518);
+  --mh-color-danger-800: oklch(44.4% 0.177 26.899);
+  --mh-color-danger-900: oklch(39.6% 0.141 25.723);
+  --mh-color-danger-950: oklch(25.8% 0.092 26.042);
+
+  /** 链接色 */
+  --mh-color-link-50: oklch(97% 0.014 254.604);
+  --mh-color-link-100: oklch(93.2% 0.032 255.585);
+  --mh-color-link-200: oklch(88.2% 0.059 254.128);
+  --mh-color-link-300: oklch(80.9% 0.105 251.813);
+  --mh-color-link-400: oklch(70.7% 0.165 254.624);
+  --mh-color-link: oklch(62.3% 0.214 259.815);
+  --mh-color-link-600: oklch(54.6% 0.245 262.881);
+  --mh-color-link-700: oklch(48.8% 0.243 264.376);
+  --mh-color-link-800: oklch(42.4% 0.199 265.638);
+  --mh-color-link-900: oklch(37.9% 0.146 265.522);
+  --mh-color-link-950: oklch(28.2% 0.091 267.935);
+
+  /** 中性色 */
+  --mh-color-white: #ffffff;
+  --mh-color-neutral-50: oklch(98.5% 0 0);
+  --mh-color-neutral-100: oklch(97% 0 0);
+  --mh-color-neutral-200: oklch(92.2% 0 0);
+  --mh-color-neutral-300: oklch(87% 0 0);
+  --mh-color-neutral-400: oklch(70.8% 0 0);
+  --mh-color-neutral: oklch(55.6% 0 0);
+  --mh-color-neutral-600: oklch(43.9% 0 0);
+  --mh-color-neutral-700: oklch(37.1% 0 0);
+  --mh-color-neutral-800: oklch(26.9% 0 0);
+  --mh-color-neutral-900: oklch(20.5% 0 0);
+  --mh-color-neutral-950: oklch(14.5% 0 0);
+  --mh-color-black: #000000;
+
+  /** 间距 */
+  --mh-spacing-xs: 4px;
+  --mh-spacing-sm: 8px;
+  --mh-spacing-md: 12px;
+  --mh-spacing-lg: 16px;
+  --mh-spacing-xl: 20px;
+  --mh-spacing-2xl: 24px;
+  --mh-spacing-3xl: 32px;
+
+  /** 文字大小 */
+  --mh-text-size-xs: 10px;
+  --mh-text-size-sm: 12px;
+  --mh-text-size-md: 14px;
+  --mh-text-size-lg: 16px;
+  --mh-text-size-xl: 18px;
+  --mh-text-size-2xl: 20px;
+  --mh-text-size-3xl: 24px;
+  --mh-text-size-4xl: 28px;
+  --mh-text-size-5xl: 32px;
+  --mh-text-size-6xl: 36px;
+  --mh-text-size-7xl: 40px;
+  --mh-text-size-8xl: 44px;
+  --mh-text-size-9xl: 48px;
+
+  /** 文字行高 */
+  --mh-line-height-same: 1;
+  --mh-line-height-md: 1.2;
+  --mh-line-height-lg: 1.4;
+  --mh-line-height-xl: 1.6;
+  --mh-line-height-2xl: 1.8;
+
+  /** 圆角 */
+  --mh-radius-sm: 4px;
+  --mh-radius-md: 8px;
+  --mh-radius-lg: 12px;
+  --mh-radius-xl: 16px;
+  --mh-radius-full: 999px;
+  --mh-radius-round: 100%;
+
+  /** 阴影 */
+  --mh-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --mh-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --mh-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /** 标题文字 */
+  --mh-title-text-size-sm: var(--mh-text-size-lg); // 小标题文字大小
+  --mh-title-line-height-sm: var(--mh-line-height-md); // 小标题行高
+  --mh-title-text-color-sm: var(--mh-color-neutral-800); // 小标题文字颜色
+  --mh-title-font-weight-sm: 500; // 小标题字体粗细
+
+  --mh-title-text-size-md: var(--mh-text-size-xl); // 中标题文字大小
+  --mh-title-line-height-md: var(--mh-line-height-same); // 中标题行高
+  --mh-title-text-color-md: var(--mh-color-neutral-950); // 中标题文字颜色
+  --mh-title-font-weight-md: 700; // 中标题字体粗细
+
+  --mh-title-text-size-lg: var(--mh-text-size-2xl); // 大标题文字大小
+  --mh-title-line-height-lg: var(--mh-line-height-same); // 大标题行高
+  --mh-title-text-color-lg: var(--mh-color-black); // 大标题文字颜色
+  --mh-title-font-weight-lg: bold; // 大标题字体粗细
+
+  /** 常规文字 */
+  --mh-base-text-size: var(--mh-text-size-md); // 常规文字大小
+  --mh-base-line-height: var(--mh-line-height-md); // 常规文字行高
+  --mh-base-text-color: var(--mh-color-neutral-700); // 常规文字颜色
+
+  /** 次要文字 */
+  --mh-secondary-text-size: var(--mh-text-size-sm); // 次要文字大小
+  --mh-secondary-line-height: var(--mh-line-height-md); // 次要文字行高
+  --mh-secondary-text-color: var(--mh-color-neutral-500); // 次要文字颜色
+
+  /** 占位文字 */
+  --mh-placeholder-text-color: var(--mh-color-neutral-400); // 占位文字颜色
+
+  /** 禁用文字 */
+  --mh-disabled-text-color: var(--mh-color-neutral-200); // 禁用文字颜色
+
+  /* 页面 */
+  --mh-page-color-bg: var(--mh-color-neutral-50); // 页面背景颜色
+  --mh-page-vertical-padding: var(--mh-spacing-lg); // 页面垂直内边距
+  --mh-page-horizontal-padding: var(--mh-spacing-lg); // 页面水平内边距
+
+  /** 容器 */
+  --mh-container-color-bg: var(--mh-color-white); // 容器背景颜色
+  --mh-container-color-bg-hove: var(--mh-color-neutral-200); // 容器hover背景颜色
+  --mh-container-vertical-padding: var(--mh-spacing-md); // 容器垂直内边距
+  --mh-container-horizontal-padding: var(--mh-spacing-lg); // 容器水平内边距
+  --mh-container-border-radius: var(--mh-radius-md); // 容器圆角
+
+  /** 布局 */
+  --mh-layout-header-height: 34px; // 布局头部高度
+}
