@@ -39,7 +39,7 @@ export default defineConfig({
     }
   },
   devServer: {
-    port: 9000,
+    port: 5173,
     client: {
       overlay: false
     }

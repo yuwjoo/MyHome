@@ -25,16 +25,17 @@ class MainActivity : AppCompatActivity() {
     private fun buildInjectScript(): String {
         val dpr = resources.displayMetrics.density
         val cssHeight = Math.round(statusBarHeightPx / dpr)
-        return """
-            (function() {
-                window.__NATIVE__ = {
-                    statusBarHeight: $cssHeight,
-                    isAndroid: true
-                };
-                document.documentElement.style.setProperty('--status-bar-height', '${cssHeight}px');
-                document.dispatchEvent(new CustomEvent('nativeBridgeReady'));
-            })();
-        """.trimIndent()
+        return ""
+//        return """
+//            (function() {
+//                window.__NATIVE__ = {
+//                    statusBarHeight: $cssHeight,
+//                    isAndroid: true
+//                };
+//                document.documentElement.style.setProperty('--status-bar-height', '${cssHeight}px');
+//                document.dispatchEvent(new CustomEvent('nativeBridgeReady'));
+//            })();
+//        """.trimIndent()
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -42,13 +43,15 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        WebView.setWebContentsDebuggingEnabled(true)
+
         webView = WebView(this).apply {
-            webViewClient = object : WebViewClient() {
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    super.onPageFinished(view, url)
-                    view?.evaluateJavascript(buildInjectScript(), null)
-                }
-            }
+//            webViewClient = object : WebViewClient() {
+//                override fun onPageFinished(view: WebView?, url: String?) {
+//                    super.onPageFinished(view, url)
+//                    view?.evaluateJavascript(buildInjectScript(), null)
+//                }
+//            }
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
@@ -68,7 +71,7 @@ class MainActivity : AppCompatActivity() {
             view.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom)
 
             // insets 变化后实时同步到前端（例如横竖屏切换）
-            webView.evaluateJavascript(buildInjectScript(), null)
+//            webView.evaluateJavascript(buildInjectScript(), null)
             insets
         }
 

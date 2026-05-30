@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
-import { UploadIcon, FolderPlusIcon, XIcon } from 'lucide-vue-next'
+import { UploadIcon, FolderPlusIcon, XIcon, LoaderCircleIcon } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { createFolder } from '../data'
+import { uploadToOss } from '@/utils/oss/uploadFile'
+import { cloudDiskCreate } from '@/api'
 
 /**
  * 新建操作面板（上传文件 / 新建文件夹）
@@ -56,12 +58,61 @@ watch(folderDialogOpen, (val) => {
   }
 })
 
-// ── 内部业务处理 ──
+// ── 文件上传 ──
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const uploading = ref(false)
+const uploadFileName = ref('')
+const uploadProgress = ref(0)
+const uploadStage = ref<'idle' | 'hashing' | 'transferring'>('idle')
+
+/** 点击"上传文件" → 打开系统文件选择器 */
 function handleUploadFile() {
-  toast.success('文件上传功能已打开')
-  emit('close')
+  fileInputRef.value?.click()
 }
 
+/** 文件选择后的上传流程：选文件 → OSS 上传 → 创建云盘记录 */
+async function onFileSelected(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  uploadFileName.value = file.name
+  uploading.value = true
+  uploadProgress.value = 0
+  uploadStage.value = 'hashing'
+
+  try {
+    const ossObjectRefId = await uploadToOss(file, {
+      onProgress: (percent) => {
+        uploadProgress.value = percent
+        if (percent > 0) uploadStage.value = 'transferring'
+      },
+    })
+
+    // 在云盘创建文件记录
+    const destPath = props.parentPath === '/'
+      ? `/${file.name}`
+      : `${props.parentPath}/${file.name}`
+
+    await cloudDiskCreate({ path: destPath, type: 'file', ossObjectRefId })
+
+    toast.success(`文件「${file.name}」上传成功`)
+    emit('created')
+    emit('close')
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : '上传失败，请重试'
+    toast.error(msg)
+  } finally {
+    uploading.value = false
+    uploadFileName.value = ''
+    uploadProgress.value = 0
+    uploadStage.value = 'idle'
+    // 重置 input，允许再次选择同一文件
+    input.value = ''
+  }
+}
+
+// ── 新建文件夹 ──
 async function handleCreateFolder() {
   const trimmed = folderName.value.trim()
   if (!trimmed || creating.value) return
@@ -87,8 +138,16 @@ async function handleCreateFolder() {
       class="absolute inset-0 transition-opacity duration-200"
       :class="rendered ? 'opacity-100' : 'opacity-0'"
       style="background: rgba(18,22,42,0.45)"
-      @click="emit('close')"
+      @click="uploading ? undefined : emit('close')"
       @touchmove.prevent
+    />
+
+    <!-- 隐藏文件选择器 -->
+    <input
+      ref="fileInputRef"
+      type="file"
+      class="hidden"
+      @change="onFileSelected"
     />
 
     <!-- 底部面板 -->
@@ -101,40 +160,77 @@ async function handleCreateFolder() {
       </div>
 
       <div class="flex items-center justify-between mb-6">
-        <span class="text-base font-bold text-foreground">添加内容</span>
+        <span class="text-base font-bold text-foreground">
+          {{ uploading ? '正在上传' : '添加内容' }}
+        </span>
         <button
-          @click="emit('close')"
+          @click="uploading ? undefined : emit('close')"
           class="w-8 h-8 flex items-center justify-center rounded-full bg-muted active:bg-border transition-colors"
+          :class="{ 'opacity-40 pointer-events-none': uploading }"
         >
           <XIcon :size="16" class="text-muted-foreground" :stroke-width="2.5" />
         </button>
       </div>
 
-      <div class="flex gap-4">
-        <!-- 上传文件 -->
-        <button
-          @click="handleUploadFile"
-          class="flex-1 flex flex-col items-center gap-3 py-6 rounded-2xl bg-secondary/60 border border-primary/15 active:bg-secondary transition-colors"
-        >
-          <div class="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-custom">
-            <UploadIcon :size="22" class="text-primary-foreground" :stroke-width="2" />
+      <!-- 上传进度区域 -->
+      <template v-if="uploading">
+        <div class="flex flex-col gap-4 mb-4">
+          <!-- 文件信息 -->
+          <div class="flex items-center gap-3 px-4 py-3 rounded-2xl bg-secondary/60 border border-primary/15">
+            <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
+              <LoaderCircleIcon
+                :size="18"
+                class="text-primary-foreground animate-spin"
+                :stroke-width="2.5"
+              />
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-semibold text-foreground truncate">{{ uploadFileName }}</div>
+              <div class="text-xs text-muted-foreground mt-0.5">
+                {{ uploadStage === 'hashing' ? '计算文件哈希...' : `${uploadProgress}%` }}
+              </div>
+            </div>
           </div>
-          <span class="text-sm font-semibold text-foreground">上传文件</span>
-          <span class="text-xs text-muted-foreground">从本地选择文件</span>
-        </button>
 
-        <!-- 新建文件夹 -->
-        <button
-          @click="folderDialogOpen = true"
-          class="flex-1 flex flex-col items-center gap-3 py-6 rounded-2xl bg-purple-50 border border-purple-100 active:bg-purple-100/80 transition-colors"
-        >
-          <div class="w-12 h-12 rounded-2xl bg-purple-500 flex items-center justify-center shadow-custom">
-            <FolderPlusIcon :size="22" class="text-white" :stroke-width="2" />
+          <!-- 进度条 -->
+          <div class="h-1.5 bg-muted rounded-full overflow-hidden">
+            <div
+              class="h-full rounded-full transition-all duration-300"
+              :class="uploadStage === 'hashing' ? 'bg-primary/60 animate-pulse w-full' : 'bg-primary'"
+              :style="uploadStage === 'transferring' ? { width: `${uploadProgress}%` } : {}"
+            />
           </div>
-          <span class="text-sm font-semibold text-foreground">新建文件夹</span>
-          <span class="text-xs text-muted-foreground">创建空文件夹</span>
-        </button>
-      </div>
+        </div>
+      </template>
+
+      <!-- 操作按钮区域 -->
+      <template v-else>
+        <div class="flex gap-4">
+          <!-- 上传文件 -->
+          <button
+            @click="handleUploadFile"
+            class="flex-1 flex flex-col items-center gap-3 py-6 rounded-2xl bg-secondary/60 border border-primary/15 active:bg-secondary transition-colors"
+          >
+            <div class="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-custom">
+              <UploadIcon :size="22" class="text-primary-foreground" :stroke-width="2" />
+            </div>
+            <span class="text-sm font-semibold text-foreground">上传文件</span>
+            <span class="text-xs text-muted-foreground">从本地选择文件</span>
+          </button>
+
+          <!-- 新建文件夹 -->
+          <button
+            @click="folderDialogOpen = true"
+            class="flex-1 flex flex-col items-center gap-3 py-6 rounded-2xl bg-purple-50 border border-purple-100 active:bg-purple-100/80 transition-colors"
+          >
+            <div class="w-12 h-12 rounded-2xl bg-purple-500 flex items-center justify-center shadow-custom">
+              <FolderPlusIcon :size="22" class="text-white" :stroke-width="2" />
+            </div>
+            <span class="text-sm font-semibold text-foreground">新建文件夹</span>
+            <span class="text-xs text-muted-foreground">创建空文件夹</span>
+          </button>
+        </div>
+      </template>
     </div>
 
     <!-- 新建文件夹弹窗 -->
