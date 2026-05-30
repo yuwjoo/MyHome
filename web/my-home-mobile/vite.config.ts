@@ -4,6 +4,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
+import { generateMetadataPlugin } from './scripts/generateMetadata'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -11,6 +12,8 @@ export default defineConfig({
     vue(),
     vueDevTools(),
     tailwindcss(),
+    // 打包时自动生成 metadata.json，版本号取自 package.json
+    generateMetadataPlugin(),
   ],
   resolve: {
     alias: {

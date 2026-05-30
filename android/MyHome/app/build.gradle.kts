@@ -15,9 +15,25 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "0.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        // 覆盖默认的 debug 签名，确保 Run 按钮也使用自定义证书
+        getByName("debug") {
+            storeFile = file("../../my-home-key")
+            storePassword = "yuwjoo:my-home-2026"
+            keyAlias = "my-home"
+            keyPassword = "yuwjoo:my-home-2026"
+        }
+        create("release") {
+            storeFile = file("../../my-home-key")
+            storePassword = "yuwjoo:my-home-2026"
+            keyAlias = "my-home"
+            keyPassword = "yuwjoo:my-home-2026"
+        }
     }
 
     buildTypes {
@@ -27,6 +43,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
+            // signingConfig 已通过 getByName("debug") 覆盖默认值，无需再指定
         }
     }
     compileOptions {
@@ -39,6 +59,8 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
     implementation(libs.material)
+    implementation(libs.okhttp)
+    implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

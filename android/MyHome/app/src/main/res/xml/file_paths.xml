@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 允许 FileProvider 共享 cache 目录中的 APK 文件 -->
+    <cache-path
+        name="apk"
+        path="." />
+</paths>

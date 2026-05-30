@@ -38,10 +38,10 @@ function getCompanyInitial(name: string) {
       </div>
       <div
         class="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold"
-        :class="EXPRESS_STATUS_MAP[item.status].style"
+        :class="EXPRESS_STATUS_MAP[item.status]!.style"
       >
-        <div class="w-1.5 h-1.5 rounded-full" :class="EXPRESS_STATUS_MAP[item.status].dot" />
-        {{ EXPRESS_STATUS_MAP[item.status].text }}
+        <div class="w-1.5 h-1.5 rounded-full" :class="EXPRESS_STATUS_MAP[item.status]!.dot" />
+        {{ EXPRESS_STATUS_MAP[item.status]!.text }}
       </div>
     </div>
 

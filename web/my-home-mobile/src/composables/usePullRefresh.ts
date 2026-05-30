@@ -48,7 +48,7 @@ export function usePullRefresh(
       : (window.scrollY || document.documentElement.scrollTop)
     isAtTop = scrollTop <= 0
     if (isAtTop) {
-      startY = e.touches[0].clientY
+      startY = e.touches[0]?.clientY ?? null
     }
   }
 
@@ -64,7 +64,7 @@ export function usePullRefresh(
     }
     if (!isAtTop || startY === null) return
 
-    const delta = e.touches[0].clientY - startY
+    const delta = (e.touches[0]?.clientY ?? 0) - startY
 
     // ── 未进入下拉状态：死区内不拦截，交给浏览器正常滚动 ──
     if (!pulling.value) {

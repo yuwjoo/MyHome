@@ -11,12 +11,11 @@ import {
   LockIcon,
   CameraIcon,
   MusicIcon,
-  type LucideComponent,
 } from 'lucide-vue-next'
 import type { DeviceType } from '@/types'
 
 /** 设备类型 → 图标组件 */
-export const DEVICE_ICON_MAP: Record<DeviceType, LucideComponent> = {
+export const DEVICE_ICON_MAP: Record<DeviceType, (typeof SunIcon)> = {
   light: SunIcon,
   ac: ThermometerIcon,
   tv: TvIcon,

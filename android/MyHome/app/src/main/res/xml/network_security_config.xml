@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- 允许 local-web 本地虚拟域名的明文 HTTP 流量 -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">47.115.161.79</domain>
+        <domain includeSubdomains="true">local-web</domain>
+    </domain-config>
+
+    <!-- 允许 OSS 下载域名的 HTTPS 流量（资源下载白名单） -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">aliyuncs.com</domain>
     </domain-config>
 </network-security-config>

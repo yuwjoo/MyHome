@@ -10,7 +10,13 @@ import {
 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 
-const MENU_ITEMS = [
+const MENU_ITEMS: {
+  icon: typeof HelpCircleIcon
+  label: string
+  color: string
+  bg: string
+  action?: () => void
+}[] = [
   { icon: HelpCircleIcon, label: '帮助与反馈', color: 'text-cyan-500',          bg: 'bg-cyan-50'    },
   { icon: InfoIcon,       label: '关于',       color: 'text-primary',           bg: 'bg-primary/10' },
   { icon: SettingsIcon,   label: '设置',       color: 'text-muted-foreground',  bg: 'bg-muted'      },

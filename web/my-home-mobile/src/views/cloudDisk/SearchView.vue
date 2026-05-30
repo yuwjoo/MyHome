@@ -127,7 +127,7 @@ function formatDate(str: string) {
 </script>
 
 <template>
-  <div data-cmp="SearchView" class="min-h-screen bg-background max-w-md mx-auto flex flex-col">
+  <div data-cmp="SearchView" class="min-h-screen bg-background max-w-md mx-auto flex flex-col pt-10">
 
     <!-- Delete Confirm Dialog -->
     <DeleteDialog

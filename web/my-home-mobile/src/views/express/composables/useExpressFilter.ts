@@ -10,10 +10,15 @@ import {
 } from '@/constants'
 
 /** 默认筛选状态 */
-const DEFAULT_FILTER = {
+const DEFAULT_FILTER: {
+  time: string
+  company: string
+  status: ExpressStatus | 'all'
+  keyword: string
+} = {
   time:    EXPRESS_TIME_OPTIONS[0],
   company: EXPRESS_COMPANY_OPTIONS[0],
-  status:  'all' as ExpressStatus | 'all',
+  status:  'all',
   keyword: '',
 }
 
