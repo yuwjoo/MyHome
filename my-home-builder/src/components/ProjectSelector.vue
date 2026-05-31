@@ -1,41 +1,26 @@
 <template>
   <div class="project-selector">
-    <el-form-item label="选择项目" prop="projectId">
-      <el-select
-        v-model="modelValue"
-        placeholder="请选择要发布的项目"
-        filterable
-        @change="handleChange"
+    <div class="platform-tabs">
+      <div
+        v-for="proj in projectList"
+        :key="proj.id"
+        class="platform-card"
+        :class="{ active: modelValue === proj.id }"
+        @click="handleSelect(proj.id)"
       >
-        <el-option
-          v-for="item in projectList"
-          :key="item.id"
-          :label="item.name"
-          :value="item.id"
-        >
-          <span style="float: left">{{ item.name }}</span>
-          <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
-            {{ platformLabel[item.platform] }}
-          </span>
-        </el-option>
-      </el-select>
-    </el-form-item>
-
-    <!-- 选中项目详情 -->
-    <div v-if="selectedProject" class="project-info">
-      <el-descriptions :column="2" border size="small">
-        <el-descriptions-item label="平台">
-          <el-tag :type="platformTagType(selectedProject.platform)" size="small">
-            {{ platformLabel[selectedProject.platform] }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="路径">
-          <code>{{ selectedProject.path }}</code>
-        </el-descriptions-item>
-        <el-descriptions-item label="构建命令" :span="2">
-          <code>{{ selectedProject.buildCommand }}</code>
-        </el-descriptions-item>
-      </el-descriptions>
+        <div class="card-icon" :style="{ color: platformColor[proj.platform] }">
+          <el-icon :size="28">
+            <component :is="platformIcon[proj.platform]" />
+          </el-icon>
+        </div>
+        <div class="card-info">
+          <div class="card-platform">{{ proj.platformLabel }}</div>
+          <div class="card-name">{{ proj.name }}</div>
+        </div>
+        <div v-if="modelValue === proj.id" class="card-check">
+          <el-icon :size="18" color="#409EFF"><CircleCheckFilled /></el-icon>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -43,13 +28,11 @@
 <script setup lang="ts">
 /**
  * 项目选择器组件
- * 展示可选项目列表及选中项目详情
+ * 以平台卡片形式展示可选项目
  */
-import { computed } from 'vue';
-import type { PlatformType } from '@/types/publish';
-import { projectList, getProjectById, platformLabel } from '@/config/projects';
+import { projectList, platformIcon, platformColor } from '@/config/projects';
 
-const props = defineProps<{
+defineProps<{
   modelValue: string;
 }>();
 
@@ -57,32 +40,8 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
 }>();
 
-/** 双向绑定值 */
-const modelValue = computed({
-  get: () => props.modelValue,
-  set: (val: string) => emit('update:modelValue', val),
-});
-
-/** 当前选中的项目配置 */
-const selectedProject = computed(() => {
-  if (!props.modelValue) return null;
-  return getProjectById(props.modelValue) ?? null;
-});
-
-/** 平台标签类型映射 */
-const platformTagType = (platform: PlatformType): string => {
-  const map: Record<PlatformType, string> = {
-    harmony: 'danger',
-    android: 'success',
-    ios: 'warning',
-    web: 'info',
-  };
-  return map[platform] || 'info';
-};
-
-/** 选择变更回调 */
-const handleChange = (val: string) => {
-  emit('update:modelValue', val);
+const handleSelect = (id: string) => {
+  emit('update:modelValue', id);
 };
 </script>
 
@@ -90,16 +49,60 @@ const handleChange = (val: string) => {
 .project-selector {
   width: 100%;
 
-  .project-info {
-    margin-top: 12px;
+  .platform-tabs {
+    display: flex;
+    gap: 12px;
+  }
 
-    code {
-      padding: 2px 6px;
-      background: #f0f2f5;
-      border-radius: 4px;
-      font-size: 12px;
-      color: #606266;
-      word-break: break-all;
+  .platform-card {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border: 2px solid #e4e7ed;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    background: #fff;
+
+    &:hover {
+      border-color: #c0c4cc;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    &.active {
+      border-color: #409EFF;
+      background: #ecf5ff;
+      box-shadow: 0 2px 12px rgba(64, 158, 255, 0.15);
+    }
+
+    .card-icon {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-info {
+      .card-platform {
+        font-size: 14px;
+        font-weight: 600;
+        color: #303133;
+      }
+
+      .card-name {
+        font-size: 12px;
+        color: #909399;
+        margin-top: 2px;
+      }
+    }
+
+    .card-check {
+      position: absolute;
+      top: 8px;
+      right: 8px;
     }
   }
 }

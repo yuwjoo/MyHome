@@ -4,153 +4,255 @@
     <div class="page-header">
       <h2>
         <el-icon><UploadFilled /></el-icon>
-        MyHome 项目构建发布
+        MyHome 项目发布
       </h2>
-      <p class="page-desc">统一管理 MyHome 各端项目的构建与发布流程</p>
+      <p class="page-desc">统一管理 MyHome 各端项目的发布流程</p>
     </div>
 
-    <!-- 主内容区 -->
-    <div class="page-content">
-      <!-- 左侧：发布配置表单 -->
-      <div class="publish-panel">
-        <el-card shadow="hover">
-          <template #header>
-            <span class="card-title">📋 发布配置</span>
-          </template>
+    <!-- 1. 选择项目 -->
+    <el-card shadow="hover" class="section-card">
+      <template #header>
+        <span class="card-title">选择发布项目</span>
+      </template>
+      <ProjectSelector v-model="form.projectId" />
+    </el-card>
 
-          <el-form
-            ref="formRef"
-            :model="form"
-            :rules="rules"
-            label-width="100px"
-            label-position="right"
-            size="default"
-            :disabled="isBuilding"
-          >
-            <!-- 项目选择 -->
-            <ProjectSelector v-model="form.projectId" />
-
-            <!-- 构建环境 -->
-            <BuildEnvSelector v-model="form.env" />
-
-            <!-- 版本号 -->
+    <!-- 2. 版本信息 -->
+    <el-card shadow="hover" class="section-card">
+      <template #header>
+        <span class="card-title">版本信息</span>
+      </template>
+      <div v-if="form.projectId" class="version-section">
+        <div class="version-row">
+          <div class="version-label">当前最新版本</div>
+          <div class="version-value">
+            <el-tag type="info" size="large" effect="plain">
+              {{ currentLatestVersion }}
+            </el-tag>
+          </div>
+        </div>
+        <el-divider />
+        <div class="version-row">
+          <div class="version-label">发布版本号</div>
+          <div class="version-editor">
             <VersionInput v-model="form.version" />
-
-            <!-- 发布选项 -->
-            <PublishOptions
-              v-model:description="form.description"
-              v-model:auto-publish="form.autoPublish"
-            />
-
-            <!-- 操作按钮 -->
-            <el-form-item>
-              <el-button
-                type="primary"
-                :loading="isBuilding"
-                :icon="UploadFilled"
-                size="large"
-                @click="handlePublish"
-              >
-                {{ isBuilding ? '构建中...' : '开始构建' }}
-              </el-button>
-              <el-button
-                v-if="isBuilding"
-                type="danger"
-                size="large"
-                @click="handleCancel"
-              >
-                取消构建
-              </el-button>
-              <el-button
-                :disabled="isBuilding"
-                size="large"
-                @click="handleReset"
-              >
-                重置
-              </el-button>
-            </el-form-item>
-          </el-form>
-        </el-card>
+          </div>
+        </div>
       </div>
-
-      <!-- 右侧：构建进度 + 日志 -->
-      <div class="status-panel">
-        <!-- 构建进度 -->
-        <el-card shadow="hover" class="progress-card">
-          <BuildProgress :task="currentTask" />
-        </el-card>
-
-        <!-- 构建日志 -->
-        <el-card shadow="hover" class="log-card">
-          <BuildLogViewer
-            :logs="currentTask?.logs ?? []"
-            @clear="handleClearLogs"
-          />
-        </el-card>
+      <div v-else class="empty-hint">
+        <el-icon :size="32" color="#c0c4cc"><InfoFilled /></el-icon>
+        <span>请先选择要发布的项目</span>
       </div>
-    </div>
+    </el-card>
+
+    <!-- 3. 发布操作 -->
+    <el-card shadow="hover" class="section-card">
+      <template #header>
+        <span class="card-title">发布操作</span>
+      </template>
+      <div class="action-section">
+        <div class="action-info">
+          <span>发布将执行构建程序并更新版本清单</span>
+        </div>
+        <div class="action-buttons">
+          <el-button
+            type="primary"
+            size="large"
+            :loading="isPublishing"
+            :disabled="!form.projectId"
+            :icon="UploadFilled"
+            @click="handlePublish"
+          >
+            {{ isPublishing ? '发布中...' : '开始发布' }}
+          </el-button>
+          <el-button
+            v-if="isPublishing"
+            type="danger"
+            size="large"
+            @click="handleCancel"
+          >
+            取消发布
+          </el-button>
+        </div>
+      </div>
+    </el-card>
+
+    <!-- 4. 发布进度 -->
+    <el-card shadow="hover" class="section-card">
+      <template #header>
+        <span class="card-title">发布进度</span>
+      </template>
+      <BuildProgress
+        :task="currentTask"
+        @clear="handleClearLogs"
+      />
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
 /**
  * 发布主页面
- * 集成项目选择、环境配置、版本管理、构建执行与日志展示
+ * 上下布局：项目选择 → 版本信息 → 发布操作 → 发布进度
  */
-import { UploadFilled } from '@element-plus/icons-vue';
-import { ElMessageBox } from 'element-plus';
+import { reactive, ref, computed, watch, onMounted } from 'vue';
+import { UploadFilled, InfoFilled } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 import ProjectSelector from '@/components/ProjectSelector.vue';
-import BuildEnvSelector from '@/components/BuildEnvSelector.vue';
 import VersionInput from '@/components/VersionInput.vue';
-import PublishOptions from '@/components/PublishOptions.vue';
 import BuildProgress from '@/components/BuildProgress.vue';
-import BuildLogViewer from '@/components/BuildLogViewer.vue';
 
-import { usePublishForm } from '@/hooks/usePublishForm';
-import { useBuildExecutor } from '@/hooks/useBuildExecutor';
+import { useVersionManifest } from '@/hooks/useVersionManifest';
+import { getProjectById } from '@/config/projects';
+import type { PublishTask, LogEntry, BuildStatus } from '@/types/publish';
 
-// -- 表单 Hook --
-const { form, formRef, rules, validate, resetForm } = usePublishForm();
+// -- 版本清单 Hook --
+const {
+  manifest,
+  loading: manifestLoading,
+  loadManifest,
+  getProjectVersion,
+  updateVersion,
+} = useVersionManifest();
 
-// -- 构建执行 Hook --
-const { currentTask, isBuilding, executeBuild, cancelBuild } = useBuildExecutor();
+// -- 表单数据 --
+const form = reactive({
+  projectId: '',
+  version: '0.0.0',
+});
 
-/**
- * 处理发布/构建操作
- * 先校验表单，通过后执行构建
- */
-const handlePublish = async () => {
-  try {
-    const formData = await validate();
+// -- 发布任务状态 --
+const currentTask = ref<PublishTask | null>(null);
+const isPublishing = ref(false);
 
-    // 生产环境二次确认
-    if (formData.env === 'prod') {
-      await ElMessageBox.confirm(
-        '您即将执行生产环境构建，确定要继续吗？',
-        '生产环境确认',
-        {
-          confirmButtonText: '确定构建',
-          cancelButtonText: '取消',
-          type: 'warning',
-        },
-      );
+/** 当前选中项目的最新版本号 */
+const currentLatestVersion = computed(() => {
+  if (!form.projectId) return '0.0.0';
+  return getProjectVersion(form.projectId);
+});
+
+// 当选中项目变化时，更新发布版本号为当前最新版本
+watch(
+  () => form.projectId,
+  (newId) => {
+    if (newId) {
+      form.version = getProjectVersion(newId);
+    } else {
+      form.version = '0.0.0';
     }
+  },
+);
 
-    await executeBuild(formData);
-  } catch {
-    // 校验失败或用户取消，不做处理
+// 加载版本清单
+onMounted(() => {
+  loadManifest();
+});
+
+/** 添加日志 */
+const addLog = (task: PublishTask, level: LogEntry['level'], message: string) => {
+  task.logs.push({
+    timestamp: Date.now(),
+    level,
+    message,
+  });
+};
+
+/** 更新任务状态 */
+const setStatus = (task: PublishTask, status: BuildStatus) => {
+  task.status = status;
+};
+
+/** 模拟发布进度 */
+const simulatePublish = async (task: PublishTask) => {
+  const project = getProjectById(task.projectId);
+  if (!project) return;
+
+  const steps = [
+    { message: `📦 准备发布 ${project.platformLabel} - ${project.name}`, progress: 10 },
+    { message: `📋 版本号: ${task.version}`, progress: 15 },
+    { message: '🔧 执行构建命令...', progress: 30 },
+    { message: `⚡ 执行: ${project.buildCommand}`, progress: 40 },
+    { message: '📂 工作目录: ' + project.path, progress: 50 },
+    { message: '🔨 编译中...', progress: 65 },
+    { message: '📦 打包中...', progress: 75 },
+    { message: '🚀 发布中...', progress: 85 },
+    { message: '📝 更新版本清单...', progress: 92 },
+  ];
+
+  for (const step of steps) {
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    addLog(task, 'info', step.message);
+    task.progress = step.progress;
   }
+
+  // 更新版本清单
+  await updateVersion(task.projectId, task.version);
+
+  task.progress = 100;
+  setStatus(task, 'success');
+  addLog(task, 'info', '✅ 发布成功完成');
+  ElMessage.success('发布成功');
 };
 
-/** 取消构建 */
+/** 处理发布操作 */
+const handlePublish = async () => {
+  if (!form.projectId) {
+    ElMessage.warning('请选择要发布的项目');
+    return;
+  }
+
+  const project = getProjectById(form.projectId);
+  if (!project) {
+    ElMessage.error('未找到项目配置');
+    return;
+  }
+
+  // 确认发布
+  try {
+    await ElMessageBox.confirm(
+      `确认发布 ${project.platformLabel} - ${project.name}，版本号: ${form.version}`,
+      '确认发布',
+      {
+        confirmButtonText: '确认发布',
+        cancelButtonText: '取消',
+        type: 'info',
+      },
+    );
+  } catch {
+    return;
+  }
+
+  // 创建发布任务
+  const task: PublishTask = {
+    id: `publish_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    projectId: form.projectId,
+    version: form.version,
+    status: 'publishing',
+    progress: 0,
+    logs: [],
+    startTime: Date.now(),
+  };
+
+  currentTask.value = task;
+  isPublishing.value = true;
+
+  addLog(task, 'info', `🚀 开始发布 ${project.platformLabel} - ${project.name}`);
+
+  // 执行发布（当前为模拟，后续接入实际构建程序）
+  await simulatePublish(task);
+
+  task.endTime = Date.now();
+  isPublishing.value = false;
+};
+
+/** 取消发布 */
 const handleCancel = () => {
-  cancelBuild();
-};
-
-/** 重置表单 */
-const handleReset = () => {
-  resetForm();
+  if (currentTask.value) {
+    addLog(currentTask.value, 'warn', '⚠️ 发布已被用户取消');
+    setStatus(currentTask.value, 'failed');
+    isPublishing.value = false;
+  }
 };
 
 /** 清空日志 */
@@ -167,10 +269,11 @@ const handleClearLogs = () => {
   display: flex;
   flex-direction: column;
   padding: 24px;
-  overflow: auto;
+  overflow-y: auto;
+  gap: 16px;
 
   .page-header {
-    margin-bottom: 24px;
+    flex-shrink: 0;
 
     h2 {
       display: flex;
@@ -188,51 +291,63 @@ const handleClearLogs = () => {
     }
   }
 
-  .page-content {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 480px 1fr;
-    gap: 24px;
-    min-height: 0;
+  .section-card {
+    flex-shrink: 0;
 
-    .publish-panel {
-      min-height: 0;
+    .card-title {
+      font-weight: 600;
+      font-size: 15px;
+      color: #303133;
+    }
+  }
 
-      .card-title {
-        font-weight: 600;
-        font-size: 15px;
+  .version-section {
+    .version-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .version-label {
+        flex-shrink: 0;
+        width: 120px;
+        font-size: 14px;
+        color: #606266;
+        font-weight: 500;
       }
 
-      :deep(.el-form-item:last-child) {
-        margin-bottom: 0;
-        padding-top: 8px;
+      .version-value {
+        flex: 1;
+      }
+
+      .version-editor {
+        flex: 1;
       }
     }
+  }
 
-    .status-panel {
+  .empty-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px 0;
+    color: #c0c4cc;
+    font-size: 14px;
+  }
+
+  .action-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .action-info {
+      font-size: 13px;
+      color: #909399;
+    }
+
+    .action-buttons {
       display: flex;
-      flex-direction: column;
-      gap: 16px;
-      min-height: 0;
-
-      .progress-card {
-        flex-shrink: 0;
-      }
-
-      .log-card {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-
-        :deep(.el-card__body) {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          min-height: 0;
-          padding: 0;
-        }
-      }
+      gap: 12px;
     }
   }
 }

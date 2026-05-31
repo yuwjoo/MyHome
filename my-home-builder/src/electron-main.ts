@@ -87,18 +87,22 @@ ipcMain.handle('select-directory', async (): Promise<string | null> => {
 
 /**
  * 读取文件内容
+ * 支持相对路径（基于应用目录解析）
  */
 ipcMain.handle('read-file', async (_event, filePath: string): Promise<string> => {
-  return readFile(filePath, 'utf-8');
+  const resolved = path.isAbsolute(filePath) ? filePath : path.resolve(app.getAppPath(), '..', filePath);
+  return readFile(resolved, 'utf-8');
 });
 
 /**
  * 写入文件
+ * 支持相对路径（基于应用目录解析）
  */
 ipcMain.handle(
   'write-file',
   async (_event, filePath: string, content: string): Promise<void> => {
-    await writeFile(filePath, content, 'utf-8');
+    const resolved = path.isAbsolute(filePath) ? filePath : path.resolve(app.getAppPath(), '..', filePath);
+    await writeFile(resolved, content, 'utf-8');
   },
 );
 
