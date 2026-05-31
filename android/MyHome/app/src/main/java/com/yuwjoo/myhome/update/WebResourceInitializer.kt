@@ -53,6 +53,13 @@ object WebResourceInitializer {
      * @param callback 初始化结果回调
      */
     fun initialize(activity: Activity, scope: CoroutineScope, callback: Callback) {
+        // 开发环境：跳过所有更新检查，直接通知资源就绪
+        if (AppConfig.isDebug) {
+            Log.d(TAG, "开发环境，跳过所有更新检查")
+            callback.onResourcesReady()
+            return
+        }
+
         scope.launch(Dispatchers.Main) {
             try {
                 Log.d(TAG, "开始 Web 资源初始化")

@@ -51,8 +51,11 @@ class WebViewManager(
                 allowContentAccess = true
             }
 
-            // 拦截 http://local-web 请求，映射到本地文件
-            webViewClient = LocalWebResourceInterceptor(activity)
+            // 正式环境：拦截 http://local-web 请求，映射到本地文件
+            // 开发环境：直接加载远程 URL，不需要拦截器
+            if (AppConfig.isRelease) {
+                webViewClient = LocalWebResourceInterceptor(activity)
+            }
         }
     }
 
@@ -94,7 +97,7 @@ class WebViewManager(
             scope = lifecycleScope,
             callback = object : WebResourceInitializer.Callback {
                 override fun onResourcesReady() {
-                    webView.loadUrl(AppConfig.LOCAL_WEB_HOST)
+                    webView.loadUrl(AppConfig.webLoadUrl)
                 }
 
                 override fun onError(message: String) {

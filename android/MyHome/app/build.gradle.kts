@@ -10,6 +10,10 @@ android {
         }
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.yuwjoo.myhome"
         minSdk = 24
@@ -44,9 +48,11 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
+            buildConfigField("boolean", "IS_RELEASE", "true")
         }
         debug {
             // signingConfig 已通过 getByName("debug") 覆盖默认值，无需再指定
+            buildConfigField("boolean", "IS_RELEASE", "false")
         }
     }
     compileOptions {

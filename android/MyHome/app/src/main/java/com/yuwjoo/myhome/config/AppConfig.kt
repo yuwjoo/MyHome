@@ -1,5 +1,7 @@
 package com.yuwjoo.myhome.config
 
+import com.yuwjoo.myhome.BuildConfig
+
 /**
  * 应用全局配置常量
  *
@@ -7,6 +9,16 @@ package com.yuwjoo.myhome.config
  * 方便后续维护和修改。
  */
 object AppConfig {
+
+    // ==================== 环境判断 ====================
+
+    /** 是否为正式发布版本（仅 release buildType 为 true） */
+    val isRelease: Boolean
+        get() = BuildConfig.IS_RELEASE
+
+    /** 是否为开发环境（debug buildType） */
+    val isDebug: Boolean
+        get() = !BuildConfig.IS_RELEASE
 
     // ==================== 远程资源地址 ====================
 
@@ -34,10 +46,21 @@ object AppConfig {
     const val APK_TEMP_NAME = "MyHome.zip"
     const val APK_FILE_NAME = "MyHome.apk"
 
-    // ==================== 虚拟域名 ====================
+    // ==================== WebView 加载地址 ====================
 
-    /** WebView 加载的本地虚拟域名 */
+    /** WebView 加载的本地虚拟域名（正式环境） */
     const val LOCAL_WEB_HOST = "http://local-web"
+
+    /** WebView 加载的开发服务器地址（开发环境） */
+    const val DEV_WEB_URL = "http://47.115.161.79:5173"
+
+    /**
+     * 根据环境返回 WebView 加载地址
+     * - 正式环境：返回本地虚拟域名 [LOCAL_WEB_HOST]
+     * - 开发环境：返回远程开发服务器地址 [DEV_WEB_URL]
+     */
+    val webLoadUrl: String
+        get() = if (isDebug) DEV_WEB_URL else LOCAL_WEB_HOST
 
     // ==================== 元数据文件 ====================
 
