@@ -29,6 +29,7 @@
 /**
  * 项目选择器组件
  * 以平台卡片形式展示可选项目
+ * 使用 unplugin-icons 编译的自定义 SVG 平台图标
  */
 import { projectList, platformIcon, platformColor } from '@/config/projects';
 
@@ -40,6 +41,7 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
 }>();
 
+/** 选择项目 */
 const handleSelect = (id: string) => {
   emit('update:modelValue', id);
 };

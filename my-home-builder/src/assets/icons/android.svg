@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Android 机器人头部 -->
+  <rect x="5" y="6" width="14" height="7" rx="2"/>
+  <!-- 天线 -->
+  <line x1="7.5" y1="3" x2="7.5" y2="6"/>
+  <line x1="16.5" y1="3" x2="16.5" y2="6"/>
+  <!-- 眼睛 -->
+  <circle cx="9" cy="9" r="0.8" fill="currentColor" stroke="none"/>
+  <circle cx="15" cy="9" r="0.8" fill="currentColor" stroke="none"/>
+  <!-- 手臂 -->
+  <line x1="3" y1="10" x2="5" y2="10"/>
+  <line x1="19" y1="10" x2="21" y2="10"/>
+  <!-- 腿部 -->
+  <line x1="10" y1="13" x2="10" y2="17"/>
+  <line x1="14" y1="13" x2="14" y2="17"/>
+</svg>

@@ -3,7 +3,9 @@
     <!-- 顶部标题栏 -->
     <div class="page-header">
       <h2>
-        <el-icon><UploadFilled /></el-icon>
+        <span class="header-icon">
+          <IconPublish />
+        </span>
         MyHome 项目发布
       </h2>
       <p class="page-desc">统一管理 MyHome 各端项目的发布流程</p>
@@ -40,7 +42,9 @@
         </div>
       </div>
       <div v-else class="empty-hint">
-        <el-icon :size="32" color="#c0c4cc"><InfoFilled /></el-icon>
+        <span class="empty-hint-icon">
+          <IconInfo />
+        </span>
         <span>请先选择要发布的项目</span>
       </div>
     </el-card>
@@ -60,9 +64,11 @@
             size="large"
             :loading="isPublishing"
             :disabled="!form.projectId"
-            :icon="UploadFilled"
             @click="handlePublish"
           >
+            <template #icon>
+              <IconPublish />
+            </template>
             {{ isPublishing ? '发布中...' : '开始发布' }}
           </el-button>
           <el-button
@@ -94,10 +100,14 @@
 /**
  * 发布主页面
  * 上下布局：项目选择 → 版本信息 → 发布操作 → 发布进度
+ * 使用 unplugin-icons 编译的自定义 SVG 图标替代 Element Plus 图标
  */
 import { reactive, ref, computed, watch, onMounted } from 'vue';
-import { UploadFilled, InfoFilled } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+
+/** 自定义 SVG 图标 */
+import IconPublish from '~icons/my/publish';
+import IconInfo from '~icons/my/info';
 
 import ProjectSelector from '@/components/ProjectSelector.vue';
 import VersionInput from '@/components/VersionInput.vue';
@@ -284,6 +294,13 @@ const handleClearLogs = () => {
       margin-bottom: 8px;
     }
 
+    .header-icon {
+      display: flex;
+      align-items: center;
+      color: #409EFF;
+      font-size: 24px;
+    }
+
     .page-desc {
       font-size: 14px;
       color: #909399;
@@ -333,6 +350,10 @@ const handleClearLogs = () => {
     padding: 24px 0;
     color: #c0c4cc;
     font-size: 14px;
+
+    .empty-hint-icon {
+      font-size: 32px;
+    }
   }
 
   .action-section {

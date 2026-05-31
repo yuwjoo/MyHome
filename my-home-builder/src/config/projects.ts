@@ -4,6 +4,15 @@
  */
 
 import type { ProjectConfig } from '@/types/publish';
+import type { Component } from 'vue';
+
+/**
+ * 自定义平台图标（SVG，由 unplugin-icons 编译为 Vue 组件）
+ * 图标集名称: 'my'，对应 src/assets/icons/ 目录下的 SVG 文件
+ */
+import IconAndroid from '~icons/my/android';
+import IconHarmony from '~icons/my/harmony';
+import IconMobile from '~icons/my/mobile';
 
 /** 版本清单文件路径（相对于 my-home-builder 目录） */
 export const VERSION_MANIFEST_PATH = '../versionManifest.json';
@@ -54,11 +63,14 @@ export const platformLabel: Record<string, string> = {
   web: 'Web 移动端',
 };
 
-/** 平台图标映射（Element Plus 图标名） */
-export const platformIcon: Record<string, string> = {
-  android: 'Cellphone',
-  harmony: 'Phone',
-  web: 'Monitor',
+/**
+ * 平台图标映射（自定义 SVG 图标组件）
+ * 由 unplugin-icons + FileSystemIconLoader 从 src/assets/icons/ 加载
+ */
+export const platformIcon: Record<string, Component> = {
+  android: IconAndroid,
+  harmony: IconHarmony,
+  web: IconMobile,
 };
 
 /** 平台标签颜色映射 */

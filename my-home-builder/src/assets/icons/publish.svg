@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 火箭主体 - 发布/部署图标 -->
+  <path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.2-6.05 11.28L12 15z"/>
+  <!-- 斜向分隔线 -->
+  <line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/>
+  <!-- 右上角星标 -->
+  <circle cx="19" cy="5" r="1.5" fill="currentColor" stroke="none"/>
+</svg>
