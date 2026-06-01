@@ -3,7 +3,7 @@
  */
 
 import { webview } from '@kit.ArkWeb';
-import { WEB_HOME_URL } from '../../common/config/BaseConfig';
+import { WEB_HOME_URL } from '../common/config/BaseConfig';
 
 @Component
 export struct AppWebView {

@@ -5,13 +5,26 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\YH\\.ohos\\config\\default_MyHome_2E8AS4eZph60nwzMmr08POhHRhraQaI0vUKPMmpk9XU=.cer",
+          "certpath": "C:\\Users\\YH\\.ohos\\config\\personalComputer_MyHome_cD2CeVmM1q3iSc0SaBVikViDoqgxr80gQdbYf466iXk=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001B1FAF17C577D9A8B27AFC9222A461CEC24D73A135CB97921BBC7D11A89CBB97704715000F746C0A",
-          "profile": "C:\\Users\\YH\\.ohos\\config\\default_MyHome_2E8AS4eZph60nwzMmr08POhHRhraQaI0vUKPMmpk9XU=.p7b",
+          "keyPassword": "0000001B78AF614C1BF9625021B4B9110E338A1AAF8257B4D946B8341260E1FB043C0EC8FEE4E7A8648333",
+          "profile": "C:\\Users\\YH\\.ohos\\config\\personalComputer_MyHome_cD2CeVmM1q3iSc0SaBVikViDoqgxr80gQdbYf466iXk=.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\YH\\.ohos\\config\\default_MyHome_2E8AS4eZph60nwzMmr08POhHRhraQaI0vUKPMmpk9XU=.p12",
-          "storePassword": "0000001B3319F5A87816107B2014782E0B4EA445D03FA4B5FDF4739542880B88E12C355834EE637CFF366E"
+          "storeFile": "C:\\Users\\YH\\.ohos\\config\\personalComputer_MyHome_cD2CeVmM1q3iSc0SaBVikViDoqgxr80gQdbYf466iXk=.p12",
+          "storePassword": "0000001B7C89A7E9AD9422DCD3FA3A57F30D1D9D54C17036D8078CA3AFB99ABFB6A89D4838D0F1A09DFF97"
+        }
+      },
+      {
+        "name": "biel",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\YH\\.ohos\\config\\default_MyHome_cD2CeVmM1q3iSc0SaBVikViDoqgxr80gQdbYf466iXk=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001BA9F359C0D6CA27B745997416891B2C5E7215B381AFB6D1EA76B3E7FBFB7C488FEB5823FD99E550",
+          "profile": "C:\\Users\\YH\\.ohos\\config\\default_MyHome_cD2CeVmM1q3iSc0SaBVikViDoqgxr80gQdbYf466iXk=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\YH\\.ohos\\config\\default_MyHome_cD2CeVmM1q3iSc0SaBVikViDoqgxr80gQdbYf466iXk=.p12",
+          "storePassword": "0000001B676F2DCAC8FC8D2C16D24BDBE9B72424FD8644A1793C456D80D6357A61D705F6474B4764F6CF76"
         }
       }
     ],
@@ -19,6 +32,19 @@
       {
         "name": "default",
         "signingConfig": "default",
+        "targetSdkVersion": "6.1.1(24)",
+        "compatibleSdkVersion": "5.0.0(12)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      },
+      {
+        "name": "default-biel",
+        "signingConfig": "biel",
         "targetSdkVersion": "6.1.1(24)",
         "compatibleSdkVersion": "5.0.0(12)",
         "runtimeOS": "HarmonyOS",
@@ -47,7 +73,8 @@
         {
           "name": "default",
           "applyToProducts": [
-            "default"
+            "default",
+            "default-biel"
           ]
         }
       ]

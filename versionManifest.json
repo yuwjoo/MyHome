@@ -2,9 +2,6 @@
   "android": {
     "MyHome": "0.0.5"
   },
-  "harmony": {
-    "MyHome": "0.0.1"
-  },
   "web": {
     "my-home-mobile": "0.0.2"
   }

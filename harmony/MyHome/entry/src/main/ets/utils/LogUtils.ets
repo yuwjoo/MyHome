@@ -12,7 +12,7 @@ export class LogUtils {
    * @param format - 格式化字符串
    * @param args   - 格式化参数
    */
-  static info(tag: string, format: string, ...args: string[]): void {
+  static info<T = null>(tag: string, format: string, ...args: T[]): void {
     hilog.info(DOMAIN, tag, format, ...args);
   }
 
@@ -21,7 +21,7 @@ export class LogUtils {
    * @param format - 格式化字符串
    * @param args   - 格式化参数
    */
-  static error(tag: string, format: string, ...args: string[]): void {
+  static error<T = null>(tag: string, format: string, ...args: T[]): void {
     hilog.error(DOMAIN, tag, format, ...args);
   }
 
@@ -30,7 +30,7 @@ export class LogUtils {
    * @param format - 格式化字符串
    * @param args   - 格式化参数
    */
-  static warn(tag: string, format: string, ...args: string[]): void {
+  static warn<T = null>(tag: string, format: string, ...args: T[]): void {
     hilog.warn(DOMAIN, tag, format, ...args);
   }
 
@@ -39,7 +39,7 @@ export class LogUtils {
    * @param format - 格式化字符串
    * @param args   - 格式化参数
    */
-  static debug(tag: string, format: string, ...args: string[]): void {
+  static debug<T = null>(tag: string, format: string, ...args: T[]): void {
     hilog.debug(DOMAIN, tag, format, ...args);
   }
 }
