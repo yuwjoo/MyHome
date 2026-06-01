@@ -25,14 +25,14 @@ export class ZipExtractor {
    * @throws {Error}  - 解压失败时抛出异常（如文件损坏、路径无权限等）
    */
   static async extract(zipPath: string, outputDir: string): Promise<void> {
-    // 1) 确保输出目录存在
+    // 确保输出目录存在
     try {
       fileIo.mkdirSync(outputDir, true);
     } catch (_e) {
       // 目录已存在时忽略错误
     }
 
-    // 2) 调用系统 zlib API 解压
+    // 调用系统 zlib API 解压
     await zlib.decompressFile(zipPath, outputDir);
   }
 }

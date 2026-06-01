@@ -1,33 +1,16 @@
 /**
  * Web 资源管理模块
- *
- * 职责：
- *   - 从远程 OSS 下载 Web 资源 ZIP 包（支持进度回调）
- *   - 调用 ZipExtractor 解压到应用沙箱持久化目录
- *   - 对外暴露本地资源根路径，供 WebView 加载使用
- *
- * 使用方式：
- *   const mgr = new WebResourceManager(context);
- *   mgr.onProgress = (pct) => { console.log(`${pct}%`); };
- *   await mgr.downloadAndExtract();
- *   // 之后通过 mgr.localDir 获取本地 HTML 入口路径
- *
- * 依赖：
- *   @kit.NetworkKit        → http（HTTP 下载）
- *   @kit.CoreFileKit       → fileIo（文件写入、目录创建）
- *   ./ZipExtractor         → ZIP 解压
- *   ./AppConfig            → 远程地址与本地路径常量
  */
 
 import { http } from '@kit.NetworkKit';
 import { fileIo } from '@kit.CoreFileKit';
 import { ZipExtractor } from './ZipExtractor';
+import { INDEX_FILE } from './config/BaseConfig';
 import {
   WEB_RESOURCE_ZIP_URL,
   LOCAL_WEB_DIR,
-  INDEX_FILE,
   TEMP_ZIP_FILE,
-} from './AppConfig';
+} from './config/VersionUpdateConfig';
 
 /** HTTP 下载进度事件数据结构 */
 interface HttpProgressEvent {

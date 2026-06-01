@@ -1,39 +1,46 @@
 /**
  * 应用主页面
- *
- * 职责：组装 WebView + 沉浸式布局 + 返回键处理
- * 依赖模块：
- *   - common/BackPressHandler — 返回键处理
- *   - webview/AppWebView      — WebView 封装组件
  */
 
 import { webview } from '@kit.ArkWeb';
-
-import { BackPressHandler } from '../common/BackPressHandler';
-import { AppWebView } from '../webview/AppWebView';
+import { DoubleBackExit } from '../common/DoubleBackExit';
+import { AppWebView } from '../components/webview/AppWebView';
 
 @Entry
 @Component
 struct Index {
-  /** WebView 控制器（@Provide 使子组件 AppWebView 可通过 @Consume 获取） */
-  @Provide controller: webview.WebviewController = new webview.WebviewController();
+  private webViewController: webview.WebviewController = new webview.WebviewController(); // WebView 控制器
+  private doubleBackExit: DoubleBackExit = new DoubleBackExit(); // 两次返回退出处理
 
-  /** 返回键处理器（封装双重返回退出 + WebView 回退逻辑） */
-  private backHandler: BackPressHandler = new BackPressHandler(this.controller);
-
-  /** 构建页面 UI */
   build() {
     Column() {
-      AppWebView()
+      AppWebView({ controller: this.webViewController })
     }
     .width('100%')
     .height('100%')
-    // -- 沉浸式布局：内容延伸至状态栏和导航栏 --
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 
-  /** 系统返回键拦截 */
+  /**
+   * 系统返回键拦截
+   *
+   * @returns true = 已消费事件阻止退出，false = 交由系统退出应用
+   */
   onBackPress(): boolean {
-    return this.backHandler.onBackPress();
+    // WebView 内部回退
+    try {
+      if (this.webViewController.accessBackward()) {
+        this.webViewController.backward();
+        return true;
+      }
+    } catch (err) {
+    }
+
+    // 两次返回退出处理
+    if (!this.doubleBackExit.shouldExit()) {
+      return true;
+    }
+
+    return false;
   }
 }

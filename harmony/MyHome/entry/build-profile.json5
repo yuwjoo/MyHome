@@ -5,6 +5,11 @@
       "copyCodeResource": {
         "enable": false
       }
+    },
+    "arkOptions": {
+      "buildProfileFields": {
+        "ENV": "debug"
+      }
     }
   },
   "buildOptionSet": [
@@ -18,6 +23,9 @@
               "./obfuscation-rules.txt"
             ]
           }
+        },
+        "buildProfileFields": {
+          "ENV": "release"
         }
       }
     },
