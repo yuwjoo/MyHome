@@ -6,9 +6,8 @@ import { webview } from '@kit.ArkWeb';
 import { DoubleBackExit } from '../common/DoubleBackExit';
 import { AppWebView } from '../components/AppWebView';
 import { UpdateOverlay } from '../components/UpdateOverlay';
-import { VersionChecker } from '../common/versionUpdate/VersionChecker';
+import { VersionUpdater } from '../common/versionUpdate/VersionUpdater';
 import { UpdateStatus } from '../common/versionUpdate/UpdateStatus';
-import { WebResourceUpdater } from '../common/versionUpdate/WebResourceUpdater';
 
 @Entry
 @Component
@@ -47,34 +46,29 @@ struct Index {
    * 后台检查版本，有新版本时弹窗展示更新进度
    */
   private async checkVersion(): Promise<void> {
-    const checker = new VersionChecker(getContext(this));
-    const newVersion = await checker.hasNewWebVersion();
+    const updater = new VersionUpdater(getContext(this));
+    const hasNew = await updater.hasNewWebVersion();
 
-    if (newVersion === null) {
+    if (!hasNew) {
       return;
     }
 
     this.isUpdating = true;
+    this.updateStatus = UpdateStatus.DOWNLOADING;
+    this.updateMessage = '正在更新Web资源...';
 
-    const updater = new WebResourceUpdater(getContext(this));
-
-    updater.onStatusChange = (status: UpdateStatus, message: string) => {
-      this.updateStatus = status;
-      this.updateMessage = message;
-
-      if (status === UpdateStatus.COMPLETE ||
-          status === UpdateStatus.ERROR) {
-        setTimeout(() => {
-          this.isUpdating = false;
-        }, status === UpdateStatus.COMPLETE ? 1200 : 2000);
-      }
-    };
-
-    updater.onProgress = (percent: number) => {
-      this.updateProgress = percent;
-    };
-
-    await updater.update(newVersion);
+    try {
+      await updater.updateWebResource();
+      this.updateStatus = UpdateStatus.COMPLETE;
+      this.updateMessage = '更新完成';
+    } catch (_e) {
+      this.updateStatus = UpdateStatus.ERROR;
+      this.updateMessage = '更新失败';
+    } finally {
+      setTimeout(() => {
+        this.isUpdating = false;
+      }, 2000);
+    }
   }
 
   /**
