@@ -4,6 +4,7 @@
  */
 
 import { util } from '@kit.ArkTS';
+import { fileIo } from '@kit.CoreFileKit';
 import { FileUtils } from './FileUtils';
 import { VersionUtils } from './VersionUtils';
 import { VersionUpdateConfig } from '../config/VersionUpdateConfig';
@@ -54,14 +55,27 @@ export class VersionUpdater {
 
   /**
    * 更新 Web 资源：下载远程资源包并解压到本地
+   *
+   * @param onProgress - 下载进度回调（0–100）
    */
-  async updateWebResource(): Promise<void> {
+  async updateWebResource(onProgress?: (percent: number) => void): Promise<void> {
     const tempZipPath = this.context.cacheDir + '/update-' + Date.now() + '.zip';
 
+    const manifest = await this.fetchRemoteManifest();
+    const remoteVersion = manifest.web?.['my-home-mobile'];
+
     // 下载 ZIP 到缓存目录
-    await FileUtils.downloadFile(VersionUpdateConfig.webResourceZipUrl, tempZipPath);
+    await FileUtils.downloadFile(
+      VersionUpdateConfig.webResourceZipUrl,
+      tempZipPath,
+      onProgress
+    );
     // 解压到 Web 资源目录
     await FileUtils.extract(tempZipPath, this.localWebDirPath);
+    // 保存版本信息
+    if (remoteVersion) {
+      this.saveLocalVersion(remoteVersion);
+    }
     // 删除临时 ZIP 文件
     FileUtils.delete(tempZipPath);
   }
@@ -86,6 +100,28 @@ export class VersionUpdater {
       return info.version || '0.0.0';
     } catch (_e) {
       return '0.0.0';
+    }
+  }
+
+  /**
+   * 持久化保存版本号到本地文件
+   *
+   * @param version - 新版本号
+   */
+  private saveLocalVersion(version: string): void {
+    try {
+      const data: LocalVersionInfo = { version };
+      const jsonStr = JSON.stringify(data);
+      const uri = this.versionFilePath;
+      const file = fileIo.openSync(uri,
+        fileIo.OpenMode.CREATE | fileIo.OpenMode.WRITE_ONLY | fileIo.OpenMode.TRUNC);
+      try {
+        fileIo.writeSync(file.fd, jsonStr);
+      } finally {
+        fileIo.closeSync(file);
+      }
+    } catch (_e) {
+      // 忽略保存失败
     }
   }
 

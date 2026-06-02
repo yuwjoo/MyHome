@@ -2,40 +2,27 @@
  * 应用主页面
  */
 
+import { router } from '@kit.ArkUI';
 import { webview } from '@kit.ArkWeb';
 import { DoubleBackExit } from '../common/DoubleBackExit';
 import { AppWebView } from '../components/AppWebView';
-import { UpdateOverlay } from '../components/UpdateOverlay';
 import { VersionUpdater } from '../common/versionUpdate/VersionUpdater';
-import { UpdateStatus } from '../common/versionUpdate/UpdateStatus';
 
 @Entry
 @Component
 struct Index {
-  private webViewController: webview.WebviewController =
+  private wvController: webview.WebviewController =
     new webview.WebviewController();
   private doubleBackExit: DoubleBackExit = new DoubleBackExit();
-
-  @State isUpdating: boolean = false; // 是否正在更新（控制弹窗显隐）
-  @State updateStatus: UpdateStatus = UpdateStatus.CHECKING; // 更新状态
-  @State updateMessage: string = ''; // 状态提示文本
-  @State updateProgress: number = 0; // 下载进度（0–100）
+  private needRefresh: boolean = false; // 从更新页返回后需刷新 WebView
 
   aboutToAppear(): void {
-    this.checkVersion();
+    this.checkVersionAndNavigate();
   }
 
   build() {
-    Stack() {
-      AppWebView({ controller: this.webViewController })
-
-      if (this.isUpdating) {
-        UpdateOverlay({
-          updateStatus: this.updateStatus,
-          updateMessage: this.updateMessage,
-          updateProgress: this.updateProgress,
-        })
-      }
+    Column() {
+      AppWebView({ controller: this.wvController })
     }
     .width('100%')
     .height('100%')
@@ -43,9 +30,22 @@ struct Index {
   }
 
   /**
-   * 后台检查版本，有新版本时弹窗展示更新进度
+   * 从更新页面返回时刷新 WebView
    */
-  private async checkVersion(): Promise<void> {
+  onPageShow(): void {
+    if (this.needRefresh) {
+      this.needRefresh = false;
+      try {
+        this.wvController.refresh();
+      } catch (_e) {
+      }
+    }
+  }
+
+  /**
+   * 后台检查版本，有新版本则跳转更新页面
+   */
+  private async checkVersionAndNavigate(): Promise<void> {
     const updater = new VersionUpdater(getContext(this));
     const hasNew = await updater.hasNewWebVersion();
 
@@ -53,22 +53,13 @@ struct Index {
       return;
     }
 
-    this.isUpdating = true;
-    this.updateStatus = UpdateStatus.DOWNLOADING;
-    this.updateMessage = '正在更新Web资源...';
+    this.needRefresh = true;
 
-    try {
-      await updater.updateWebResource();
-      this.updateStatus = UpdateStatus.COMPLETE;
-      this.updateMessage = '更新完成';
-    } catch (_e) {
-      this.updateStatus = UpdateStatus.ERROR;
-      this.updateMessage = '更新失败';
-    } finally {
-      setTimeout(() => {
-        this.isUpdating = false;
-      }, 2000);
-    }
+    router.pushUrl({
+      url: 'pages/UpdatePage',
+    }).catch((_e: Error) => {
+      this.needRefresh = false;
+    });
   }
 
   /**
@@ -77,13 +68,9 @@ struct Index {
    * @returns true = 已消费事件阻止退出，false = 交由系统退出应用
    */
   onBackPress(): boolean {
-    if (this.isUpdating) {
-      return true;
-    }
-
     try {
-      if (this.webViewController.accessBackward()) {
-        this.webViewController.backward();
+      if (this.wvController.accessBackward()) {
+        this.wvController.backward();
         return true;
       }
     } catch (err) {
