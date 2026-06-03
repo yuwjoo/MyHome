@@ -4,10 +4,12 @@
  */
 
 import { util } from '@kit.ArkTS';
-import { fileIo } from '@kit.CoreFileKit';
 import { FileUtils } from './FileUtils';
 import { VersionUtils } from './VersionUtils';
 import { VersionUpdateConfig } from '../config/VersionUpdateConfig';
+import { LogUtils } from '../../utils/LogUtils';
+
+const TAG = 'VersionUpdater'; // 日志标签
 
 /**
  * 远程版本清单 JSON 数据结构
@@ -61,33 +63,37 @@ export class VersionUpdater {
   async updateWebResource(onProgress?: (percent: number) => void): Promise<void> {
     const tempZipPath = this.context.cacheDir + '/update-' + Date.now() + '.zip';
 
-    const manifest = await this.fetchRemoteManifest();
-    const remoteVersion = manifest.web?.['my-home-mobile'];
+    try {
+      // 下载 ZIP 到缓存目录
+      await FileUtils.downloadFile(
+        VersionUpdateConfig.webResourceZipUrl,
+        tempZipPath,
+        onProgress
+      );
 
-    // 下载 ZIP 到缓存目录
-    await FileUtils.downloadFile(
-      VersionUpdateConfig.webResourceZipUrl,
-      tempZipPath,
-      onProgress
-    );
-    // 解压到 Web 资源目录
-    await FileUtils.extract(tempZipPath, this.localWebDirPath);
-    // 保存版本信息
-    if (remoteVersion) {
-      this.saveLocalVersion(remoteVersion);
+      // 解压到 Web 资源目录
+      await FileUtils.extract(tempZipPath, this.localWebDirPath);
+    } catch (err) {
+      LogUtils.error(TAG, '更新 Web 资源失败: %{public}s', JSON.stringify(err));
+    } finally {
+      // 删除临时 ZIP 文件
+      FileUtils.delete(tempZipPath);
     }
-    // 删除临时 ZIP 文件
-    FileUtils.delete(tempZipPath);
   }
 
   /**
    * 获取远程版本清单
    */
   private async fetchRemoteManifest(): Promise<VersionManifest> {
-    const result = await FileUtils.fetchFile(VersionUpdateConfig.versionManifestUrl);
-    const textDecoder = util.TextDecoder.create('utf-8', { ignoreBOM: true });
-    const text = textDecoder.decodeToString(new Uint8Array(result));
-    return JSON.parse(text) as VersionManifest;
+    try {
+      const result = await FileUtils.fetchFile(VersionUpdateConfig.versionManifestUrl);
+      const textDecoder = util.TextDecoder.create('utf-8', { ignoreBOM: true });
+      const text = textDecoder.decodeToString(new Uint8Array(result as ArrayBuffer));
+      return JSON.parse(text) as VersionManifest;
+    } catch (error) {
+      // TODO: Implement error handling.
+      return {}
+    }
   }
 
   /**
@@ -100,28 +106,6 @@ export class VersionUpdater {
       return info.version || '0.0.0';
     } catch (_e) {
       return '0.0.0';
-    }
-  }
-
-  /**
-   * 持久化保存版本号到本地文件
-   *
-   * @param version - 新版本号
-   */
-  private saveLocalVersion(version: string): void {
-    try {
-      const data: LocalVersionInfo = { version };
-      const jsonStr = JSON.stringify(data);
-      const uri = this.versionFilePath;
-      const file = fileIo.openSync(uri,
-        fileIo.OpenMode.CREATE | fileIo.OpenMode.WRITE_ONLY | fileIo.OpenMode.TRUNC);
-      try {
-        fileIo.writeSync(file.fd, jsonStr);
-      } finally {
-        fileIo.closeSync(file);
-      }
-    } catch (_e) {
-      // 忽略保存失败
     }
   }
 

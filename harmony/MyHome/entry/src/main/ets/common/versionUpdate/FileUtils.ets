@@ -15,14 +15,6 @@ interface HttpProgressEvent {
   totalSize: number;
 }
 
-/**
- * 泛型约束：根据 HttpDataType 推断请求文件返回的 JavaScript 类型
- */
-type ResponseType<T extends http.HttpDataType> =
-  T extends http.HttpDataType.STRING ? string :
-  T extends http.HttpDataType.OBJECT ? Object :
-  ArrayBuffer;
-
 export class FileUtils {
   /**
    * 请求文件：通过 HTTP GET 获取远程文件数据
@@ -30,14 +22,14 @@ export class FileUtils {
    * @param url        - 文件下载地址
    * @param dataType   - 响应数据类型，默认为 ARRAY_BUFFER
    * @param onProgress - 下载进度回调（0–100）
-   * @returns 响应数据，类型由 dataType 决定
+   * @returns 响应数据 string | Object | ArrayBuffer
    * @throws {Error} 请求失败时抛出
    */
-  static async fetchFile<T extends http.HttpDataType = http.HttpDataType.ARRAY_BUFFER>(
+  static async fetchFile(
     url: string,
-    dataType?: T,
+    dataType?: http.HttpDataType,
     onProgress?: (percent: number) => void
-  ): Promise<ResponseType<T>> {
+  ): Promise<string | Object | ArrayBuffer> {
     const actualDataType = dataType ?? http.HttpDataType.ARRAY_BUFFER;
     const httpRequest = http.createHttp();
 
@@ -77,7 +69,7 @@ export class FileUtils {
     onProgress?: (percent: number) => void
   ): Promise<void> {
     // 调用请求文件方法获取文件流
-    const result = await this.fetchFile(
+    const result = await FileUtils.fetchFile(
       url,
       http.HttpDataType.ARRAY_BUFFER,
       onProgress
@@ -87,7 +79,7 @@ export class FileUtils {
     ensureDir(destPath.substring(0, destPath.lastIndexOf('/')));
 
     // 流式保存到本地
-    const arr = new Uint8Array(result);
+    const arr = new Uint8Array(result as ArrayBuffer);
     const file = fileIo.openSync(destPath,
       fileIo.OpenMode.CREATE | fileIo.OpenMode.WRITE_ONLY);
     try {

@@ -23,7 +23,11 @@ export default class EntryAbility extends UIAbility {
 
     // 沉浸式：内容绘制到状态栏和导航栏下方
     windowStage.getMainWindow().then((windowClass: window.Window) => {
-      windowClass.setWindowLayoutFullScreen(true);
+      windowClass.setWindowLayoutFullScreen(true).catch(() => {
+        // TODO: Implement error handling.
+      });
+    }).catch(() => {
+      // TODO: Implement error handling.
     });
 
     windowStage.loadContent('pages/Index', (err) => {

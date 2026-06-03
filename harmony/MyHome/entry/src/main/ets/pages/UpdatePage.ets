@@ -4,7 +4,19 @@
 
 import { router } from '@kit.ArkUI';
 import { VersionUpdater } from '../common/versionUpdate/VersionUpdater';
-import { UpdateStatus } from '../common/versionUpdate/UpdateStatus';
+
+/**
+ * 更新阶段状态枚举
+ */
+export enum UpdateStatus {
+  CHECKING = 'checking', // 正在检查版本
+  UP_TO_DATE = 'upToDate', // 已是最新版本
+  DOWNLOADING = 'downloading', // 正在下载更新包
+  EXTRACTING = 'extracting', // 正在解压资源
+  CLEANING = 'cleaning', // 正在清理临时文件
+  COMPLETE = 'complete', // 更新完成
+  ERROR = 'error', // 发生错误
+}
 
 @Entry
 @Component
@@ -14,6 +26,9 @@ struct UpdatePage {
   @State message: string = '正在准备更新...'; // 状态提示文本
   @State progress: number = 0; // 下载进度（0–100）
 
+  /**
+   * 页面初始化时自动启动更新流程
+   */
   aboutToAppear(): void {
     this.startUpdate();
   }
@@ -32,7 +47,7 @@ struct UpdatePage {
       .width('80%')
       .padding(28)
       .borderRadius(16)
-      .backgroundColor('#FFFFFF')
+      .backgroundColor($r('sys.color.comp_background_list_card'))
       .shadow({
         radius: 20,
         color: 'rgba(0,0,0,0.12)',
@@ -46,6 +61,9 @@ struct UpdatePage {
     .backgroundColor('#F5F5F5')
   }
 
+  /**
+   * 下载中 / 解压中 的进度展示视图
+   */
   @Builder
   progressView() {
     LoadingProgress()
@@ -78,6 +96,9 @@ struct UpdatePage {
     }
   }
 
+  /**
+   * 更新完成视图
+   */
   @Builder
   completeView() {
     Text('✓')
@@ -95,6 +116,9 @@ struct UpdatePage {
       .fontColor('#999999')
   }
 
+  /**
+   * 更新失败视图，提供重试和返回按钮
+   */
   @Builder
   errorView() {
     Text('✗')
@@ -134,6 +158,9 @@ struct UpdatePage {
     .width('100%')
   }
 
+  /**
+   * 执行更新流程：下载 → 解压 → 完成跳转
+   */
   private async startUpdate(): Promise<void> {
     try {
       this.status = UpdateStatus.DOWNLOADING;
@@ -155,9 +182,14 @@ struct UpdatePage {
     }
   }
 
+  /**
+   * 返回键拦截：更新中禁止返回，其他状态正常返回
+   *
+   * @returns true = 已消费事件
+   */
   onBackPress(): boolean {
     if (this.status === UpdateStatus.DOWNLOADING ||
-        this.status === UpdateStatus.EXTRACTING) {
+      this.status === UpdateStatus.EXTRACTING) {
       return true; // 更新中禁止返回
     }
     router.back();
