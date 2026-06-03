@@ -5,7 +5,7 @@
 
 import { http } from '@kit.NetworkKit';
 import { fileIo } from '@kit.CoreFileKit';
-import { zlib } from '@kit.BasicServicesKit';
+import { deviceInfo, zlib } from '@kit.BasicServicesKit';
 
 /**
  * HTTP 下载进度事件数据结构
@@ -120,7 +120,12 @@ export class FileUtils {
     } catch (_e) {
       // 目录已存在则忽略
     }
-    await zlib.decompressFile(zipPath, outputDir);
+    if (deviceInfo.sdkApiVersion >= 21) {
+      await zlib.decompressFile(zipPath, outputDir,
+        { pathSeparatorStrategy: zlib.PathSeparatorStrategy.PATH_SEPARATOR_STRATEGY_REPLACE_BACKSLASH });
+    } else {
+      await zlib.decompressFile(zipPath, outputDir);
+    }
   }
 
   /**

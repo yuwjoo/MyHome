@@ -4,18 +4,23 @@
 
 import { webview } from '@kit.ArkWeb';
 import { BaseConfig } from '../common/config/BaseConfig';
+import { LocalWebInterceptor } from '../common/webView/LocalWebInterceptor';
 
 @Component
 export struct AppWebView {
  @Prop controller: webview.WebviewController; // WebView 控制器
+  private interceptor: LocalWebInterceptor = new LocalWebInterceptor(getContext(this)); // 本地资源拦截器
 
   build() {
     Web({ src: BaseConfig.webHomeUrl, controller: this.controller })
-      .domStorageAccess(true)   // 开启 DOM 存储（localStorage / sessionStorage）
-      .javaScriptAccess(true)   // 允许执行 JavaScript
-      .mixedMode(MixedMode.All) // 允许混合内容（HTTP 与 HTTPS 共存）
-      .zoomAccess(false)        // 禁止捏合缩放，保持移动端体验
-      .overviewModeAccess(true) // 概览模式，自动缩放适配屏幕宽度
+      .domStorageAccess(true)          // 开启 DOM 存储（localStorage / sessionStorage）
+      .javaScriptAccess(true)          // 允许执行 JavaScript
+      .mixedMode(MixedMode.All)        // 允许混合内容（HTTP 与 HTTPS 共存）
+      .zoomAccess(false)               // 禁止捏合缩放，保持移动端体验
+      .overviewModeAccess(true)        // 概览模式，自动缩放适配屏幕宽度
+      .onInterceptRequest((event: OnInterceptRequestEvent) => {
+        return this.interceptor.handleRequest(event.request);
+      })
       .width('100%')
       .height('100%')
   }
