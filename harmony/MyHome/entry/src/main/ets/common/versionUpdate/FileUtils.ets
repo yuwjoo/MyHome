@@ -5,7 +5,7 @@
 
 import { http } from '@kit.NetworkKit';
 import { fileIo } from '@kit.CoreFileKit';
-import { deviceInfo, zlib } from '@kit.BasicServicesKit';
+import { Uncompress, Config7z } from '@ohos/oh7zip';
 
 /**
  * HTTP 下载进度事件数据结构
@@ -108,7 +108,7 @@ export class FileUtils {
   }
 
   /**
-   * 解压：将 ZIP 压缩包解压到目标目录
+   * 解压：将 ZIP 压缩包解压到目标目录，使用 7z 引擎自动处理跨平台路径分隔符
    *
    * @param zipPath   - 压缩包路径
    * @param outputDir - 解压到文件路径
@@ -120,11 +120,16 @@ export class FileUtils {
     } catch (_e) {
       // 目录已存在则忽略
     }
-    if (deviceInfo.sdkApiVersion >= 21) {
-      await zlib.decompressFile(zipPath, outputDir,
-        { pathSeparatorStrategy: zlib.PathSeparatorStrategy.PATH_SEPARATOR_STRATEGY_REPLACE_BACKSLASH });
-    } else {
-      await zlib.decompressFile(zipPath, outputDir);
+
+    const uncompress = new Uncompress();
+    const config: Config7z = {
+      src: zipPath,
+      dst: outputDir,
+    };
+
+    const result = await uncompress.extractAsync(config);
+    if (result !== 0) {
+      throw new Error('解压失败，错误码: ' + result);
     }
   }
 
