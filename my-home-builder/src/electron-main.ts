@@ -4,7 +4,7 @@
  */
 
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
-import { exec } from 'node:child_process';
+import { exec, spawn, type ChildProcess } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
@@ -69,6 +69,49 @@ ipcMain.handle(
         } else {
           resolve({ stdout, stderr });
         }
+      });
+    });
+  },
+);
+
+/**
+ * 执行 Shell 命令（实时流式输出）
+ * 通过 IPC 事件将 stdout/stderr 实时推送到渲染进程
+ */
+ipcMain.handle(
+  'spawn-command',
+  async (
+    event,
+    { command, cwd, taskId }: { command: string; cwd: string; taskId: string },
+  ): Promise<{ code: number | null }> => {
+    return new Promise((resolve, reject) => {
+      const child: ChildProcess = spawn(command, [], {
+        shell: true,
+        cwd: path.resolve(app.getAppPath(), '..', cwd),
+        env: { ...process.env, FORCE_COLOR: '1' },
+      });
+
+      child.stdout?.on('data', (data: Buffer) => {
+        const text = data.toString();
+        if (text.trim()) {
+          event.sender.send('command-output', { taskId, type: 'stdout', data: text });
+        }
+      });
+
+      child.stderr?.on('data', (data: Buffer) => {
+        const text = data.toString();
+        if (text.trim()) {
+          event.sender.send('command-output', { taskId, type: 'stderr', data: text });
+        }
+      });
+
+      child.on('close', (code: number | null) => {
+        resolve({ code });
+      });
+
+      child.on('error', (err: Error) => {
+        event.sender.send('command-output', { taskId, type: 'stderr', data: err.message });
+        reject(err);
       });
     });
   },

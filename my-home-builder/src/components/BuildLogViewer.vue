@@ -37,7 +37,7 @@
  * 展示构建过程的实时日志，支持清空和复制
  */
 import { ref, watch, nextTick } from 'vue';
-import type { LogEntry } from '@/types/publish';
+import type { LogEntry } from '@/types/useWebPublish';
 
 const props = defineProps<{
   logs: LogEntry[];

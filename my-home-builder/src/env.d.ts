@@ -21,6 +21,12 @@ interface Window {
   electronAPI: {
     /** 执行 shell 命令 */
     execCommand: (command: string, cwd?: string) => Promise<{ stdout: string; stderr: string }>;
+    /** 执行 shell 命令（实时流式输出） */
+    spawnCommand: (command: string, cwd: string, taskId: string) => Promise<{ code: number | null }>;
+    /** 监听命令实时输出 */
+    onCommandOutput: (callback: (data: { taskId: string; type: 'stdout' | 'stderr'; data: string }) => void) => void;
+    /** 移除命令输出监听 */
+    removeCommandOutputListener: () => void;
     /** 选择目录 */
     selectDirectory: () => Promise<string | null>;
     /** 读取文件 */

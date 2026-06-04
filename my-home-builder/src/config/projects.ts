@@ -3,7 +3,7 @@
  * 管理 MyHome 各端项目的构建信息
  */
 
-import type { ProjectConfig } from '@/types/publish';
+import type { ProjectConfig } from '@/types/useWebPublish';
 import type { Component } from 'vue';
 
 /**
@@ -11,11 +11,13 @@ import type { Component } from 'vue';
  * 图标集名称: 'my'，对应 src/assets/icons/ 目录下的 SVG 文件
  */
 import IconAndroid from '~icons/my/android';
-import IconHarmony from '~icons/my/harmony';
 import IconMobile from '~icons/my/mobile';
 
 /** 版本清单文件路径（相对于 my-home-builder 目录） */
-export const VERSION_MANIFEST_PATH = '../versionManifest.json';
+export const VERSION_MANIFEST_PATH = 'versionManifest.json';
+
+/** Web 项目路径（相对于 my-home-builder 目录） */
+export const WEB_PROJECT_PATH = 'web/my-home-mobile';
 
 /** 项目配置列表 */
 export const projectList: ProjectConfig[] = [
@@ -28,16 +30,6 @@ export const projectList: ProjectConfig[] = [
     path: '../android/MyHome',
     buildCommand: './gradlew assembleRelease',
     outputDir: 'app/build/outputs/apk/release',
-  },
-  {
-    id: 'harmony-myhome',
-    name: 'MyHome',
-    platform: 'harmony',
-    platformLabel: '鸿蒙端',
-    manifestKey: 'harmony.MyHome',
-    path: '../harmony/MyHome',
-    buildCommand: 'hvigorw assembleHap --mode module -p product=default',
-    outputDir: 'entry/build/default/outputs/default',
   },
   {
     id: 'web-myhome',
@@ -58,7 +50,6 @@ export const getProjectById = (id: string): ProjectConfig | undefined => {
 
 /** 平台中文映射 */
 export const platformLabel: Record<string, string> = {
-  harmony: '鸿蒙端',
   android: 'Android 端',
   web: 'Web 移动端',
 };
@@ -69,13 +60,11 @@ export const platformLabel: Record<string, string> = {
  */
 export const platformIcon: Record<string, Component> = {
   android: IconAndroid,
-  harmony: IconHarmony,
   web: IconMobile,
 };
 
 /** 平台标签颜色映射 */
 export const platformColor: Record<string, string> = {
   android: '#67C23A',
-  harmony: '#E6A23C',
   web: '#409EFF',
 };

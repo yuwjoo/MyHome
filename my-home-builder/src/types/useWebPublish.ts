@@ -3,7 +3,7 @@
  */
 
 /** 项目平台类型 */
-export type PlatformType = 'harmony' | 'android' | 'web';
+export type PlatformType = 'android' | 'web';
 
 /** 构建任务状态 */
 export type BuildStatus = 'idle' | 'publishing' | 'success' | 'failed';
