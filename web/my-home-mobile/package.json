@@ -1,6 +1,6 @@
 {
   "name": "my-home-mobile",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --noEmit",
     "publish": "node --import jiti/register scripts/publish.ts",
+    "publish:manifest": "node --import jiti/register scripts/publish-manifest.ts",
     "lint": "run-s lint:*",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",

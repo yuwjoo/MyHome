@@ -11,6 +11,40 @@
       <p class="page-desc">统一管理 MyHome 各端项目的发布流程</p>
     </div>
 
+    <!-- 0. 版本清单 -->
+    <el-card shadow="hover" class="section-card">
+      <template #header>
+        <div class="manifest-header">
+          <span class="card-title">版本清单</span>
+          <el-button
+            type="primary"
+            :loading="publishingManifest"
+            @click="handlePublishManifest"
+          >
+            {{ publishingManifest ? '更新中...' : '更新版本清单' }}
+          </el-button>
+        </div>
+      </template>
+      <div class="manifest-list" v-loading="manifestLoading">
+        <div
+          v-for="proj in projectEntries"
+          :key="proj.id"
+          class="manifest-item"
+        >
+          <span class="manifest-dot" :style="{ background: platformColor[proj.platform] }" />
+          <span class="manifest-platform-label">{{ platformLabel[proj.platform] }}</span>
+          <span class="manifest-project-name">{{ proj.name }}</span>
+          <el-tag type="info" size="small" effect="plain">v{{ proj.version }}</el-tag>
+        </div>
+        <div v-if="!manifestLoading && projectEntries.length === 0" class="manifest-empty">
+          <span class="manifest-empty-icon">
+            <IconInfo />
+          </span>
+          <span>暂无版本信息</span>
+        </div>
+      </div>
+    </el-card>
+
     <!-- 1. 选择项目 -->
     <el-card shadow="hover" class="section-card">
       <template #header>
@@ -89,7 +123,7 @@
         <span class="card-title">发布进度</span>
       </template>
       <BuildProgress
-        :task="currentTask"
+        :task="taskForBuild"
         @clear="handleClearLogs"
       />
     </el-card>
@@ -113,9 +147,10 @@ import ProjectSelector from '@/components/ProjectSelector.vue';
 import VersionInput from '@/components/VersionInput.vue';
 import BuildProgress from '@/components/BuildProgress.vue';
 
-import { useVersionManifest } from '@/hooks/useVersionManifest';
-import { getProjectById } from '@/config/projects';
-import type { PublishTask, LogEntry, BuildStatus } from '@/types/publish';
+import { useVersionManifest } from '@/composables/useVersionManifest';
+import { useWebPublish } from '@/composables/useWebPublish';
+import { getProjectById, projectList, platformLabel, platformColor, VERSION_MANIFEST_PATH, WEB_PROJECT_PATH } from '@/config/projects';
+import type { PublishTask } from '@/types/useWebPublish';
 
 // -- 版本清单 Hook --
 const {
@@ -126,15 +161,40 @@ const {
   updateVersion,
 } = useVersionManifest();
 
+// -- Web 发布 Hook --
+const {
+  currentTask,
+  isPublishing,
+  startPublish,
+  cancelPublish,
+  clearLogs,
+} = useWebPublish();
+
+/** Ref 自动解包后的任务对象，解决 TS 插件类型推断问题 */
+const taskForBuild = computed(() => currentTask.value);
+
+// -- 版本清单发布状态 --
+const publishingManifest = ref(false);
+
 // -- 表单数据 --
 const form = reactive({
   projectId: '',
   version: '0.0.0',
 });
 
-// -- 发布任务状态 --
-const currentTask = ref<PublishTask | null>(null);
-const isPublishing = ref(false);
+/** 从 manifest 计算各项目条目（供版本清单展示） */
+const projectEntries = computed(() => {
+  return projectList.map((p) => {
+    const [platform, projectName] = p.manifestKey.split('.');
+    const version = manifest.value[platform]?.[projectName] || '-';
+    return {
+      id: p.id,
+      name: p.name,
+      platform: p.platform,
+      version,
+    };
+  });
+});
 
 /** 当前选中项目的最新版本号 */
 const currentLatestVersion = computed(() => {
@@ -159,50 +219,34 @@ onMounted(() => {
   loadManifest();
 });
 
-/** 添加日志 */
-const addLog = (task: PublishTask, level: LogEntry['level'], message: string) => {
-  task.logs.push({
-    timestamp: Date.now(),
-    level,
-    message,
-  });
-};
+/** 发布版本清单：先写本地文件，再通过 npm script 上传 OSS */
+const handlePublishManifest = async () => {
+  publishingManifest.value = true;
+  try {
+    // 确保 manifest 已写入本地文件
+    await window.electronAPI.writeFile(
+      VERSION_MANIFEST_PATH,
+      JSON.stringify(manifest.value, null, 2) + '\n',
+    );
 
-/** 更新任务状态 */
-const setStatus = (task: PublishTask, status: BuildStatus) => {
-  task.status = status;
-};
+    // 执行发布清单命令
+    const result = await window.electronAPI.spawnCommand(
+      'npm run publish:manifest',
+      WEB_PROJECT_PATH,
+      `manifest_${Date.now()}`,
+    );
 
-/** 模拟发布进度 */
-const simulatePublish = async (task: PublishTask) => {
-  const project = getProjectById(task.projectId);
-  if (!project) return;
-
-  const steps = [
-    { message: `📦 准备发布 ${project.platformLabel} - ${project.name}`, progress: 10 },
-    { message: `📋 版本号: ${task.version}`, progress: 15 },
-    { message: '🔧 执行构建命令...', progress: 30 },
-    { message: `⚡ 执行: ${project.buildCommand}`, progress: 40 },
-    { message: '📂 工作目录: ' + project.path, progress: 50 },
-    { message: '🔨 编译中...', progress: 65 },
-    { message: '📦 打包中...', progress: 75 },
-    { message: '🚀 发布中...', progress: 85 },
-    { message: '📝 更新版本清单...', progress: 92 },
-  ];
-
-  for (const step of steps) {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    addLog(task, 'info', step.message);
-    task.progress = step.progress;
+    if (result.code === 0) {
+      ElMessage.success('版本清单发布成功');
+    } else {
+      ElMessage.error(`版本清单发布失败，退出码: ${result.code}`);
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    ElMessage.error(`版本清单发布失败: ${msg}`);
+  } finally {
+    publishingManifest.value = false;
   }
-
-  // 更新版本清单
-  await updateVersion(task.projectId, task.version);
-
-  task.progress = 100;
-  setStatus(task, 'success');
-  addLog(task, 'info', '✅ 发布成功完成');
-  ElMessage.success('发布成功');
 };
 
 /** 处理发布操作 */
@@ -244,32 +288,22 @@ const handlePublish = async () => {
     startTime: Date.now(),
   };
 
-  currentTask.value = task;
-  isPublishing.value = true;
-
-  addLog(task, 'info', `🚀 开始发布 ${project.platformLabel} - ${project.name}`);
-
-  // 执行发布（当前为模拟，后续接入实际构建程序）
-  await simulatePublish(task);
-
-  task.endTime = Date.now();
-  isPublishing.value = false;
+  // 启动发布流程（hook 内部管理日志输出和状态更新）
+  try {
+    await startPublish(task);
+  } catch {
+    // 错误日志已在 hook 内部输出
+  }
 };
 
 /** 取消发布 */
 const handleCancel = () => {
-  if (currentTask.value) {
-    addLog(currentTask.value, 'warn', '⚠️ 发布已被用户取消');
-    setStatus(currentTask.value, 'failed');
-    isPublishing.value = false;
-  }
+  cancelPublish();
 };
 
 /** 清空日志 */
 const handleClearLogs = () => {
-  if (currentTask.value) {
-    currentTask.value.logs = [];
-  }
+  clearLogs();
 };
 </script>
 
@@ -353,6 +387,60 @@ const handleClearLogs = () => {
 
     .empty-hint-icon {
       font-size: 32px;
+    }
+  }
+
+  .manifest-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .manifest-list {
+    .manifest-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+
+      &:not(:last-child) {
+        border-bottom: 1px solid #ebeef5;
+      }
+
+      .manifest-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .manifest-platform-label {
+        flex-shrink: 0;
+        width: 100px;
+        font-size: 14px;
+        color: #606266;
+        font-weight: 500;
+      }
+
+      .manifest-project-name {
+        flex: 1;
+        font-size: 14px;
+        color: #303133;
+      }
+    }
+
+    .manifest-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 24px 0;
+      color: #c0c4cc;
+      font-size: 14px;
+
+      .manifest-empty-icon {
+        font-size: 32px;
+      }
     }
   }
 

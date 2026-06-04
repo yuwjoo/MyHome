@@ -3,6 +3,7 @@
  * 路由入口 —— 按业务域分模块加载，减少单文件体量
  */
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAppStore } from '@/stores/app'
 import { authRoutes }    from './modules/auth'
 import { homeRoutes }    from './modules/home'
 import { deviceRoutes }  from './modules/devices'
@@ -33,6 +34,20 @@ const router = createRouter({
     // 正常路由跳转：回到顶部
     return { top: 0 }
   },
+})
+
+/**
+ * 全局路由守卫：默认所有路由需要登录，meta.isPublic 设为 true 可跳过认证
+ */
+router.beforeEach((to, _from, next) => {
+  const isPublic = to.meta.isPublic === true
+  const appStore = useAppStore()
+
+  if (!isPublic && !appStore.isLoggedIn) {
+    next({ name: 'login', query: { redirect: to.fullPath } })
+  } else {
+    next()
+  }
 })
 
 export default router

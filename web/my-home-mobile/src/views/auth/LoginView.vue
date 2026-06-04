@@ -72,11 +72,12 @@
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { UserIcon, LockIcon, EyeIcon, EyeOffIcon, ArrowRightIcon } from 'lucide-vue-next'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { systemAuthLogin } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const phone = ref('')
@@ -99,7 +100,9 @@ async function handleLogin() {
     if (response.data.code === 20200) {
       toast.success('登录成功')
       authStore.login(response.data.data.token, response.data.data.user)
-      router.push('/')
+      // 有 redirect 参数则跳回原页面，否则去首页
+      const redirect = (route.query.redirect as string) || '/'
+      router.push(redirect)
     }
   } catch {
     // 网络异常等已在拦截器中通过 toast 提示

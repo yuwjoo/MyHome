@@ -60,7 +60,7 @@
  * 展示发布进度、状态、耗时及实时日志
  */
 import { computed, ref, watch, nextTick, onUnmounted } from 'vue';
-import type { PublishTask, BuildStatus, LogEntry } from '@/types/publish';
+import type { PublishTask, BuildStatus, LogEntry } from '@/types/useWebPublish';
 
 const props = defineProps<{
   task: PublishTask | null;
