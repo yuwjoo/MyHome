@@ -11,9 +11,7 @@ export interface AliyunConfig {
     bucket: string; // OSS Bucket名称
     region: string; // OSS所属地域
     endpoint: string; // OSS节点
-    storagePublicRootDir: string; // 存储公共根目录
-    storagePostRootDir: string; // 存储说说根目录
-    storageCloudDriveRootDir: string; // 存储云盘根目录
+    storageBaseDir: string; // 存储基础目录
     uploadSignExpireSecond: number; // 上传签名过期时间（秒）
     downloadSignExpireSecond: number; // 下载签名过期时间（秒）
     uploadCbServerUrl: string; // oss上传回调服务器地址
@@ -35,9 +33,7 @@ export default registerAs('aliyun', (): AliyunConfig => {
       bucket: 'yuwjoo-my-home',
       region: 'oss-cn-shenzhen',
       endpoint: 'https://oss-cn-shenzhen.aliyuncs.com',
-      storagePublicRootDir: process.env.OSS_BASE_DIR + 'public/',
-      storagePostRootDir: process.env.OSS_BASE_DIR + 'postsFiles/',
-      storageCloudDriveRootDir: process.env.OSS_BASE_DIR + 'cloudDrive/',
+      storageBaseDir: process.env.OSS_BASE_DIR || '',
       uploadSignExpireSecond: 10800,
       downloadSignExpireSecond: 60,
       uploadCbServerUrl: process.env.OSS_UPLOAD_CB_SERVER_URL || '',

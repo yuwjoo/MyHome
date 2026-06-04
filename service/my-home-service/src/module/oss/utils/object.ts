@@ -7,7 +7,9 @@ import path from 'path';
  * @return {string} object
  */
 export function generateOssObject(name: string): string {
+  const storageBaseDir = process.env.OSS_BASE_DIR || '';
   return path.posix.join(
+    storageBaseDir,
     moment().format('YYYY-MM-DD'),
     `${Date.now()}-${name}`,
   );
