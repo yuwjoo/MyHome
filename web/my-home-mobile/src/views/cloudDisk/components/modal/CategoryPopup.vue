@@ -1,38 +1,7 @@
-<script setup lang="ts">
-import { watch } from 'vue'
-import type { FileTypeFilter } from '../data'
-import { TYPE_TABS, TAB_COLORS } from '../composables/useTypeFilter'
-
-const props = defineProps<{
-  /** 是否显示弹窗 */
-  visible: boolean
-  /** 当前激活的筛选类型 */
-  activeFilter: FileTypeFilter
-}>()
-
-const emit = defineEmits<{
-  /** 选中某个分类 */
-  select: [key: FileTypeFilter]
-  /** 关闭弹窗 */
-  close: []
-}>()
-
-/** 打开时锁定 body 滚动，关闭时恢复 */
-watch(
-  () => props.visible,
-  (v) => {
-    document.body.style.overflow = v ? 'hidden' : ''
-  },
-)
-
-/** 将 tabs 按每行 3 个分组 */
-const TAB_ROWS = [
-  [TYPE_TABS[0], TYPE_TABS[1], TYPE_TABS[2]],
-  [TYPE_TABS[3], TYPE_TABS[4], TYPE_TABS[5]],
-  [TYPE_TABS[6], null, null],
-] as const
-</script>
-
+<!--
+  分类选择器组件
+  底部弹出的文件类型筛选面板
+-->
 <template>
   <!-- 分类选择遮罩层 -->
   <div
@@ -78,3 +47,36 @@ const TAB_ROWS = [
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { watch } from 'vue'
+import type { FileTypeFilter } from '../../data'
+import { TYPE_TABS, TAB_COLORS } from '../../composables/useTypeFilter'
+
+const props = defineProps<{
+  /** 是否显示分类选择器 */
+  visible: boolean
+  /** 当前激活的筛选类型 */
+  activeFilter: FileTypeFilter
+}>()
+
+const emit = defineEmits<{
+  /** 选中某个分类，传递分类 key */
+  select: [key: FileTypeFilter]
+  /** 关闭选择器 */
+  close: []
+}>()
+
+watch(
+  () => props.visible,
+  (v) => {
+    document.body.style.overflow = v ? 'hidden' : ''
+  },
+)
+
+const TAB_ROWS = [
+  [TYPE_TABS[0], TYPE_TABS[1], TYPE_TABS[2]],
+  [TYPE_TABS[3], TYPE_TABS[4], TYPE_TABS[5]],
+  [TYPE_TABS[6], null, null],
+] as const
+</script>

@@ -1,3 +1,24 @@
+<!--
+  文件图标展示组件
+  根据文件类型渲染对应的图标或缩略图
+-->
+<template>
+  <div
+    class="flex items-center justify-center rounded-2xl flex-shrink-0 overflow-hidden"
+    :class="showThumbnail ? '' : cfg.bgClass"
+    :style="{ width: containerSize + 'px', height: containerSize + 'px' }"
+  >
+    <img
+      v-if="showThumbnail"
+      :src="thumbnailUrl!"
+      class="w-full h-full object-cover"
+      :alt="filePath ?? ''"
+      @error="thumbnailError = true"
+    />
+    <component :is="cfg.Icon" v-else :size="size" :class="cfg.colorClass" :stroke-width="1.6" />
+  </div>
+</template>
+
 <script setup lang="ts">
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import {
@@ -7,7 +28,9 @@ import type { FileType } from '@/types'
 import { loadThumbnail, revokeThumbnail } from '@/utils/thumbnail'
 
 const props = withDefaults(defineProps<{
+  /** 文件类型，决定渲染哪个图标 */
   type: FileType
+  /** 图标尺寸 */
   size?: number
   /** 文件路径，仅 image 类型需要，用于加载缩略图 */
   filePath?: string
@@ -59,21 +82,3 @@ onBeforeUnmount(() => {
   if (props.filePath) revokeThumbnail(props.filePath)
 })
 </script>
-
-<template>
-  <div
-    data-cmp="FileIconDisplay"
-    class="flex items-center justify-center rounded-2xl flex-shrink-0 overflow-hidden"
-    :class="showThumbnail ? '' : cfg.bgClass"
-    :style="{ width: containerSize + 'px', height: containerSize + 'px' }"
-  >
-    <img
-      v-if="showThumbnail"
-      :src="thumbnailUrl!"
-      class="w-full h-full object-cover"
-      :alt="filePath ?? ''"
-      @error="thumbnailError = true"
-    />
-    <component :is="cfg.Icon" v-else :size="size" :class="cfg.colorClass" :stroke-width="1.6" />
-  </div>
-</template>

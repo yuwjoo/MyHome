@@ -6,10 +6,10 @@ import { ArrowLeftIcon, SearchIcon, XCircleIcon, MoreHorizontalIcon } from 'luci
 import type { FileItem } from '@/types'
 import { fetchFileList, deleteFile, renameFile } from './data'
 import { useFileActions } from './composables/useFileActions'
-import FileIconDisplay from './components/FileIconDisplay.vue'
-import FileActionSheet from './components/FileActionSheet.vue'
-import DeleteDialog from './components/DeleteDialog.vue'
-import RenameDialog from './components/RenameDialog.vue'
+import FileItemIcon from './components/file/FileItemIcon.vue'
+import FileActionBottomBar from './components/file/FileActionBottomBar.vue'
+import DeleteDialog from './components/modal/DeleteDialog.vue'
+import RenameDialog from './components/modal/RenameDialog.vue'
 
 const router = useRouter()
 const { fileActionTarget, downloadCount, openFileAction, closeFileAction, doDownload } = useFileActions()
@@ -148,7 +148,7 @@ function formatDate(str: string) {
     />
 
     <!-- File Action Sheet -->
-    <FileActionSheet
+    <FileActionBottomBar
       :visible="fileActionTarget !== null"
       :file="fileActionTarget"
       @close="closeFileAction"
@@ -214,7 +214,7 @@ function formatDate(str: string) {
           :style="{ animationDelay: `${i * 0.04}s` }"
           @click="file.type !== 'folder' && navigateToFileDetail(file)"
         >
-          <FileIconDisplay :type="file.type" :size="20" />
+          <FileItemIcon :type="file.type" :size="20" />
           <div class="flex-1 min-w-0">
             <div class="text-sm font-medium text-foreground truncate">{{ file.name }}</div>
             <div class="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">

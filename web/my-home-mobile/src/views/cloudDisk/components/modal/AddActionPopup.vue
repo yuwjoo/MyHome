@@ -1,138 +1,9 @@
-<script setup lang="ts">
-import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
-import { UploadIcon, FolderPlusIcon, XIcon, LoaderCircleIcon } from 'lucide-vue-next'
-import { toast } from 'vue-sonner'
-import { createFolder } from '../data'
-import { uploadToOss } from '@/utils/oss/uploadFile'
-import { cloudDiskCreate } from '@/api'
-
-/**
- * 新建操作面板（上传文件 / 新建文件夹）
- * parentPath: 当前所在目录路径，用于创建文件夹时确定位置
- */
-const props = withDefaults(defineProps<{
-  visible?: boolean
-  parentPath?: string
-}>(), {
-  visible: false,
-  parentPath: '/',
-})
-
-const emit = defineEmits<{
-  close: []
-  created: []
-}>()
-
-// ── 面板动画 ──
-const animClass = ref('')
-const rendered = ref(false)
-let timer: ReturnType<typeof setTimeout> | null = null
-
-watch(() => props.visible, (val) => {
-  if (val) {
-    rendered.value = true
-    document.body.style.overflow = 'hidden'
-    nextTick(() => { animClass.value = 'add-sheet-enter' })
-  } else {
-    animClass.value = 'add-sheet-leave'
-    document.body.style.overflow = ''
-    if (timer) clearTimeout(timer)
-    timer = setTimeout(() => { rendered.value = false }, 240)
-  }
-})
-
-onBeforeUnmount(() => {
-  if (timer) clearTimeout(timer)
-})
-
-// ── 新建文件夹弹窗 ──
-const folderDialogOpen = ref(false)
-const folderName = ref('')
-const creating = ref(false)
-const inputRef = ref<HTMLInputElement | null>(null)
-
-watch(folderDialogOpen, (val) => {
-  if (val) {
-    folderName.value = ''
-    setTimeout(() => inputRef.value?.focus(), 50)
-  }
-})
-
-// ── 文件上传 ──
-const fileInputRef = ref<HTMLInputElement | null>(null)
-const uploading = ref(false)
-const uploadFileName = ref('')
-const uploadProgress = ref(0)
-const uploadStage = ref<'idle' | 'hashing' | 'transferring'>('idle')
-
-/** 点击"上传文件" → 打开系统文件选择器 */
-function handleUploadFile() {
-  fileInputRef.value?.click()
-}
-
-/** 文件选择后的上传流程：选文件 → OSS 上传 → 创建云盘记录 */
-async function onFileSelected(e: Event) {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-
-  uploadFileName.value = file.name
-  uploading.value = true
-  uploadProgress.value = 0
-  uploadStage.value = 'hashing'
-
-  try {
-    const ossObjectRefId = await uploadToOss(file, {
-      onProgress: (percent) => {
-        uploadProgress.value = percent
-        if (percent > 0) uploadStage.value = 'transferring'
-      },
-    })
-
-    // 在云盘创建文件记录
-    const destPath = props.parentPath === '/'
-      ? `/${file.name}`
-      : `${props.parentPath}/${file.name}`
-
-    await cloudDiskCreate({ path: destPath, type: 'file', ossObjectRefId })
-
-    toast.success(`文件「${file.name}」上传成功`)
-    emit('created')
-    emit('close')
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : '上传失败，请重试'
-    toast.error(msg)
-  } finally {
-    uploading.value = false
-    uploadFileName.value = ''
-    uploadProgress.value = 0
-    uploadStage.value = 'idle'
-    // 重置 input，允许再次选择同一文件
-    input.value = ''
-  }
-}
-
-// ── 新建文件夹 ──
-async function handleCreateFolder() {
-  const trimmed = folderName.value.trim()
-  if (!trimmed || creating.value) return
-  creating.value = true
-  try {
-    await createFolder(trimmed, props.parentPath)
-    folderDialogOpen.value = false
-    toast.success(`文件夹「${trimmed}」已创建`)
-    emit('created')
-    emit('close')
-  } catch {
-    // 错误已在拦截器中通过 toast 提示
-  } finally {
-    creating.value = false
-  }
-}
-</script>
-
+<!--
+  新建操作面板组件
+  支持上传文件和新建文件夹
+-->
 <template>
-  <div data-cmp="AddSheet" class="fixed inset-0 z-50" :class="{ 'pointer-events-none': !rendered }">
+  <div class="fixed inset-0 z-50" :class="{ 'pointer-events-none': !rendered }">
     <!-- 遮罩层 -->
     <div
       class="absolute inset-0 transition-opacity duration-200"
@@ -276,3 +147,132 @@ async function handleCreateFolder() {
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
+import { UploadIcon, FolderPlusIcon, XIcon, LoaderCircleIcon } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
+import { createFolder } from '../../data'
+import { uploadToOss } from '@/utils/oss/uploadFile'
+import { cloudDiskCreate } from '@/api'
+
+const props = withDefaults(defineProps<{
+  /** 是否显示新建面板 */
+  visible?: boolean
+  /** 当前所在目录路径 */
+  parentPath?: string
+}>(), {
+  visible: false,
+  parentPath: '/',
+})
+
+const emit = defineEmits<{
+  /** 关闭新建面板 */
+  close: []
+  /** 文件或文件夹创建成功 */
+  created: []
+}>()
+
+// ── 面板动画 ──
+const animClass = ref('')
+const rendered = ref(false)
+let timer: ReturnType<typeof setTimeout> | null = null
+
+watch(() => props.visible, (val) => {
+  if (val) {
+    rendered.value = true
+    document.body.style.overflow = 'hidden'
+    nextTick(() => { animClass.value = 'add-sheet-enter' })
+  } else {
+    animClass.value = 'add-sheet-leave'
+    document.body.style.overflow = ''
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => { rendered.value = false }, 240)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (timer) clearTimeout(timer)
+})
+
+// ── 新建文件夹弹窗 ──
+const folderDialogOpen = ref(false)
+const folderName = ref('')
+const creating = ref(false)
+const inputRef = ref<HTMLInputElement | null>(null)
+
+watch(folderDialogOpen, (val) => {
+  if (val) {
+    folderName.value = ''
+    setTimeout(() => inputRef.value?.focus(), 50)
+  }
+})
+
+// ── 文件上传 ──
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const uploading = ref(false)
+const uploadFileName = ref('')
+const uploadProgress = ref(0)
+const uploadStage = ref<'idle' | 'hashing' | 'transferring'>('idle')
+
+function handleUploadFile() {
+  fileInputRef.value?.click()
+}
+
+async function onFileSelected(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  uploadFileName.value = file.name
+  uploading.value = true
+  uploadProgress.value = 0
+  uploadStage.value = 'hashing'
+
+  try {
+    const ossObjectRefId = await uploadToOss(file, {
+      onProgress: (percent) => {
+        uploadProgress.value = percent
+        if (percent > 0) uploadStage.value = 'transferring'
+      },
+    })
+
+    const destPath = props.parentPath === '/'
+      ? `/${file.name}`
+      : `${props.parentPath}/${file.name}`
+
+    await cloudDiskCreate({ path: destPath, type: 'file', ossObjectRefId })
+
+    toast.success(`文件「${file.name}」上传成功`)
+    emit('created')
+    emit('close')
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : '上传失败，请重试'
+    toast.error(msg)
+  } finally {
+    uploading.value = false
+    uploadFileName.value = ''
+    uploadProgress.value = 0
+    uploadStage.value = 'idle'
+    input.value = ''
+  }
+}
+
+// ── 新建文件夹 ──
+async function handleCreateFolder() {
+  const trimmed = folderName.value.trim()
+  if (!trimmed || creating.value) return
+  creating.value = true
+  try {
+    await createFolder(trimmed, props.parentPath)
+    folderDialogOpen.value = false
+    toast.success(`文件夹「${trimmed}」已创建`)
+    emit('created')
+    emit('close')
+  } catch {
+    // 错误已在拦截器中通过 toast 提示
+  } finally {
+    creating.value = false
+  }
+}
+</script>

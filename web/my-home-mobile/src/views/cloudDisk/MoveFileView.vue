@@ -5,7 +5,7 @@ import { toast } from 'vue-sonner'
 import { ArrowLeftIcon, FolderIcon } from 'lucide-vue-next'
 import { loadFolderChildren, moveFile } from './data'
 import type { FolderNode } from './data'
-import FolderTreeNode from './components/FolderTreeNode.vue'
+import FolderTreeNode from './components/file/FolderTreeNode.vue'
 
 interface MoveFileState {
   name?: string

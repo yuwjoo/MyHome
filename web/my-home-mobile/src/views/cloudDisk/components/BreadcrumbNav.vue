@@ -1,18 +1,9 @@
-<script setup lang="ts">
-import { ChevronRightIcon, HomeIcon } from 'lucide-vue-next'
-import type { BreadcrumbItem } from '@/types'
-
-defineProps<{
-  items?: BreadcrumbItem[]
-}>()
-
-const emit = defineEmits<{
-  navigate: [path: string]
-}>()
-</script>
-
+<!--
+  面包屑导航组件
+  展示当前文件夹路径并支持点击跳转
+-->
 <template>
-  <div data-cmp="BreadcrumbNav" class="flex items-center gap-1 px-5 py-2 overflow-x-auto">
+  <div class="flex items-center gap-1 px-5 py-2 overflow-x-auto">
     <div
       v-for="(item, index) in (items ?? [{ label: '全部文件', path: '/' }])"
       :key="item.path"
@@ -37,3 +28,18 @@ const emit = defineEmits<{
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ChevronRightIcon, HomeIcon } from 'lucide-vue-next'
+import type { BreadcrumbItem } from '@/types'
+
+defineProps<{
+  /** 面包屑路径项列表，每个项包含标签和路径 */
+  items?: BreadcrumbItem[]
+}>()
+
+const emit = defineEmits<{
+  /** 点击面包屑项时触发，传递目标路径 */
+  navigate: [path: string]
+}>()
+</script>

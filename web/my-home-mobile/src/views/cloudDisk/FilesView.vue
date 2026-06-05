@@ -47,39 +47,7 @@
     />
 
     <!-- ==================== 顶部操作栏 ==================== -->
-    <header class="px-5 pt-10 pb-4 bg-transparent flex items-center justify-between gap-2">
-      <button
-        @click="router.push('/search')"
-        class="flex items-center gap-2 h-10 px-3.5 rounded-2xl bg-card border border-border shadow-custom active:border-primary/40 transition-colors"
-        style="width: 47%; min-width: 0"
-      >
-        <SearchIcon :size="14" class="text-muted-foreground flex-shrink-0" :stroke-width="2.5" />
-        <span class="text-sm text-muted-foreground truncate">搜索文件...</span>
-      </button>
-
-      <div class="flex items-center gap-2 flex-shrink-0">
-        <div class="relative">
-          <button
-            @click="router.push('/transfer')"
-            class="w-10 h-10 flex items-center justify-center rounded-2xl bg-card border border-border shadow-custom active:bg-muted transition-colors"
-          >
-            <ArrowRightLeftIcon :size="16" class="text-foreground" :stroke-width="2" />
-          </button>
-          <span
-            v-if="downloadCount > 0"
-            class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold leading-none shadow-sm"
-          >
-            {{ downloadCount > 99 ? '99+' : downloadCount }}
-          </span>
-        </div>
-        <button
-          @click="addSheetOpen = true"
-          class="w-10 h-10 flex items-center justify-center rounded-full bg-primary active:bg-primary/80 transition-colors shadow-custom"
-        >
-          <PlusIcon :size="20" class="text-primary-foreground" :stroke-width="2.5" />
-        </button>
-      </div>
-    </header>
+    <LayoutHeader :download-count="downloadCount" @add="addSheetOpen = true" />
 
     <!-- ==================== 存储空间卡片（仅根目录显示） ==================== -->
     <div class="px-4 mb-3" :class="{ hidden: !isAtRoot }">
@@ -103,37 +71,12 @@
           <ChevronDownIcon :size="12" :stroke-width="2.5" class="ml-0.5 opacity-70" />
         </button>
 
-        <div
-          class="flex items-center gap-1 bg-card border border-border rounded-xl p-1 shadow-custom"
-        >
-          <button
-            @click="layout = 'list'"
-            class="flex items-center justify-center w-8 h-6 rounded-lg transition-all"
-            :class="
-              layout === 'list'
-                ? 'bg-primary text-primary-foreground shadow-custom'
-                : 'text-muted-foreground'
-            "
-          >
-            <LayoutListIcon :size="13" :stroke-width="2" />
-          </button>
-          <button
-            @click="layout = 'grid'"
-            class="flex items-center justify-center w-8 h-6 rounded-lg transition-all"
-            :class="
-              layout === 'grid'
-                ? 'bg-primary text-primary-foreground shadow-custom'
-                : 'text-muted-foreground'
-            "
-          >
-            <LayoutGridIcon :size="13" :stroke-width="2" />
-          </button>
-        </div>
+        <FileLayoutToggle v-model="layout" />
       </div>
     </div>
 
     <!-- ==================== 分类选择弹窗 ==================== -->
-    <CategoryPicker
+    <CategoryPopup
       :visible="categoryOpen"
       :active-filter="typeFilter"
       @select="setFilter"
@@ -142,9 +85,9 @@
 
     <!-- ==================== 文件列表区域 ==================== -->
     <div class="flex-1" :class="isSelecting ? 'pb-44' : 'pb-32'">
-      <FileList
+      <FileView
+        :type="layout"
         :files="files"
-        :layout="layout"
         :selected-ids="selectedIds"
         @toggle-select="toggleSelect"
         @open-folder="openFolder"
@@ -154,10 +97,10 @@
     </div>
 
     <!-- ==================== 新建操作面板 ==================== -->
-    <AddSheet :visible="addSheetOpen" :parent-path="currentPath" @close="addSheetOpen = false" @created="refreshFileList" />
+    <AddActionPopup :visible="addSheetOpen" :parent-path="currentPath" @close="addSheetOpen = false" @created="refreshFileList" />
 
     <!-- ==================== 文件操作面板 ==================== -->
-    <FileActionSheet
+    <FileActionBottomBar
       :visible="fileActionTarget !== null"
       :file="fileActionTarget"
       @close="closeFileAction"
@@ -187,14 +130,7 @@
 // ============================================================
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  LayoutListIcon,
-  LayoutGridIcon,
-  PlusIcon,
-  ArrowRightLeftIcon,
-  ChevronDownIcon,
-  SearchIcon,
-} from 'lucide-vue-next'
+import { ChevronDownIcon } from 'lucide-vue-next'
 import type { FileItem, LayoutMode } from '@/types'
 import { fetchFileList, notifyRefreshSuccess } from './data'
 
@@ -209,16 +145,18 @@ import { usePullRefresh } from '@/composables/usePullRefresh'
 
 // ── 子组件 ──
 import BreadcrumbNav from './components/BreadcrumbNav.vue'
-import FileList from './components/FileList.vue'
-import AddSheet from './components/AddSheet.vue'
+import FileView from './components/file/fileView/FileView.vue'
+import FileLayoutToggle from './components/file/FileLayoutToggle.vue'
+import AddActionPopup from './components/modal/AddActionPopup.vue'
 import SelectionHeader from './components/SelectionHeader.vue'
 import SelectionFooter from './components/SelectionFooter.vue'
-import FileActionSheet from './components/FileActionSheet.vue'
-import DeleteDialog from './components/DeleteDialog.vue'
-import RenameDialog from './components/RenameDialog.vue'
+import FileActionBottomBar from './components/file/FileActionBottomBar.vue'
+import DeleteDialog from './components/modal/DeleteDialog.vue'
+import RenameDialog from './components/modal/RenameDialog.vue'
 import StorageCard from './components/StorageCard.vue'
-import CategoryPicker from './components/CategoryPicker.vue'
+import CategoryPopup from './components/modal/CategoryPopup.vue'
 import PullRefreshIndicator from '@/components/PullRefreshIndicator.vue'
+import LayoutHeader from './components/layout/LayoutHeader.vue'
 
 // ============================================================
 // 2. 静态常量

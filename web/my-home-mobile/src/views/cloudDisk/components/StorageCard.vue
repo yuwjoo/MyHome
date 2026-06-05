@@ -1,16 +1,7 @@
-<script setup lang="ts">
-import { CloudIcon } from 'lucide-vue-next'
-
-defineProps<{
-  /** 已使用空间（GB） */
-  usedGb: number
-  /** 总空间（GB） */
-  totalGb: number
-  /** 已使用百分比 */
-  percent: number
-}>()
-</script>
-
+<!--
+  存储空间卡片组件
+  展示云盘已用/总空间及使用百分比
+-->
 <template>
   <div class="storage-gradient rounded-2xl px-4 py-3 shadow-custom">
     <div class="flex items-center justify-between">
@@ -41,3 +32,16 @@ defineProps<{
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { CloudIcon } from 'lucide-vue-next'
+
+defineProps<{
+  /** 已用存储空间（GB） */
+  usedGb: number
+  /** 总存储空间（GB） */
+  totalGb: number
+  /** 已用百分比 */
+  percent: number
+}>()
+</script>
