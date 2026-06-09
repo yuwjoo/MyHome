@@ -7,6 +7,7 @@ import { webview } from '@kit.ArkWeb';
 import { DoubleBackExit } from '../common/DoubleBackExit';
 import { AppWebView } from '../components/AppWebView';
 import { VersionUpdater } from '../common/versionUpdate/VersionUpdater';
+import { ENV } from 'entry/BuildProfile';
 
 @Entry
 @Component
@@ -17,6 +18,9 @@ struct Index {
   private needRefresh: boolean = false; // 从更新页返回后需刷新 WebView
 
   aboutToAppear(): void {
+    if (ENV === 'debug') {
+      webview.WebviewController.setWebDebuggingAccess(true)
+    }
     this.checkVersionAndNavigate();
   }
 
