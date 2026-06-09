@@ -18,7 +18,7 @@ struct Index {
   private needRefresh: boolean = false; // 从更新页返回后需刷新 WebView
 
   aboutToAppear(): void {
-    if (ENV === 'debug') {
+    if ((ENV as string) === 'debug') {
       webview.WebviewController.setWebDebuggingAccess(true)
     }
     this.checkVersionAndNavigate();
