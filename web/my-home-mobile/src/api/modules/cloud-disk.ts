@@ -59,3 +59,8 @@ export function cloudDiskGetRecycleBinList() {
 export function cloudDiskClearRecycleBin() {
   return request<ResponseBody<ServerApi['/cloudDisk/clearRecycleBin']['response']>>({ url: '/cloudDisk/clearRecycleBin', method: 'POST' })
 }
+
+/** 生成分享链接 */
+export function cloudDiskCreateShareLink(data: { filePath: string; expiresIn: number }) {
+  return request<ResponseBody<string>>({ url: '/cloudDisk/createShareLink', method: 'POST', data })
+}

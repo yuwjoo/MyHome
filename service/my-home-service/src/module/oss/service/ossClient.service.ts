@@ -144,7 +144,8 @@ export class OssClientService {
    */
   async signDownloadUrl(options: SignDownloadUrlOptions): Promise<string> {
     const ossClient = await this.getOssClient();
-    const expire = this.aliyunConfig.oss.downloadSignExpireSecond; // 签名url过期时间
+    const expire =
+      options.expire ?? this.aliyunConfig.oss.downloadSignExpireSecond; // 签名url过期时间
     const httpCacheExpire = options.httpCacheExpire ?? 30 * 24 * 60 * 60; // http缓存过期时间
     const generateQueries = (
       filename: string,

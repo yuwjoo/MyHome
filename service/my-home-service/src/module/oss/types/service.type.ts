@@ -23,6 +23,7 @@ export type SignUploadUrlOptions = {
 export type SignDownloadUrlOptions = {
   object: string; // object名称
   filename: string; // 文件名称
+  expire?: number; // oss签名过期时间（秒），不传则使用默认配置
   httpCacheExpire?: number; // http缓存过期时间（秒）,默认：30 * 24 * 60 * 60
   extraQueries?: Record<string, string | number | boolean>; // 额外查询参数
 };

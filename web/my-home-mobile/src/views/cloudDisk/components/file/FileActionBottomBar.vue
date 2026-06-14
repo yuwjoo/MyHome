@@ -1,6 +1,6 @@
 <!--
   文件操作面板组件
-  展示文件操作菜单（下载、移动、重命名、详情、删除）
+  展示文件操作菜单（下载、移动、重命名、分享、删除）
 -->
 <template>
   <div v-if="rendered" class="fixed inset-0 z-50" :class="{ 'pointer-events-none': !rendered }">
@@ -50,19 +50,65 @@
         </button>
       </div>
     </div>
+
+    <!-- 分享弹窗 -->
+    <div
+      v-if="shareDialogOpen"
+      class="absolute inset-0 z-10 flex items-center justify-center px-6"
+    >
+      <div class="absolute inset-0 bg-black/30" @click="shareDialogOpen = false; emit('close')" />
+      <div class="relative w-full max-w-xs bg-card rounded-2xl shadow-custom px-5 py-6 flex flex-col items-center gap-5">
+        <div class="flex items-center justify-between w-full">
+          <span class="text-base font-bold text-foreground">分享文件</span>
+          <button
+            @click="shareDialogOpen = false; emit('close')"
+            class="w-8 h-8 flex items-center justify-center rounded-full bg-muted active:bg-border transition-colors"
+          >
+            <XIcon :size="16" class="text-muted-foreground" :stroke-width="2.5" />
+          </button>
+        </div>
+
+        <div class="text-sm text-foreground truncate w-full text-center">{{ file?.name }}</div>
+
+        <div class="w-48 h-48 rounded-xl border border-border p-2 bg-white flex items-center justify-center">
+          <Loader2Icon
+            v-if="shareLinkLoading"
+            :size="32"
+            class="animate-spin text-muted-foreground"
+          />
+          <img
+            v-else-if="shareQrUrl"
+            :src="shareQrUrl"
+            :alt="`分享二维码 - ${file?.name}`"
+            class="w-full h-full object-contain"
+          />
+          <span v-else class="text-xs text-muted-foreground">生成失败</span>
+        </div>
+
+        <button
+          @click="handleCopyShareUrl"
+          class="flex items-center gap-2 w-full h-11 rounded-xl bg-primary text-sm font-semibold text-primary-foreground active:bg-primary/90 transition-colors justify-center"
+        >
+          <component :is="copied ? CheckIcon : CopyIcon" :size="16" :stroke-width="2" />
+          <span>{{ copied ? '已复制' : '复制分享链接' }}</span>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onBeforeUnmount, computed } from 'vue'
-import { Trash2Icon, PencilIcon, InfoIcon, FolderInputIcon, DownloadIcon, XIcon } from 'lucide-vue-next'
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
+import { Trash2Icon, PencilIcon, Share2Icon, FolderInputIcon, DownloadIcon, XIcon, CopyIcon, CheckIcon, Loader2Icon } from 'lucide-vue-next'
+import { toDataURL } from 'qrcode'
+import { cloudDiskCreateShareLink } from '@/api'
 import type { FileItem } from '@/types'
 import FileItemIcon from './FileItemIcon.vue'
 
+const SHARE_EXPIRE_SECONDS = 10 * 60
+
 const props = withDefaults(defineProps<{
-  /** 是否显示操作面板 */
   visible?: boolean
-  /** 当前操作的文件对象 */
   file?: FileItem | null
 }>(), {
   visible: false,
@@ -70,17 +116,10 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-  /** 关闭操作面板 */
   close: []
-  /** 删除文件 */
   delete: [file: FileItem]
-  /** 重命名文件 */
   rename: [file: FileItem]
-  /** 查看文件详情 */
-  info: [file: FileItem]
-  /** 移动文件 */
   move: [file: FileItem]
-  /** 下载文件 */
   download: [file: FileItem]
 }>()
 
@@ -106,11 +145,59 @@ onBeforeUnmount(() => {
   document.body.style.overflow = ''
 })
 
-const actions = computed(() => props.file ? [
+const shareDialogOpen = ref(false)
+const shareLinkLoading = ref(false)
+const shareUrl = ref('')
+const shareQrUrl = ref('')
+const copied = ref(false)
+
+const openShareDialog = async () => {
+  shareDialogOpen.value = true
+  shareLinkLoading.value = true
+  shareUrl.value = ''
+  shareQrUrl.value = ''
+  try {
+    const res = await cloudDiskCreateShareLink({
+      filePath: props.file!.path,
+      expiresIn: SHARE_EXPIRE_SECONDS,
+    })
+    shareUrl.value = res.data.data
+    shareQrUrl.value = await toDataURL(shareUrl.value, {
+      width: 200,
+      margin: 2,
+      errorCorrectionLevel: 'L',
+    })
+  } catch {
+    shareUrl.value = ''
+  } finally {
+    shareLinkLoading.value = false
+  }
+}
+
+const handleCopyShareUrl = async () => {
+  try {
+    await navigator.clipboard.writeText(shareUrl.value)
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 2000)
+  } catch {
+    const textarea = document.createElement('textarea')
+    textarea.value = shareUrl.value
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textarea)
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 2000)
+  }
+}
+
+const actions = [
   { icon: DownloadIcon, label: '下载', handler: () => { emit('download', props.file!); emit('close') } },
   { icon: FolderInputIcon, label: '移动', handler: () => { emit('move', props.file!); emit('close') } },
   { icon: PencilIcon, label: '重命名', handler: () => { emit('rename', props.file!); emit('close') } },
-  { icon: InfoIcon, label: '详情', handler: () => { emit('info', props.file!); emit('close') } },
+  { icon: Share2Icon, label: '分享', handler: () => { openShareDialog() } },
   { icon: Trash2Icon, label: '删除', handler: () => { emit('delete', props.file!); emit('close') }, danger: true },
-] : [])
+]
 </script>

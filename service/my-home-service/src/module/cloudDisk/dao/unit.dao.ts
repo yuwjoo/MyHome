@@ -167,4 +167,5 @@ export class UnitDao {
       deletedAt: Not(IsNull()),
     });
   }
+
 }

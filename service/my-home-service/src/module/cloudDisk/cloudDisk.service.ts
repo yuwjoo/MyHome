@@ -10,6 +10,7 @@ import { GetListDto } from './dto/getList.dto';
 import { JwtPayload } from 'src/types/jwt';
 import { GetFileThumbnailDto } from './dto/getFileThumbnail.dto';
 import { GetFileDownloadUrlDto } from './dto/getFileDownloadUrl.dto';
+import { CreateShareLinkDto } from './dto/createShareLink.dto';
 import { OssService } from '../oss/oss.service';
 import { runInTransaction } from 'typeorm-transactional';
 import { OssClientService } from '../oss/service/ossClient.service';
@@ -290,6 +291,33 @@ export class CloudDiskService {
     return this.ossClientService.signDownloadUrl({
       object: ossObject.objectKey,
       filename: targetFile.fileName,
+    });
+  }
+
+  /**
+   * 生成分享链接
+   * @param createShareLinkDto 创建分享链接dto
+   * @return 文件下载链接
+   */
+  async createShareLink(
+    createShareLinkDto: CreateShareLinkDto,
+  ): Promise<string> {
+    const targetFile = await this.unitDao.findFileItemByPathWithOssObject(
+      createShareLinkDto.filePath,
+    );
+    if (
+      !targetFile ||
+      targetFile.fileType !== 'file' ||
+      !targetFile.ossObjectRef
+    ) {
+      throw new BadRequestException('文件不存在');
+    }
+    const ossObject = targetFile.ossObjectRef.ossObject;
+
+    return this.ossClientService.signDownloadUrl({
+      object: ossObject.objectKey,
+      filename: targetFile.fileName,
+      expire: createShareLinkDto.expiresIn,
     });
   }
 

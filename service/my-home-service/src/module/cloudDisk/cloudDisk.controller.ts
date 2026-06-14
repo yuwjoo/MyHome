@@ -11,6 +11,7 @@ import { GetListDto } from './dto/getList.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { GetFileThumbnailDto } from './dto/getFileThumbnail.dto';
 import { GetFileDownloadUrlDto } from './dto/getFileDownloadUrl.dto';
+import { CreateShareLinkDto } from './dto/createShareLink.dto';
 
 @ApiTags('云盘文件')
 @Controller('cloudDisk')
@@ -91,6 +92,16 @@ export class CloudDiskController {
   @Get('getFileDownloadUrl')
   getFileDownloadUrl(@Query() query: GetFileDownloadUrlDto): Promise<string> {
     return this.cloudDiskService.getFileDownloadUrl(query);
+  }
+
+  @ApiOperation({
+    summary: '生成分享链接',
+  })
+  @Post('createShareLink')
+  createShareLink(
+    @Body() body: CreateShareLinkDto,
+  ): Promise<string> {
+    return this.cloudDiskService.createShareLink(body);
   }
 
   @ApiOperation({
