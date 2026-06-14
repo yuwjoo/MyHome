@@ -2,10 +2,15 @@ package com.yuwjoo.myhome.webview
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.net.Uri
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.LifecycleCoroutineScope
 import com.yuwjoo.myhome.config.AppConfig
 import com.yuwjoo.myhome.modules.bridge.AppMessageHandler
@@ -33,6 +38,18 @@ class WebViewManager(
     private var lastBackTime = 0L
     private val exitInterval = 2000L
 
+    /** 文件选择器回调，由 WebChromeClient.onShowFileChooser 设置 */
+    private var filePathCallback: ValueCallback<Array<Uri>>? = null
+
+    /** 文件选择器启动器，通过 Activity Result API 弹出系统文件选择器 */
+    private val filePickerLauncher =
+        (activity as ComponentActivity).registerForActivityResult(
+            ActivityResultContracts.GetContent()
+        ) { uri ->
+            filePathCallback?.onReceiveValue(uri?.let { arrayOf(it) })
+            filePathCallback = null
+        }
+
     init {
         webView = createWebView()
         backPressCallback = createBackPressCallback()
@@ -58,6 +75,19 @@ class WebViewManager(
             val bridgeHelper = WebViewHelper(this)
             val messageHandler = AppMessageHandler(bridgeHelper)
             addJavascriptInterface(NativeHost(messageHandler), "__nativeHost")
+
+            // WebChromeClient — 处理文件选择器等 WebView 事件
+            webChromeClient = object : WebChromeClient() {
+                override fun onShowFileChooser(
+                    webView: WebView?,
+                    callback: ValueCallback<Array<Uri>>?,
+                    params: FileChooserParams?
+                ): Boolean {
+                    filePathCallback = callback
+                    filePickerLauncher.launch("*/*")
+                    return true
+                }
+            }
 
             // 正式环境：拦截 http://local-web 请求，映射到本地文件
             // 开发环境：直接加载远程 URL，不需要拦截器
