@@ -7,8 +7,8 @@ import { uploadToOssAbortable } from '../utils/ossUpload'
  * 实现 TransportExecutor 接口，封装完整上传流程
  */
 export class UploadExecutor implements TransportExecutor {
-  /** 当前 XHR 实例（用于 pause/cancel 时 abort） */
-  private xhr: XMLHttpRequest | null = null
+  /** uploadToOssAbortable 返回的 result 引用（xhr 在异步过程中赋值，需保持引用） */
+  private _result: { promise: Promise<string>; xhr: XMLHttpRequest | null } | null = null
 
   /**
    * 执行上传
@@ -20,26 +20,26 @@ export class UploadExecutor implements TransportExecutor {
       throw new Error('UploadExecutor: task.payload.file 不存在')
     }
 
-    const { promise, xhr } = uploadToOssAbortable(file, {
+    this._result = uploadToOssAbortable(file, {
       onProgress: (percent: number) => {
         const loaded = Math.round((percent / 100) * file.size)
         callbacks.onProgress(loaded, file.size)
       },
     })
 
-    this.xhr = xhr
-    const result = await promise
-    task.payload = { ...task.payload, ossObjectRefId: result }
+    const ossObjectRefId = await this._result.promise
+    task.payload = { ...task.payload, ossObjectRefId }
   }
 
   /**
    * 暂停上传（abort XHR）
    */
   pause(): void {
-    if (this.xhr) {
-      this.xhr.abort()
-      this.xhr = null
+    const xhr = this._result?.xhr
+    if (xhr) {
+      xhr.abort()
     }
+    this._result = null
   }
 
   /**

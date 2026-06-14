@@ -24,10 +24,10 @@
           <ArrowRightLeftIcon :size="16" class="text-foreground" :stroke-width="2" />
         </button>
         <span
-          v-if="downloadCount > 0"
+          v-if="transferActiveCount > 0"
           class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold leading-none shadow-sm"
         >
-          {{ downloadCount > 99 ? '99+' : downloadCount }}
+          {{ transferActiveCount > 99 ? '99+' : transferActiveCount }}
         </span>
       </div>
 
@@ -43,17 +43,18 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { SearchIcon, ArrowRightLeftIcon, PlusIcon } from 'lucide-vue-next'
+import { useFileTransferStore } from '@/modules/fileTransfer'
 
 const router = useRouter()
+const fileStore = useFileTransferStore()
 
-withDefaults(defineProps<{
-  /** 当前下载任务数量 */
-  downloadCount?: number
-}>(), {
-  downloadCount: 0,
-})
+/** 活跃传输任务数（上传 + 下载的 WAITING / TRANSFERRING） */
+const transferActiveCount = computed(
+  () => fileStore.activeTasks.length + fileStore.waitingTasks.length
+)
 
 const emit = defineEmits<{
   /** 点击新建按钮 */

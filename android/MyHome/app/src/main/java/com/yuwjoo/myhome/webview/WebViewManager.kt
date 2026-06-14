@@ -8,6 +8,9 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.lifecycle.LifecycleCoroutineScope
 import com.yuwjoo.myhome.config.AppConfig
+import com.yuwjoo.myhome.modules.bridge.AppMessageHandler
+import com.yuwjoo.myhome.modules.bridge.NativeHost
+import com.yuwjoo.myhome.modules.bridge.WebViewHelper
 import com.yuwjoo.myhome.update.WebResourceInitializer
 
 /**
@@ -50,6 +53,11 @@ class WebViewManager(
                 allowFileAccess = true
                 allowContentAccess = true
             }
+
+            // NativeBridge — 注入 window.__nativeHost
+            val bridgeHelper = WebViewHelper(this)
+            val messageHandler = AppMessageHandler(bridgeHelper)
+            addJavascriptInterface(NativeHost(messageHandler), "__nativeHost")
 
             // 正式环境：拦截 http://local-web 请求，映射到本地文件
             // 开发环境：直接加载远程 URL，不需要拦截器

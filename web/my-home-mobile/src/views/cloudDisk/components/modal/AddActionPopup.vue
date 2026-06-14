@@ -46,30 +46,8 @@
       <!-- 上传进度区域 -->
       <template v-if="uploading">
         <div class="flex flex-col gap-4 mb-4">
-          <!-- 文件信息 -->
-          <div class="flex items-center gap-3 px-4 py-3 rounded-2xl bg-secondary/60 border border-primary/15">
-            <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
-              <LoaderCircleIcon
-                :size="18"
-                class="text-primary-foreground animate-spin"
-                :stroke-width="2.5"
-              />
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-sm font-semibold text-foreground truncate">{{ uploadFileName }}</div>
-              <div class="text-xs text-muted-foreground mt-0.5">
-                {{ uploadStage === 'hashing' ? '计算文件哈希...' : `${uploadProgress}%` }}
-              </div>
-            </div>
-          </div>
-
-          <!-- 进度条 -->
-          <div class="h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              class="h-full rounded-full transition-all duration-300"
-              :class="uploadStage === 'hashing' ? 'bg-primary/60 animate-pulse w-full' : 'bg-primary'"
-              :style="uploadStage === 'transferring' ? { width: `${uploadProgress}%` } : {}"
-            />
+          <div class="text-sm text-muted-foreground text-center py-6">
+            文件「{{ uploadFileName }}」已添加到传输列表
           </div>
         </div>
       </template>
@@ -150,11 +128,15 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
-import { UploadIcon, FolderPlusIcon, XIcon, LoaderCircleIcon } from 'lucide-vue-next'
+import { UploadIcon, FolderPlusIcon, XIcon } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { createFolder } from '../../data'
-import { uploadToOss } from '@/utils/oss/uploadFile'
 import { cloudDiskCreate } from '@/api'
+import {
+  useFileTransferStore,
+  TransferTaskStatus,
+  TransferType,
+} from '@/modules/fileTransfer'
 
 const props = withDefaults(defineProps<{
   /** 是否显示新建面板 */
@@ -172,6 +154,8 @@ const emit = defineEmits<{
   /** 文件或文件夹创建成功 */
   created: []
 }>()
+
+const store = useFileTransferStore()
 
 // ── 面板动画 ──
 const animClass = ref('')
@@ -208,54 +192,79 @@ watch(folderDialogOpen, (val) => {
   }
 })
 
-// ── 文件上传 ──
+// ── 文件上传（通过 fileTransfer 模块） ──
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
 const uploadFileName = ref('')
-const uploadProgress = ref(0)
-const uploadStage = ref<'idle' | 'hashing' | 'transferring'>('idle')
 
 function handleUploadFile() {
   fileInputRef.value?.click()
 }
 
-async function onFileSelected(e: Event) {
+function onFileSelected(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
 
-  uploadFileName.value = file.name
-  uploading.value = true
-  uploadProgress.value = 0
-  uploadStage.value = 'hashing'
-
-  try {
-    const ossObjectRefId = await uploadToOss(file, {
-      onProgress: (percent) => {
-        uploadProgress.value = percent
-        if (percent > 0) uploadStage.value = 'transferring'
-      },
-    })
-
-    const destPath = props.parentPath === '/'
+  const destPath =
+    props.parentPath === '/'
       ? `/${file.name}`
       : `${props.parentPath}/${file.name}`
 
-    await cloudDiskCreate({ path: destPath, type: 'file', ossObjectRefId })
+  const task = store.createTask({
+    taskName: file.name,
+    taskIcon: 'upload',
+    transferType: TransferType.UPLOAD,
+    totalSize: file.size,
+    payload: { file, destPath },
+  })
 
-    toast.success(`文件「${file.name}」上传成功`)
-    emit('created')
+  uploadFileName.value = file.name
+  uploading.value = true
+
+  // 监听任务完成，调用业务 API 注册文件
+  const unwatch = watch(
+    () => task.taskStatus,
+    async (status) => {
+      if (status === TransferTaskStatus.SUCCESS) {
+        const ossObjectRefId = task.payload.ossObjectRefId as string
+        try {
+          await cloudDiskCreate({
+            path: destPath,
+            type: 'file',
+            ossObjectRefId,
+          })
+          toast.success(`文件「${file.name}」上传成功`)
+          emit('created')
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : '文件注册失败'
+          toast.error(msg)
+        }
+        unwatch()
+        resetUpload()
+      } else if (
+        status === TransferTaskStatus.FAILED ||
+        status === TransferTaskStatus.CANCELED
+      ) {
+        const msg = task.errorMessage || '上传失败'
+        toast.error(msg)
+        unwatch()
+        resetUpload()
+      }
+    }
+  )
+
+  // 任务已入队，关闭弹窗让用户去 TransferView 查看
+  setTimeout(() => {
     emit('close')
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : '上传失败，请重试'
-    toast.error(msg)
-  } finally {
-    uploading.value = false
-    uploadFileName.value = ''
-    uploadProgress.value = 0
-    uploadStage.value = 'idle'
-    input.value = ''
-  }
+  }, 600)
+
+  input.value = ''
+}
+
+function resetUpload() {
+  uploading.value = false
+  uploadFileName.value = ''
 }
 
 // ── 新建文件夹 ──

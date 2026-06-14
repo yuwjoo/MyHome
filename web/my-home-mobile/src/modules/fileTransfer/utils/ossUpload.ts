@@ -64,6 +64,7 @@ export function uploadToOssAbortable(
 
         xhr.addEventListener('error', () => reject(new Error('OSS 网络请求失败')))
         xhr.upload.addEventListener('error', () => reject(new Error('OSS 上传中断')))
+        xhr.addEventListener('abort', () => reject(new Error('上传已取消')))
 
         xhr.open('PUT', signUrl)
 
