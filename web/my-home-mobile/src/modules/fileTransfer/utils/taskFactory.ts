@@ -4,52 +4,41 @@ import {
   TransferTaskStatus,
   TransferType,
   TransferTaskPlatform,
-} from './types'
-import type { TransferTask } from './types'
+} from '../types/task'
+import type { TransferTask } from '../types/task'
 
-/** createTransferTask 入参 */
+/**
+ * createTransferTask 入参
+ */
 export interface CreateTransferTaskOptions {
   /** 任务名称 */
   taskName: string
-  /** 任务图标 */
+  /** 任务图标标识 */
   taskIcon: string
   /** 传输类型（上传 / 下载） */
   transferType: TransferType
   /** 总传输大小（字节） */
   totalSize: number
-  /** 来源平台，默认 web */
+  /** 来源平台，默认 WEB */
   originPlatform?: TransferTaskPlatform
-  /** 负载数据 */
-  payload?: any
+  /** 负载数据（透传业务侧参数） */
+  payload?: Record<string, unknown>
 }
 
 /**
  * 创建传输任务
- * 接收任务信息，返回一个响应式 TransferTask 对象
- *
- * @param options 任务创建参数
- * @returns 响应式 TransferTask 对象
- *
- * @example
- * ```ts
- * const task = createTransferTask({
- *   taskName: 'photo.jpg',
- *   taskIcon: 'image',
- *   transferType: TransferType.UPLOAD,
- *   totalSize: 1024000,
- * })
- * task.taskStatus = TransferTaskStatus.UPLOADING
- * task.progress = 50
- * ```
+ * 生成 UUID，填充默认字段，返回响应式 TransferTask 对象
  */
-export function createTransferTask(options: CreateTransferTaskOptions): TransferTask {
+export function createTransferTask(
+  options: CreateTransferTaskOptions
+): TransferTask {
   const {
     taskName,
     taskIcon,
     transferType,
     totalSize,
     originPlatform = TransferTaskPlatform.WEB,
-    payload,
+    payload = {},
   } = options
 
   return reactive<TransferTask>({
@@ -65,6 +54,7 @@ export function createTransferTask(options: CreateTransferTaskOptions): Transfer
     speed: 0,
     createTime: Date.now(),
     finishTime: undefined,
+    errorMessage: undefined,
     payload,
   })
 }
