@@ -41,27 +41,27 @@ BedroomAC 以单例形式提供，内部整合 MqttManager 与 UdpManager。调�
 // 获取单例（首次调用自动初始化，订阅 MQTT + UDP 状态主题）
 val ac = BedroomAC.getInstance()
 
-// 状态
-val state: ACState = ac.currentState
+// ── 属性 ──
+val state: ACState = ac.currentState                    // 当前空调实时状态（只读）
 
-// 状态回调
-ac.addCallback(callback: ACStateCallback)
-ac.removeCallback(callback: ACStateCallback)
+// ── 状态回调 ──
+ac.addCallback(callback: ACStateCallback)                // 注册状态变更回调，重复注册自动去重
+ac.removeCallback(callback: ACStateCallback)             // 移除状态变更回调
 
-// 操作
-ac.togglePower()
-ac.increaseTemperature()
-ac.decreaseTemperature()
-ac.toggleSwing()
-ac.setCoolingMode()
-ac.setHeatingMode()
-ac.setDryMode()
-ac.setFanMode()
-ac.toggleWindSpeed()
-ac.enableGentleMode()
-ac.toggleSleepMode()
-ac.setTiming(minutes: Int)
-ac.cancelTiming()
+// ── 操作 ──
+ac.togglePower()                                         // 切换电源开关
+ac.increaseTemperature()                                 // 温度 +1
+ac.decreaseTemperature()                                 // 温度 -1
+ac.toggleSwing()                                         // 切换摆风开关
+ac.setCoolingMode()                                      // 切换为制冷模式
+ac.setHeatingMode()                                      // 切换为制热模式
+ac.setDryMode()                                          // 切换为除湿模式
+ac.setFanMode()                                          // 切换为送风模式
+ac.toggleWindSpeed()                                     // 循环切换风速（自动→低→中→高）
+ac.enableGentleMode()                                    // 启用舒风模式
+ac.toggleSleepMode()                                     // 切换睡眠模式开关
+ac.setTiming(minutes: Int)                              // 设置定时关闭，参数为分钟数
+ac.cancelTiming()                                        // 取消定时
 ```
 
 ### 1.5 消息格式
@@ -161,7 +161,7 @@ ac.cancelTiming()
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                     controller/ 模块内部                           │
+│              controller/bedroomAC/ 模块内部                         │
 │                                                                  │
 │  ┌──────────────────┐                                            │
 │  │ BedroomACConfig  │  (internal)                                │
@@ -323,13 +323,14 @@ internal object BedroomACConfig {
 
 ```
 app/src/main/java/com/yuwjoo/myhome/modules/controller/
-├── DESIGN.md
-├── ACState.kt
-├── ACMode.kt
-├── WindSpeed.kt
-├── ACStateCallback.kt
-├── BedroomACConfig.kt
-└── BedroomAC.kt
+└── bedroomAC/
+    ├── DESIGN.md
+    ├── ACState.kt
+    ├── ACMode.kt
+    ├── WindSpeed.kt
+    ├── ACStateCallback.kt
+    ├── BedroomACConfig.kt
+    └── BedroomAC.kt
 ```
 
 | 文件 | 可见性 | 职责 |
@@ -348,7 +349,7 @@ app/src/main/java/com/yuwjoo/myhome/modules/controller/
 ### 5.1 步骤 1 — `ACMode`、`WindSpeed`、`ACState`
 
 ```kotlin
-package com.yuwjoo.myhome.modules.controller
+package com.yuwjoo.myhome.modules.controller.bedroomAC
 
 enum class ACMode {
     COOL,       // 制冷
@@ -380,7 +381,7 @@ data class ACState(
 ### 5.2 步骤 2 — `ACStateCallback`
 
 ```kotlin
-package com.yuwjoo.myhome.modules.controller
+package com.yuwjoo.myhome.modules.controller.bedroomAC
 
 interface ACStateCallback {
     /**
@@ -394,7 +395,7 @@ interface ACStateCallback {
 ### 5.3 步骤 3 — `BedroomACConfig`
 
 ```kotlin
-package com.yuwjoo.myhome.modules.controller
+package com.yuwjoo.myhome.modules.controller.bedroomAC
 
 internal object BedroomACConfig {
     const val TOPIC_RC = "YHHome/RC/bedroomAC"
@@ -406,7 +407,7 @@ internal object BedroomACConfig {
 ### 5.4 步骤 4 — `BedroomAC`
 
 ```kotlin
-package com.yuwjoo.myhome.modules.controller
+package com.yuwjoo.myhome.modules.controller.bedroomAC
 
 import android.os.Handler
 import android.os.Looper
