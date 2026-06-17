@@ -14,7 +14,7 @@
  *
  * 模块关系：
  *   MQTT 消息 → onMqttMessage → RemoteCommand.fromPayload → BedroomAC.handleAction
- *                             → IrTransmitter.sendRaw → 红外发射
+ *                             → IRTcl112Ac.send → 红外发射（TCL112AC 协议）
  *                             → ACStateMessage.toJson → MqttManager.publish(retained) → Broker
  *   DhtSensor → TempHumidMessage.toJson → MqttManager.publish(retained) → Broker
  *
@@ -35,7 +35,6 @@
 #include "WiFiManager.h"
 #include "MqttManager.h"
 #include "DhtSensor.h"
-#include "IrTransmitter.h"
 #include "BedroomAC.h"
 
 // ============================================================
@@ -45,8 +44,7 @@ WiFiClient wifiClient;
 WiFiManager wifiManager;
 MqttManager mqttManager(wifiClient);
 DhtSensor dhtSensor;
-IrTransmitter irTransmitter;
-BedroomAC bedroomAC(irTransmitter);
+BedroomAC bedroomAC;
 
 // ============================================================
 //  程序入口
@@ -70,7 +68,6 @@ void setup() {
 
     // ── 3. 初始化各模块 ──
     dhtSensor.begin();
-    irTransmitter.begin();
     bedroomAC.begin();
 
     // ── 4. 注册 AC 状态变更回调 ──
@@ -110,7 +107,8 @@ void loop() {
  *
  * 消息格式由 RemoteCommand 结构定义：
  *   {"action":"togglePower"}
- *   {"action":"setTiming","params":{"minutes":60}}
+ *   {"action":"setOnTimer","params":{"minutes":60}}
+ *   {"action":"cancelOffTimer"}
  *
  * 反序列化后路由到 BedroomAC 模块处理。
  */
@@ -130,8 +128,5 @@ void onMqttMessage(const char *topic, const uint8_t *payload, unsigned int lengt
     Serial.println();
 
     // 路由到空调遥控器模块
-    if (!bedroomAC.handleAction(cmd.action, cmd.params)) {
-        Serial.printf("[控制] 指令 '%s' 的红外编码未配置，请先在 BedroomAC.cpp 中添加\n",
-                      cmd.action.c_str());
-    }
+    bedroomAC.handleAction(cmd.action, cmd.params);
 }

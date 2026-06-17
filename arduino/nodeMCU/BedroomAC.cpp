@@ -1,114 +1,23 @@
 #include "BedroomAC.h"
 
-// ============================================================
-//  BedroomAC 实现
-//  存储红外编码 + 按键操作 + action 路由 + AC 状态追踪
-// ============================================================
-
-// ──────────────────────────────────
-//  红外编码存储
-//  ※ 以下均为示例占位值，必须替换为实际遥控器编码
-//    使用 IRrecvDumpV2 工具录制后，将 uint16_t rawData[] 复制至此
-// ──────────────────────────────────
-
-const uint16_t BedroomAC::RAW_TOGGLE_POWER[] = {
-    // TODO: 替换为实际「开关机」按键的红外编码
-    9000, 4500, 560, 560, 560, 560, 560, 1690, 560, 560,
-    560, 560, 560, 560, 560, 560, 560, 560, 560, 1690,
-    560, 1690, 560, 560, 560, 1690, 560, 1690, 560, 1690,
-    560, 1690, 560, 1690, 560, 560, 560, 560, 560, 560,
-    560, 1690, 560, 560, 560, 560, 560, 560, 560, 560,
-    560, 1690, 560, 1690, 560, 1690, 560, 560, 560, 1690,
-    560, 1690, 560, 1690, 560, 1690, 560, 39756
-};
-const size_t BedroomAC::RAW_TOGGLE_POWER_LEN =
-    sizeof(RAW_TOGGLE_POWER) / sizeof(RAW_TOGGLE_POWER[0]);
-
-const uint16_t BedroomAC::RAW_INCREASE_TEMP[] = {
-    // TODO: 替换为实际「温度+」按键的红外编码
-};
-const size_t BedroomAC::RAW_INCREASE_TEMP_LEN =
-    sizeof(RAW_INCREASE_TEMP) / sizeof(RAW_INCREASE_TEMP[0]);
-
-const uint16_t BedroomAC::RAW_DECREASE_TEMP[] = {
-    // TODO: 替换为实际「温度-」按键的红外编码
-};
-const size_t BedroomAC::RAW_DECREASE_TEMP_LEN =
-    sizeof(RAW_DECREASE_TEMP) / sizeof(RAW_DECREASE_TEMP[0]);
-
-const uint16_t BedroomAC::RAW_TOGGLE_SWING[] = {
-    // TODO: 替换为实际「摆风」按键的红外编码
-};
-const size_t BedroomAC::RAW_TOGGLE_SWING_LEN =
-    sizeof(RAW_TOGGLE_SWING) / sizeof(RAW_TOGGLE_SWING[0]);
-
-const uint16_t BedroomAC::RAW_COOLING_MODE[] = {
-    // TODO: 替换为实际「制冷」按键的红外编码
-};
-const size_t BedroomAC::RAW_COOLING_MODE_LEN =
-    sizeof(RAW_COOLING_MODE) / sizeof(RAW_COOLING_MODE[0]);
-
-const uint16_t BedroomAC::RAW_HEATING_MODE[] = {
-    // TODO: 替换为实际「制热」按键的红外编码
-};
-const size_t BedroomAC::RAW_HEATING_MODE_LEN =
-    sizeof(RAW_HEATING_MODE) / sizeof(RAW_HEATING_MODE[0]);
-
-const uint16_t BedroomAC::RAW_DRY_MODE[] = {
-    // TODO: 替换为实际「除湿」按键的红外编码
-};
-const size_t BedroomAC::RAW_DRY_MODE_LEN =
-    sizeof(RAW_DRY_MODE) / sizeof(RAW_DRY_MODE[0]);
-
-const uint16_t BedroomAC::RAW_FAN_MODE[] = {
-    // TODO: 替换为实际「送风」按键的红外编码
-};
-const size_t BedroomAC::RAW_FAN_MODE_LEN =
-    sizeof(RAW_FAN_MODE) / sizeof(RAW_FAN_MODE[0]);
-
-const uint16_t BedroomAC::RAW_TOGGLE_WIND_SPEED[] = {
-    // TODO: 替换为实际「风速切换」按键的红外编码
-};
-const size_t BedroomAC::RAW_TOGGLE_WIND_SPEED_LEN =
-    sizeof(RAW_TOGGLE_WIND_SPEED) / sizeof(RAW_TOGGLE_WIND_SPEED[0]);
-
-const uint16_t BedroomAC::RAW_GENTLE_MODE[] = {
-    // TODO: 替换为实际「舒风模式」按键的红外编码
-};
-const size_t BedroomAC::RAW_GENTLE_MODE_LEN =
-    sizeof(RAW_GENTLE_MODE) / sizeof(RAW_GENTLE_MODE[0]);
-
-const uint16_t BedroomAC::RAW_TOGGLE_SLEEP[] = {
-    // TODO: 替换为实际「睡眠模式」按键的红外编码
-};
-const size_t BedroomAC::RAW_TOGGLE_SLEEP_LEN =
-    sizeof(RAW_TOGGLE_SLEEP) / sizeof(RAW_TOGGLE_SLEEP[0]);
-
-// ──────────────────────────────────
-//  构造与初始化
-// ──────────────────────────────────
-
-BedroomAC::BedroomAC(IrTransmitter &ir) : _ir(ir) {
-    // 默认状态：关机、制冷模式、26°C、关摆风、自动风速、关睡眠、关舒风
-    _state.power       = false;
-    _state.mode        = "cool";
-    _state.temperature = 26;
-    _state.swing       = false;
-    _state.windSpeed   = "auto";
-    _state.sleep       = false;
-    _state.gentle      = false;
+BedroomAC::BedroomAC() : _ac(IR_LED_PIN) {
+    _state.power       = false;   // 开关：true=开, false=关
+    _state.mode        = "cool";  // 模式："cool"制冷 | "heat"制热 | "dry"除湿 | "fan"送风
+    _state.temperature = 26;      // 设定温度：16~30 °C
+    _state.swing       = false;   // 摆风：true=开, false=关
+    _state.windSpeed   = "auto";  // 风速："auto"自动 | "low"低 | "medium"中 | "high"高
+    _state.sleep       = false;   // 睡眠模式：true=开, false=关
+    _state.gentle      = false;   // 舒风模式：true=开, false=关
+    _state.onTimer     = 0;       // 定时开机（分钟），0=关闭
+    _state.offTimer    = 0;       // 定时关机（分钟），0=关闭
 }
 
 void BedroomAC::begin() {
-    Serial.println("[BedroomAC] 空调遥控器模块已就绪");
+    _ac.begin();
+    Serial.println("[BedroomAC] TCL112AC 协议模块已就绪");
     Serial.println("[BedroomAC] 初始状态: " + _state.toJson());
-    // 启动时主动上报一次初始状态
     _notifyState();
 }
-
-// ──────────────────────────────────
-//  状态回调管理
-// ──────────────────────────────────
 
 void BedroomAC::setOnStateChanged(OnStateChanged callback) {
     _onStateChanged = callback;
@@ -121,23 +30,39 @@ void BedroomAC::_notifyState() {
     }
 }
 
-// ──────────────────────────────────
-//  风速切换辅助
-// ──────────────────────────────────
-
 const char* BedroomAC::_cycleWindSpeed(const String &current) {
     if (current == "auto")   return "low";
     if (current == "low")    return "medium";
     if (current == "medium") return "high";
-    return "auto";  // "high" → "auto"
+    return "auto";
 }
 
-// ──────────────────────────────────
-//  统一入口：action 路由
-// ──────────────────────────────────
+void BedroomAC::_syncAndSend() {
+    _ac.setPower(_state.power);
+
+    if (_state.mode == "cool")      _ac.setMode(kTcl112AcCool);
+    else if (_state.mode == "heat") _ac.setMode(kTcl112AcHeat);
+    else if (_state.mode == "dry")  _ac.setMode(kTcl112AcDry);
+    else if (_state.mode == "fan")  _ac.setMode(kTcl112AcFan);
+
+    _ac.setTemp(_state.temperature);
+
+    if (_state.windSpeed == "auto")        _ac.setFan(kTcl112AcFanAuto);
+    else if (_state.windSpeed == "low")    _ac.setFan(kTcl112AcFanLow);
+    else if (_state.windSpeed == "medium") _ac.setFan(kTcl112AcFanMed);
+    else if (_state.windSpeed == "high")   _ac.setFan(kTcl112AcFanHigh);
+
+    _ac.setSwingVertical(_state.swing);
+    _ac.setEcono(_state.gentle);
+    _ac.setOnTimer(_state.onTimer);
+    _ac.setOffTimer(_state.offTimer);
+
+    _ac.send();
+}
 
 bool BedroomAC::handleAction(const String &action, const String &params) {
-    // 根据 action 名称分发到对应按键方法
+    _currentParams = params;
+
     if (action == "togglePower")        return togglePower();
     if (action == "increaseTemperature") return increaseTemperature();
     if (action == "decreaseTemperature") return decreaseTemperature();
@@ -149,154 +74,147 @@ bool BedroomAC::handleAction(const String &action, const String &params) {
     if (action == "toggleWindSpeed")    return toggleWindSpeed();
     if (action == "enableGentleMode")   return enableGentleMode();
     if (action == "toggleSleepMode")    return toggleSleepMode();
+    if (action == "setOnTimer")         return setOnTimer();
+    if (action == "setOffTimer")        return setOffTimer();
+    if (action == "cancelOnTimer")      return cancelOnTimer();
+    if (action == "cancelOffTimer")     return cancelOffTimer();
 
     Serial.printf("[BedroomAC] 未知指令: %s\n", action.c_str());
     return false;
 }
 
-// ──────────────────────────────────
-//  按键操作实现
-// ──────────────────────────────────
-
 bool BedroomAC::togglePower() {
-    Serial.println("[BedroomAC] 开关机");
-    if (RAW_TOGGLE_POWER_LEN == 0) {
-        Serial.println("[BedroomAC] 警告：红外编码未配置，跳过发射");
-        return false;
-    }
-    _ir.sendRaw(RAW_TOGGLE_POWER, RAW_TOGGLE_POWER_LEN);
-    _state.power = !_state.power;  // 取反开关状态
+    _state.power = !_state.power;
     Serial.printf("[BedroomAC] 电源 → %s\n", _state.power ? "开" : "关");
+    _syncAndSend();
     _notifyState();
     return true;
 }
 
 bool BedroomAC::increaseTemperature() {
-    Serial.println("[BedroomAC] 温度+1");
-    if (RAW_INCREASE_TEMP_LEN == 0) {
-        Serial.println("[BedroomAC] 警告：红外编码未配置，跳过发射");
-        return false;
-    }
-    _ir.sendRaw(RAW_INCREASE_TEMP, RAW_INCREASE_TEMP_LEN);
     if (_state.temperature < 30) _state.temperature++;
     Serial.printf("[BedroomAC] 温度 → %d°C\n", _state.temperature);
+    _syncAndSend();
     _notifyState();
     return true;
 }
 
 bool BedroomAC::decreaseTemperature() {
-    Serial.println("[BedroomAC] 温度-1");
-    if (RAW_DECREASE_TEMP_LEN == 0) {
-        Serial.println("[BedroomAC] 警告：红外编码未配置，跳过发射");
-        return false;
-    }
-    _ir.sendRaw(RAW_DECREASE_TEMP, RAW_DECREASE_TEMP_LEN);
     if (_state.temperature > 16) _state.temperature--;
     Serial.printf("[BedroomAC] 温度 → %d°C\n", _state.temperature);
+    _syncAndSend();
     _notifyState();
     return true;
 }
 
 bool BedroomAC::toggleSwing() {
-    Serial.println("[BedroomAC] 摆风切换");
-    if (RAW_TOGGLE_SWING_LEN == 0) {
-        Serial.println("[BedroomAC] 警告：红外编码未配置，跳过发射");
-        return false;
-    }
-    _ir.sendRaw(RAW_TOGGLE_SWING, RAW_TOGGLE_SWING_LEN);
-    _state.swing = !_state.swing;  // 取反摆风状态
+    _state.swing = !_state.swing;
     Serial.printf("[BedroomAC] 摆风 → %s\n", _state.swing ? "开" : "关");
+    _syncAndSend();
     _notifyState();
     return true;
 }
 
 bool BedroomAC::setCoolingMode() {
-    Serial.println("[BedroomAC] 制冷模式");
-    if (RAW_COOLING_MODE_LEN == 0) {
-        Serial.println("[BedroomAC] 警告：红外编码未配置，跳过发射");
-        return false;
-    }
-    _ir.sendRaw(RAW_COOLING_MODE, RAW_COOLING_MODE_LEN);
     _state.mode = "cool";
     Serial.println("[BedroomAC] 模式 → 制冷");
+    _syncAndSend();
     _notifyState();
     return true;
 }
 
 bool BedroomAC::setHeatingMode() {
-    Serial.println("[BedroomAC] 制热模式");
-    if (RAW_HEATING_MODE_LEN == 0) {
-        Serial.println("[BedroomAC] 警告：红外编码未配置，跳过发射");
-        return false;
-    }
-    _ir.sendRaw(RAW_HEATING_MODE, RAW_HEATING_MODE_LEN);
     _state.mode = "heat";
     Serial.println("[BedroomAC] 模式 → 制热");
+    _syncAndSend();
     _notifyState();
     return true;
 }
 
 bool BedroomAC::setDryMode() {
-    Serial.println("[BedroomAC] 除湿模式");
-    if (RAW_DRY_MODE_LEN == 0) {
-        Serial.println("[BedroomAC] 警告：红外编码未配置，跳过发射");
-        return false;
-    }
-    _ir.sendRaw(RAW_DRY_MODE, RAW_DRY_MODE_LEN);
     _state.mode = "dry";
     Serial.println("[BedroomAC] 模式 → 除湿");
+    _syncAndSend();
     _notifyState();
     return true;
 }
 
 bool BedroomAC::setFanMode() {
-    Serial.println("[BedroomAC] 送风模式");
-    if (RAW_FAN_MODE_LEN == 0) {
-        Serial.println("[BedroomAC] 警告：红外编码未配置，跳过发射");
-        return false;
-    }
-    _ir.sendRaw(RAW_FAN_MODE, RAW_FAN_MODE_LEN);
     _state.mode = "fan";
     Serial.println("[BedroomAC] 模式 → 送风");
+    _syncAndSend();
     _notifyState();
     return true;
 }
 
 bool BedroomAC::toggleWindSpeed() {
-    Serial.println("[BedroomAC] 风速切换");
-    if (RAW_TOGGLE_WIND_SPEED_LEN == 0) {
-        Serial.println("[BedroomAC] 警告：红外编码未配置，跳过发射");
-        return false;
-    }
-    _ir.sendRaw(RAW_TOGGLE_WIND_SPEED, RAW_TOGGLE_WIND_SPEED_LEN);
     _state.windSpeed = _cycleWindSpeed(_state.windSpeed);
     Serial.printf("[BedroomAC] 风速 → %s\n", _state.windSpeed.c_str());
+    _syncAndSend();
     _notifyState();
     return true;
 }
 
 bool BedroomAC::enableGentleMode() {
-    Serial.println("[BedroomAC] 舒风模式");
-    if (RAW_GENTLE_MODE_LEN == 0) {
-        Serial.println("[BedroomAC] 警告：红外编码未配置，跳过发射");
-        return false;
-    }
-    _ir.sendRaw(RAW_GENTLE_MODE, RAW_GENTLE_MODE_LEN);
     _state.gentle = true;
     Serial.println("[BedroomAC] 舒风 → 开");
+    _syncAndSend();
     _notifyState();
     return true;
 }
 
 bool BedroomAC::toggleSleepMode() {
-    Serial.println("[BedroomAC] 睡眠模式");
-    if (RAW_TOGGLE_SLEEP_LEN == 0) {
-        Serial.println("[BedroomAC] 警告：红外编码未配置，跳过发射");
-        return false;
-    }
-    _ir.sendRaw(RAW_TOGGLE_SLEEP, RAW_TOGGLE_SLEEP_LEN);
-    _state.sleep = !_state.sleep;  // 取反睡眠状态
+    _state.sleep = !_state.sleep;
     Serial.printf("[BedroomAC] 睡眠 → %s\n", _state.sleep ? "开" : "关");
+    _syncAndSend();
+    _notifyState();
+    return true;
+}
+
+uint16_t BedroomAC::_parseTimerMinutes() {
+    StaticJsonDocument<JSON_DOC_SIZE_RC> doc;
+    DeserializationError err = deserializeJson(doc, _currentParams);
+    if (err || !doc.containsKey("minutes")) {
+        Serial.printf("[BedroomAC] 定时器参数解析失败: %s\n", _currentParams.c_str());
+        return UINT16_MAX;
+    }
+    uint16_t mins = doc["minutes"];
+    if (mins > 720) mins = 720;  // 最大 12 小时
+    return mins;
+}
+
+bool BedroomAC::setOnTimer() {
+    uint16_t mins = _parseTimerMinutes();
+    if (mins == UINT16_MAX) return false;
+    _state.onTimer = mins;
+    Serial.printf("[BedroomAC] 定时开机 → %d 分钟\n", mins);
+    _syncAndSend();
+    _notifyState();
+    return true;
+}
+
+bool BedroomAC::setOffTimer() {
+    uint16_t mins = _parseTimerMinutes();
+    if (mins == UINT16_MAX) return false;
+    _state.offTimer = mins;
+    Serial.printf("[BedroomAC] 定时关机 → %d 分钟\n", mins);
+    _syncAndSend();
+    _notifyState();
+    return true;
+}
+
+bool BedroomAC::cancelOnTimer() {
+    _state.onTimer = 0;
+    Serial.println("[BedroomAC] 定时开机 → 取消");
+    _syncAndSend();
+    _notifyState();
+    return true;
+}
+
+bool BedroomAC::cancelOffTimer() {
+    _state.offTimer = 0;
+    Serial.println("[BedroomAC] 定时关机 → 取消");
+    _syncAndSend();
     _notifyState();
     return true;
 }
