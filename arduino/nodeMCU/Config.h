@@ -44,7 +44,7 @@ const char *const TOPIC_DEVICE_BEDROOM_AC = "YHHome/device/bedroomAC";
 //  DHT11 温湿度传感器配置
 // ──────────────────────────────────
 const int DHT_PIN = D5;                           // 数据引脚（NodeMCU D4 = GPIO2）
-const unsigned long DHT_REPORT_INTERVAL = 3000;  // 上报间隔（毫秒），默认 60 秒
+const unsigned long DHT_REPORT_INTERVAL = 60000;  // 上报间隔（毫秒），默认 60 秒
 const bool DHT_REPORT_RETAINED = true;            // 是否保留消息
 
 // ──────────────────────────────────

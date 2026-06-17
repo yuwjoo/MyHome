@@ -6,8 +6,8 @@ BedroomAC::BedroomAC() : _ac(IR_LED_PIN) {
     _state.temperature = 26;      // 设定温度：16~30 °C
     _state.swing       = false;   // 摆风：true=开, false=关
     _state.windSpeed   = "auto";  // 风速："auto"自动 | "low"低 | "medium"中 | "high"高
-    _state.sleep       = false;   // 睡眠模式：true=开, false=关
     _state.gentle      = false;   // 舒风模式：true=开, false=关
+    _state.light       = true;    // 屏显：true=亮, false=灭
     _state.onTimer     = 0;       // 定时开机（分钟），0=关闭
     _state.offTimer    = 0;       // 定时关机（分钟），0=关闭
 }
@@ -54,6 +54,7 @@ void BedroomAC::_syncAndSend() {
 
     _ac.setSwingVertical(_state.swing);
     _ac.setEcono(_state.gentle);
+    _ac.setLight(_state.light);
     _ac.setOnTimer(_state.onTimer);
     _ac.setOffTimer(_state.offTimer);
 
@@ -73,7 +74,7 @@ bool BedroomAC::handleAction(const String &action, const String &params) {
     if (action == "setFanMode")         return setFanMode();
     if (action == "toggleWindSpeed")    return toggleWindSpeed();
     if (action == "enableGentleMode")   return enableGentleMode();
-    if (action == "toggleSleepMode")    return toggleSleepMode();
+    if (action == "toggleLight")        return toggleLight();
     if (action == "setOnTimer")         return setOnTimer();
     if (action == "setOffTimer")        return setOffTimer();
     if (action == "cancelOnTimer")      return cancelOnTimer();
@@ -163,9 +164,9 @@ bool BedroomAC::enableGentleMode() {
     return true;
 }
 
-bool BedroomAC::toggleSleepMode() {
-    _state.sleep = !_state.sleep;
-    Serial.printf("[BedroomAC] 睡眠 → %s\n", _state.sleep ? "开" : "关");
+bool BedroomAC::toggleLight() {
+    _state.light = !_state.light;
+    Serial.printf("[BedroomAC] 屏显 → %s\n", _state.light ? "亮" : "灭");
     _syncAndSend();
     _notifyState();
     return true;

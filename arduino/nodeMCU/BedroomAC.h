@@ -14,7 +14,7 @@
  *
  * 支持的 action：togglePower, increaseTemperature, decreaseTemperature,
  *   toggleSwing, setCoolingMode, setHeatingMode, setDryMode, setFanMode,
- *   toggleWindSpeed, enableGentleMode, toggleSleepMode,
+ *   toggleWindSpeed, enableGentleMode, toggleLight,
  *   setOnTimer, setOffTimer, cancelOnTimer, cancelOffTimer
  *
  * 状态说明：红外遥控单向通信，无法获取空调真实状态，
@@ -48,7 +48,7 @@ public:
     bool setFanMode();           // 送风模式
     bool toggleWindSpeed();      // 切换风速（自动→低→中→高→自动）
     bool enableGentleMode();     // 舒风模式
-    bool toggleSleepMode();      // 睡眠模式
+    bool toggleLight();          // 切换屏显
     bool setOnTimer();           // 设置定时开机
     bool setOffTimer();          // 设置定时关机
     bool cancelOnTimer();        // 取消定时开机

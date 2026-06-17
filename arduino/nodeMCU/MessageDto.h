@@ -74,7 +74,7 @@ struct RemoteCommand {
 //  ACStateMessage
 //  空调当前状态上报消息
 //  JSON 格式：
-//  {"power":true,"mode":"cool","temperature":26,"swing":false,"windSpeed":"auto","sleep":false,"gentle":false,"onTimer":0,"offTimer":0}
+//  {"power":true,"mode":"cool","temperature":26,"swing":false,"windSpeed":"auto","gentle":false,"light":true,"onTimer":0,"offTimer":0}
 // ──────────────────────────────────
 struct ACStateMessage {
     bool     power;         // 开关状态
@@ -82,8 +82,8 @@ struct ACStateMessage {
     int      temperature;   // 温度 16~30
     bool     swing;         // 摆风
     String   windSpeed;     // 风速: "auto" | "low" | "medium" | "high"
-    bool     sleep;         // 睡眠模式
     bool     gentle;        // 舒风模式
+    bool     light;         // 机身屏显：true=亮, false=灭
     uint16_t onTimer;       // 定时开机（分钟），0=关闭，步长 20，最大 720
     uint16_t offTimer;      // 定时关机（分钟），0=关闭，步长 20，最大 720
 
@@ -95,8 +95,8 @@ struct ACStateMessage {
         doc["temperature"] = temperature;
         doc["swing"]       = swing;
         doc["windSpeed"]   = windSpeed;
-        doc["sleep"]       = sleep;
         doc["gentle"]      = gentle;
+        doc["light"]       = light;
         doc["onTimer"]     = onTimer;
         doc["offTimer"]    = offTimer;
         String json;
