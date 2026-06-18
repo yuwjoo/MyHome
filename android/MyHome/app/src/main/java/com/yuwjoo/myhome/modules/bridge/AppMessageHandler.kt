@@ -3,17 +3,17 @@
  */
 package com.yuwjoo.myhome.modules.bridge
 
-import com.yuwjoo.myhome.modules.bridge.handlers.GetDataAction
-import com.yuwjoo.myhome.modules.bridge.handlers.PageChangedAction
-import com.yuwjoo.myhome.modules.bridge.handlers.UploadAction
+import com.yuwjoo.myhome.modules.bridge.handlers.BedroomACAction
+import com.yuwjoo.myhome.modules.bridge.handlers.DeviceStatusAction
+import com.yuwjoo.myhome.modules.bridge.handlers.TempHumidAction
 import org.json.JSONObject
 
 class AppMessageHandler(private val helper: WebViewHelper) : NativeMessageHandler {
 
     private val actions: Map<String, MessageAction> = listOf(
-        PageChangedAction(),
-        GetDataAction(),
-        UploadAction(),
+        BedroomACAction(),
+        DeviceStatusAction(),
+        TempHumidAction(),
     ).associateBy { it.name }
 
     override fun handle(messageName: String, params: JSONObject, groupId: String?) {

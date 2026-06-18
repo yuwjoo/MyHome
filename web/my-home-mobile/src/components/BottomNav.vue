@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { HomeIcon, PackageIcon, CloudIcon, UserIcon } from 'lucide-vue-next'
+import { HomeIcon, CloudIcon, UserIcon } from 'lucide-vue-next'
 
 const route = useRoute()
 
 const NAV_ITEMS = [
-  { path: '/',        label: '首页',  Icon: HomeIcon    },
-  { path: '/express', label: '快递',  Icon: PackageIcon },
-  { path: '/cloud',   label: '云盘',  Icon: CloudIcon   },
-  { path: '/profile', label: '我的',  Icon: UserIcon    },
+  { path: '/bedroom-ac', label: '首页',  Icon: HomeIcon    },
+  // { path: '/express', label: '快递',  Icon: PackageIcon },
+  { path: '/cloud',      label: '云盘',  Icon: CloudIcon   },
+  { path: '/profile',    label: '我的',  Icon: UserIcon    },
 ]
 </script>
 

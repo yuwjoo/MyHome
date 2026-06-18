@@ -173,7 +173,7 @@ ESP8266 终端                 MQTT Broker                  BedroomAC
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│              controller/bedroomAC/ 模块内部                         │
+│              devices/bedroomAC/ 模块内部                         │
 │                                                                  │
 │  ┌──────────────────┐                                            │
 │  │ BedroomACConfig  │  (internal)                                │
@@ -314,7 +314,7 @@ internal object BedroomACConfig {
 ## 4. 目录结构
 
 ```
-app/src/main/java/com/yuwjoo/myhome/modules/controller/bedroomAC/
+app/src/main/java/com/yuwjoo/myhome/modules/devices/bedroomAC/
 ├── DESIGN.md
 ├── ACState.kt
 ├── ACStateCallback.kt
@@ -336,7 +336,7 @@ app/src/main/java/com/yuwjoo/myhome/modules/controller/bedroomAC/
 ### 5.1 步骤 1 — `ACState`、`ACStateCallback`、`BedroomACConfig`
 
 ```kotlin
-package com.yuwjoo.myhome.modules.controller.bedroomAC
+package com.yuwjoo.myhome.modules.devices.bedroomAC
 
 data class ACState(
     val power: Boolean = false,       // 电源
@@ -352,7 +352,7 @@ data class ACState(
 ```
 
 ```kotlin
-package com.yuwjoo.myhome.modules.controller.bedroomAC
+package com.yuwjoo.myhome.modules.devices.bedroomAC
 
 interface ACStateCallback {
     /**
@@ -364,7 +364,7 @@ interface ACStateCallback {
 ```
 
 ```kotlin
-package com.yuwjoo.myhome.modules.controller.bedroomAC
+package com.yuwjoo.myhome.modules.devices.bedroomAC
 
 internal object BedroomACConfig {
     const val TOPIC_RC = "YHHome/RC/bedroomAC"
@@ -376,7 +376,7 @@ internal object BedroomACConfig {
 ### 5.2 步骤 2 — `BedroomAC`
 
 ```kotlin
-package com.yuwjoo.myhome.modules.controller.bedroomAC
+package com.yuwjoo.myhome.modules.devices.bedroomAC
 
 import android.os.Handler
 import android.os.Looper

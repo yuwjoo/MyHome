@@ -9,7 +9,8 @@ import { homeRoutes }    from './modules/home'
 import { deviceRoutes }  from './modules/devices'
 import { cloudRoutes }   from './modules/cloud'
 import { profileRoutes } from './modules/profile'
-import { expressRoutes } from './modules/express'
+import { expressRoutes }  from './modules/express'
+import { bedroomAcRoutes } from './modules/bedroomAc'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,6 +19,7 @@ const router = createRouter({
     ...homeRoutes,
     ...deviceRoutes,
     ...expressRoutes,
+    ...bedroomAcRoutes,
     ...cloudRoutes,
     ...profileRoutes,
     {

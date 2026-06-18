@@ -16,7 +16,7 @@ class NativeHost(private val handler: NativeMessageHandler) {
         val msg = JSONObject(json)
         val messageName = msg.getString("messageName")
         val params = msg.getJSONObject("params")
-        val groupId = msg.optString("groupId", null)
+        val groupId = msg.optString("groupId", "")
 
         handler.handle(messageName, params, groupId)
     }
