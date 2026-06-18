@@ -10,7 +10,7 @@ import router from './router'
 import { initNativeBridge } from './modules/nativeBridge/index.ts'
 
 // 开发环境下启用 vConsole 调试工具
-if (import.meta.env.DEV) {
+if (import.meta.env.VITE_APP_ENV === 'development') {
   import('vconsole').then(({ default: VConsole }) => {
     new VConsole()
   })
