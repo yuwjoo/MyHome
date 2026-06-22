@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.config
+﻿package com.yuwjoo.myhome.config
 
 /**
  * MQTT 主题集中配置

@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome
+﻿package com.yuwjoo.myhome
 
 import android.os.Bundle
 import android.util.Log
@@ -8,8 +8,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-import com.yuwjoo.myhome.modules.mqtt.MqttManager
-import com.yuwjoo.myhome.webview.WebViewManager
+import com.yuwjoo.myhome.module.mqtt.MqttManager
+import com.yuwjoo.myhome.ui.webview.WebViewManager
 
 /**
  * 主 Activity
