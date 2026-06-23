@@ -4,7 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import com.yuwjoo.myhome.config.MqttTopics
 import com.yuwjoo.myhome.module.mqtt.MqttManager
-import com.yuwjoo.myhome.module.mqtt.MqttTopicCallback
+import com.yuwjoo.myhome.module.mqtt.TopicCallback
 import com.yuwjoo.myhome.module.udp.UdpManager
 import com.yuwjoo.myhome.module.udp.UdpTopicCallback
 import org.json.JSONObject
@@ -32,10 +32,10 @@ class BedroomAC private constructor() {
         initialized = true
 
         // 订阅 MQTT 设备状态主题（retained 消息，QoS 0 即可）
-        MqttManager.getInstance().subscribe(
+        MqttManager.subscribe(
             topic = MqttTopics.TOPIC_AC_DEVICE,
             qos = 0,
-            callback = object : MqttTopicCallback {
+            callback = object : TopicCallback {
                 override fun onMessageArrived(topic: String, payload: String) {
                     applyStateFromJson(payload)
                 }
@@ -112,7 +112,7 @@ class BedroomAC private constructor() {
                 targetIp = acDevice.ipAddress,
             )
         } else {
-            MqttManager.getInstance().publish(
+            MqttManager.publish(
                 topic = MqttTopics.TOPIC_AC_RC,
                 payload = actionJson.toString(),
                 qos = 1,

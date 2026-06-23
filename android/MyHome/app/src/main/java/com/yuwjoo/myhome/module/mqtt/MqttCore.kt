@@ -8,32 +8,11 @@ import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 /**
- * Paho MQTT 客户端封装，构造函数接收回调接口并完成 [MqttClient] 初始化与 setCallback。
+ * Paho MQTT 客户端封装，构造函数接收 [MqttCoreCallback] 并完成初始化与 setCallback。
  *
  * @param callback 事件回调接口
  */
-class MQTTClient(callback: MQTTCallback) {
-
-    /**
-     * 回调接口
-     */
-    interface MQTTCallback {
-        /**
-         * 连接状态改变
-         *
-         * @param connected 是否已连接
-         * @param cause     断开原因，主动断开时为 null
-         */
-        fun onConnectionChanged(connected: Boolean, cause: Throwable? = null)
-
-        /**
-         * 收到消息
-         *
-         * @param topic   消息所属主题
-         * @param payload 消息内容（UTF-8 字符串）
-         */
-        fun onMessageArrived(topic: String, payload: String)
-    }
+class MqttCore(callback: MqttCoreCallback) {
 
     // Mqtt 客户端实例
     private val client: MqttClient = MqttClient(
@@ -47,8 +26,8 @@ class MQTTClient(callback: MQTTCallback) {
      */
     val isConnected: Boolean get() = client.isConnected
 
+    // 注册 Paho 回调
     init {
-        // 注册 Paho 回调
         client.setCallback(object : org.eclipse.paho.client.mqttv3.MqttCallback {
             override fun connectionLost(cause: Throwable?) {
                 callback.onConnectionChanged(false, cause)
@@ -70,10 +49,10 @@ class MQTTClient(callback: MQTTCallback) {
         val options = MqttConnectOptions().apply {
             userName = MqttConfig.USERNAME                                         // 用户名
             password = MqttConfig.PASSWORD.toCharArray()                          // 密码
-            isCleanSession = MqttConfig.CLEAN_SESSION                             // 新会话不恢复订阅
+            isCleanSession = MqttConfig.CLEAN_SESSION                             // 缓存会话
             keepAliveInterval = MqttConfig.KEEP_ALIVE                             // 心跳间隔（秒）
             connectionTimeout = MqttConfig.CONNECTION_TIMEOUT                     // 连接超时（秒）
-            isAutomaticReconnect = true                                           // 断线自动重连
+            isAutomaticReconnect = MqttConfig.AUTOMATIC_RECONNECT               // 断线自动重连
             maxReconnectDelay = MqttConfig.MAX_RECONNECT_DELAY                    // 最大重连延迟（秒）
 
             setWill(
@@ -117,8 +96,8 @@ class MQTTClient(callback: MQTTCallback) {
      * 发布消息
      *
      * @param topic    MQTT 主题
-     * @param payload  消息内容
-     * @param qos      服务质量（0=最多一次，1=至少一次，2=恰好一次），默认 1
+     * @param payload 消息内容
+     * @param qos     服务质量（0=最多一次，1=至少一次，2=恰好一次），默认 1
      * @param retained 是否保留消息，默认 false
      */
     fun publish(topic: String, payload: String, qos: Int = 1, retained: Boolean = false) {

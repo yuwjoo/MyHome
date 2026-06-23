@@ -4,7 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import com.yuwjoo.myhome.config.MqttTopics
 import com.yuwjoo.myhome.module.mqtt.MqttManager
-import com.yuwjoo.myhome.module.mqtt.MqttTopicCallback
+import com.yuwjoo.myhome.module.mqtt.TopicCallback
 import org.json.JSONObject
 
 class TempHumidSensor private constructor() {
@@ -28,10 +28,10 @@ class TempHumidSensor private constructor() {
         initialized = true
 
         // 订阅 MQTT 温湿度主题（retained 消息，QoS 0 即可）
-        MqttManager.getInstance().subscribe(
+        MqttManager.subscribe(
             topic = MqttTopics.TOPIC_TEMP_HUMID,
             qos = 0,
-            callback = object : MqttTopicCallback {
+            callback = object : TopicCallback {
                 override fun onMessageArrived(topic: String, payload: String) {
                     applyStateFromJson(payload)
                 }

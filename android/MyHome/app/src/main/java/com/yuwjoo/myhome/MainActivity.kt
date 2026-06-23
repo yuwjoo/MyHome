@@ -33,18 +33,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-       reconnectMqttIfNeeded()
-    }
-
-    /**
-     * 从后台回到前台时，如果 MQTT 连接已断开则重新连接
-     */
-    private fun reconnectMqttIfNeeded() {
-        val manager = MqttManager.getInstance()
-        if (!manager.isConnected) {
-            Log.d(TAG, "MQTT 连接已断开，正在重新连接...")
-            manager.connect()
-        }
     }
 
     private fun setupEdgeToEdgeInsets(webView: WebView) {
