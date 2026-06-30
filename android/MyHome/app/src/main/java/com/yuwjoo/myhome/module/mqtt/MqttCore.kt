@@ -12,7 +12,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
  *
  * @param callback 事件回调接口
  */
-class MqttCore(callback: MqttCoreCallback) {
+class MqttCore(private val callback: MqttCoreCallback) {
 
     // Mqtt 客户端实例
     private val client: MqttClient = MqttClient(

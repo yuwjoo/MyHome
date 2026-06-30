@@ -28,7 +28,7 @@ class WebViewHelper(private val webView: WebView) {
         val dataJson = when (data) {
             is String -> data
             is JSONObject -> data.toString()
-            else -> JSONObject.wrap(data).toString()
+            else -> JSONObject.wrap(data)?.toString() ?: "null"
         }
         return """
             window.__webBridge.invoke(
