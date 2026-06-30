@@ -2,6 +2,7 @@
 
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import java.util.concurrent.Executors
 import java.util.concurrent.CopyOnWriteArraySet
 
@@ -11,6 +12,8 @@ import java.util.concurrent.CopyOnWriteArraySet
  * 使用缓存会话（cleanSession = false），Broker 记住订阅，重连后自动恢复。
  */
 object MqttManager {
+
+    private const val TAG = "MqttManager"
 
     // MQTT 核心
     private var mqttCore: MqttCore? = null
@@ -38,12 +41,14 @@ object MqttManager {
     // MqttCore 回调：转发连接状态和消息到上层监听方
     private val coreCallback = object : MqttCoreCallback {
         override fun onConnectionChanged(connected: Boolean, cause: Throwable?) {
+            Log.d(TAG, "onConnectionChanged: connected=$connected, cause=${cause?.message}")
             handler.post {
                 connectionCallbacks.forEach { it.onConnectionChanged(connected, cause) }
             }
         }
 
         override fun onMessageArrived(topic: String, payload: String) {
+            Log.d(TAG, "onMessageArrived: topic=$topic, payload=$payload")
             handler.post {
                 topicCallbacks[topic]?.forEach { it.onMessageArrived(topic, payload) }
             }

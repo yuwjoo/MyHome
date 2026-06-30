@@ -14,7 +14,7 @@ internal object MqttConfig {
     const val PASSWORD = "your_mqtt_password"
 
     /** 心跳间隔（秒），超时 Broker 发布遗嘱 */
-    const val KEEP_ALIVE = 60
+    const val KEEP_ALIVE = 10
 
     /** 缓存会话，false 表示 Broker 记住订阅，重连后自动恢复 */
     const val CLEAN_SESSION = false

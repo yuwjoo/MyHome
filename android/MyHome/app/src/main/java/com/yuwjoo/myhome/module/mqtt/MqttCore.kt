@@ -2,6 +2,7 @@ package com.yuwjoo.myhome.module.mqtt
 
 import com.yuwjoo.myhome.config.MqttTopics
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
+import org.eclipse.paho.client.mqttv3.MqttCallbackExtended
 import org.eclipse.paho.client.mqttv3.MqttClient
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.MqttMessage
@@ -26,9 +27,13 @@ class MqttCore(private val callback: MqttCoreCallback) {
      */
     val isConnected: Boolean get() = client.isConnected
 
-    // 注册 Paho 回调
+    // 注册 Paho 回调（Extended 含 connectComplete，自动重连后也能感知）
     init {
-        client.setCallback(object : org.eclipse.paho.client.mqttv3.MqttCallback {
+        client.setCallback(object : MqttCallbackExtended {
+            override fun connectComplete(reconnect: Boolean, serverURI: String) {
+                callback.onConnectionChanged(true)
+            }
+
             override fun connectionLost(cause: Throwable?) {
                 callback.onConnectionChanged(false, cause)
             }
@@ -63,7 +68,6 @@ class MqttCore(private val callback: MqttCoreCallback) {
             )
         }
         client.connect(options)
-        callback.onConnectionChanged(true)
     }
 
     /**
