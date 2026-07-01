@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.mqtt
+package com.yuwjoo.myhome.module.mqtt.callback
 
 /**
  * [MqttManager] 连接状态回调接口

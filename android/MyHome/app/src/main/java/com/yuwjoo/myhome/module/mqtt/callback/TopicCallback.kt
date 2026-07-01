@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.mqtt
+package com.yuwjoo.myhome.module.mqtt.callback
 
 /**
  * 主题级回调，用于 subscribe() 时传入。

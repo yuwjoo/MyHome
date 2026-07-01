@@ -4,7 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import com.yuwjoo.myhome.config.MqttTopics
 import com.yuwjoo.myhome.module.mqtt.MqttManager
-import com.yuwjoo.myhome.module.mqtt.TopicCallback
+import com.yuwjoo.myhome.module.mqtt.callback.TopicCallback
 import org.json.JSONObject
 
 class DeviceStatus private constructor() {

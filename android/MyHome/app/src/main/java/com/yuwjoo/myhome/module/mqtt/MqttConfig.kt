@@ -1,7 +1,7 @@
 ﻿package com.yuwjoo.myhome.module.mqtt
 
 /**
- * MQTT 连接配置常量，仅 [MqttCore] 内部使用。
+ * MQTT 连接配置常量，仅 [MqttManager] 内部使用。
  */
 internal object MqttConfig {
     /** Broker 地址 */
@@ -17,7 +17,7 @@ internal object MqttConfig {
     const val KEEP_ALIVE = 10
 
     /** 缓存会话，false 表示 Broker 记住订阅，重连后自动恢复 */
-    const val CLEAN_SESSION = false
+    const val CLEAN_SESSION = true
 
     /** 连接超时（秒） */
     const val CONNECTION_TIMEOUT = 30
@@ -36,6 +36,9 @@ internal object MqttConfig {
 
     /** 遗嘱是否保留 */
     const val WILL_RETAINED = false
+
+    /** 是否启用遗嘱消息 */
+    const val ENABLE_WILL = true
 
     /** 客户端固定 ID，配合遗嘱消息机制 */
     private const val CLIENT_ID = "android-myhome"
