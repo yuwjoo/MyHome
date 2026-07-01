@@ -1,9 +1,7 @@
 ﻿package com.yuwjoo.myhome.module.mqtt
 
 import android.util.Log
-import com.yuwjoo.myhome.config.MqttTopics
-import com.yuwjoo.myhome.module.mqtt.callback.ConnectionCallback
-import com.yuwjoo.myhome.module.mqtt.callback.TopicCallback
+import com.yuwjoo.myhome.common.topic.DataESP8266Topic
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.MqttCallbackExtended
 import org.eclipse.paho.client.mqttv3.MqttClient
@@ -21,7 +19,11 @@ object MqttManager {
     private const val TAG = "MqttManager"
 
     // Mqtt 客户端实例
-    private lateinit var client: MqttClient
+    private var client: MqttClient = MqttClient(
+        MqttConfig.BROKER_URL,
+        MqttConfig.clientId(),
+        MemoryPersistence(),
+    )
 
     // 主题管理器
     private val topicManager = TopicManager()
@@ -35,11 +37,6 @@ object MqttManager {
     }
 
     init {
-        client = MqttClient(
-            MqttConfig.BROKER_URL,
-            MqttConfig.clientId(),
-            MemoryPersistence(),
-        )
         client.setCallback(object : MqttCallbackExtended {
             override fun connectComplete(reconnect: Boolean, serverURI: String) {
                 Log.d(TAG, "onConnectionChanged: connected=true, cause=null")
@@ -103,7 +100,7 @@ object MqttManager {
 
                 if (MqttConfig.ENABLE_WILL) {
                     setWill(
-                        MqttTopics.TOPIC_DEVICE_OFFLINE,
+                        DataESP8266Topic.topic,
                         MqttConfig.WILL_PAYLOAD.toByteArray(),
                         MqttConfig.WILL_QOS,
                         MqttConfig.WILL_RETAINED,

@@ -1,7 +1,5 @@
 package com.yuwjoo.myhome.module.mqtt
 
-import com.yuwjoo.myhome.module.mqtt.callback.TopicCallback
-
 /**
  * 主题订阅状态
  */

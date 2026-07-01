@@ -3,16 +3,16 @@
  */
 package com.yuwjoo.myhome.module.bridge
 
-import com.yuwjoo.myhome.module.bridge.handlers.BedroomACAction
-import com.yuwjoo.myhome.module.bridge.handlers.DeviceStatusAction
-import com.yuwjoo.myhome.module.bridge.handlers.TempHumidAction
+import com.yuwjoo.myhome.common.bridge.BedroomACAction
+import com.yuwjoo.myhome.common.bridge.ESP8266Action
+import com.yuwjoo.myhome.common.bridge.TempHumidAction
 import org.json.JSONObject
 
 class AppMessageHandler(private val helper: WebViewHelper) : NativeMessageHandler {
 
     private val actions: Map<String, MessageAction> = listOf(
         BedroomACAction(),
-        DeviceStatusAction(),
+        ESP8266Action(),
         TempHumidAction(),
     ).associateBy { it.name }
 
