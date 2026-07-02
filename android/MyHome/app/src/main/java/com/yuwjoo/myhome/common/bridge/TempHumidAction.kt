@@ -2,7 +2,6 @@
 
 import com.yuwjoo.myhome.common.device.tempHumidSensor.TempHumidSensor
 import com.yuwjoo.myhome.common.device.tempHumidSensor.TempHumidSensorCallback
-import com.yuwjoo.myhome.common.topic.payload.DataTempHumidSensorPayload
 import com.yuwjoo.myhome.module.bridge.MessageAction
 import com.yuwjoo.myhome.module.bridge.WebViewHelper
 import org.json.JSONObject
@@ -16,28 +15,24 @@ class TempHumidAction : MessageAction {
         val action = params.getString("action")
 
         when (action) {
+            // 获取温湿度
             "getState" -> {
-                helper.invokeCallback(groupId, "onState", stateToJson(TempHumidSensor.sensorState))
+                helper.invokeCallback(groupId, "onState", TempHumidSensor.sensorState.toJson())
             }
+            // 订阅数据变更
             "subscribeState" -> {
                 if (stateCallback == null) {
                     stateCallback = TempHumidSensorCallback { state ->
-                        helper.pushEvent("onTempHumidChanged", stateToJson(state))
+                        helper.pushEvent("onTempHumidChanged", state.toJson())
                     }
                     TempHumidSensor.registerSensorListener(stateCallback!!)
                 }
             }
+            // 取消订阅
             "unsubscribeState" -> {
                 stateCallback?.let { TempHumidSensor.unregisterSensorListener(it) }
                 stateCallback = null
             }
-        }
-    }
-
-    private fun stateToJson(state: DataTempHumidSensorPayload): JSONObject {
-        return JSONObject().apply {
-            put("temperature", state.temperature.toDouble())
-            put("humidity", state.humidity.toDouble())
         }
     }
 }
