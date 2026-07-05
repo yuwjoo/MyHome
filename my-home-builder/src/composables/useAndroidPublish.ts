@@ -9,7 +9,6 @@ import { VERSION_MANIFEST_PATH, getProjectById } from '@/config/projects'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as https from 'node:https'
-import { execSync } from 'node:child_process'
 import { createHash, createHmac } from 'node:crypto'
 
 /**
