@@ -8,7 +8,7 @@ import com.yuwjoo.myhome.module.mqtt.TopicCallback
 /**
  * 温湿度传感器设备
  */
-object TempHumidSensor {
+object TempHumidSensorDevice {
 
     // 传感器状态监听器集合
     private val sensorListeners = LinkedHashSet<TempHumidSensorCallback>()

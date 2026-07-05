@@ -24,21 +24,20 @@ const char *const MQTT_CLIENT_ID = "esp8266-nodemcu";   // 客户端 ID（需唯
 
 // MQTT 遗嘱消息：设备离线时 Broker 自动发布
 // 设备重新上线时会主动发布在线消息覆盖，避免遗留离线状态
-const char *const MQTT_WILL_TOPIC = "device/offline";
-const char *const MQTT_WILL_PAYLOAD = R"({"status":"offline"})";
-const char *const MQTT_ONLINE_PAYLOAD = R"({"status":"online"})";
+const char *const MQTT_WILL_TOPIC = "YHome/data/ESP8266";
+const char *const MQTT_WILL_PAYLOAD = R"({"isOnline":false,"updateTime":0})";
 
 // ──────────────────────────────────
 //  Topic 定义
 // ──────────────────────────────────
 // 监听：接收遥控指令（来自 Android App）
-const char *const TOPIC_RC_BEDROOM_AC = "YHHome/RC/bedroomAC";
+const char *const TOPIC_RC_BEDROOM_AC = "YHome/cmd/bedroomAC";
 
 // 发布：温湿度传感器数据（保留消息，新订阅者立即可获取最新值）
-const char *const TOPIC_SENSOR_TEMP_HUMID = "YHHome/sensor/tempHumid";
+const char *const TOPIC_SENSOR_TEMP_HUMID = "YHome/data/tempHumidSensor";
 
 // 发布：空调当前状态（保留消息，每次操作后更新）
-const char *const TOPIC_DEVICE_BEDROOM_AC = "YHHome/device/bedroomAC";
+const char *const TOPIC_DEVICE_BEDROOM_AC = "YHome/data/bedroomAC";
 
 // ──────────────────────────────────
 //  DHT11 温湿度传感器配置

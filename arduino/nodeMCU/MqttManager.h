@@ -23,8 +23,8 @@ typedef void (*MqttMessageCallback)(const char *topic, const uint8_t *payload, u
  *   MqttManager mqtt(wifiClient);
  *   mqtt.setOnMessage(callback);
  *   mqtt.connect();
- *   mqtt.subscribe("YHHome/RC/bedroomAC");
- *   mqtt.publish("YHHome/sensor/tempHumid", "{\"temperature\":26}");
+ *   mqtt.subscribe("YHome/cmd/bedroomAC");
+ *   mqtt.publish("YHome/data/tempHumidSensor", "{\"temperature\":26}");
  *   mqtt.loop();  // 在主循环中调用
  */
 class MqttManager {

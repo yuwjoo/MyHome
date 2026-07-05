@@ -11,7 +11,7 @@ import com.yuwjoo.myhome.module.mqtt.TopicCallback
 /**
  * 卧室空调设备
  */
-object BedroomAC {
+object BedroomACDevice {
 
     // 空调状态监听器集合
     private val acStateListeners = LinkedHashSet<ACStateCallback>()

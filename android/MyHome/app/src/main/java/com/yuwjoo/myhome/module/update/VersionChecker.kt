@@ -67,12 +67,14 @@ object VersionChecker {
             val webObj = manifest.optJSONObject(AppConfig.MANIFEST_KEY_WEB)
                 ?: return@withContext VersionCheckResult.Error("版本清单中缺少 web 字段")
 
-            val remoteVersion = webObj.optString(AppConfig.MANIFEST_KEY_MY_HOME_MOBILE, null)
-                ?: return@withContext VersionCheckResult.Error("版本清单中缺少 my-home-mobile 字段")
+            if (!webObj.has(AppConfig.MANIFEST_KEY_MY_HOME_MOBILE))
+                return@withContext VersionCheckResult.Error("版本清单中缺少 my-home-mobile 字段")
+            val remoteVersion = webObj.getString(AppConfig.MANIFEST_KEY_MY_HOME_MOBILE)
 
             // 解析 android -> MyHome 版本（可选，不存在则不返回）
             val androidObj = manifest.optJSONObject(AppConfig.MANIFEST_KEY_ANDROID)
-            val androidVersion = androidObj?.optString(AppConfig.MANIFEST_KEY_ANDROID_MYHOME, null)
+            val androidVersion = androidObj?.optString(AppConfig.MANIFEST_KEY_ANDROID_MYHOME)
+                ?.takeIf { it.isNotEmpty() }
 
             Log.d(TAG, "远程 Web 版本: $remoteVersion, Android 版本: ${androidVersion ?: "无"}")
 

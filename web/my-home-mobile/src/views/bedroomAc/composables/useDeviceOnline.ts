@@ -1,42 +1,32 @@
 /**
- * 设备在线状态 — MQTT 遗嘱机制实时推送
+ * 设备在线状态
  */
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { getNativeBridge, isNativeEnv } from '@/modules/nativeBridge'
+import { bridge } from '@/modules/bridge'
 
 export type DeviceStatus = 'online' | 'offline' | 'unknown'
 
 export function useDeviceOnline() {
-  const bridge = getNativeBridge()
   const status = ref<DeviceStatus>('unknown')
-  let unsub: (() => void) | null = null
 
   const isOnline = computed(() => status.value === 'online')
   const isOffline = computed(() => status.value === 'offline')
 
+  function handleData(data: any) {
+    status.value = (data?.isOnline !== undefined
+      ? data.isOnline ? 'online' : 'offline'
+      : 'unknown') as DeviceStatus
+  }
+
   onMounted(() => {
-    if (!isNativeEnv()) {
+    if (!bridge.isNativeEnv()) {
       return
     }
-
-    bridge.send('deviceStatus', { action: 'subscribeStatus' })
-
-    unsub = bridge.on('onDeviceStatusChanged', (data: any) => {
-      status.value = (data?.status as DeviceStatus) || 'unknown'
-    })
-
-    bridge.send('deviceStatus', { action: 'getStatus' }, {
-      onStatus: (data: any) => {
-        status.value = (data?.status as DeviceStatus) || 'unknown'
-      },
-    })
+    bridge.on('deviceStatus', 'deviceStatus', handleData)
   })
 
   onUnmounted(() => {
-    unsub?.()
-    if (isNativeEnv()) {
-      bridge.send('deviceStatus', { action: 'unsubscribeStatus' })
-    }
+    bridge.off('deviceStatus', 'deviceStatus')
   })
 
   /** 状态对应的中文标签 */

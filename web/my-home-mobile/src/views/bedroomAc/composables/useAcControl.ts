@@ -1,8 +1,9 @@
 /**
- * 卧室空调控制 — 状态查询 + 控制指令 + 实时订阅
+ * 卧室空调控制
  */
 import { ref, onMounted, onUnmounted } from 'vue'
-import { getNativeBridge, isNativeEnv } from '@/modules/nativeBridge'
+import { bridge } from '@/modules/bridge'
+import type { ActionMessageName } from '@/modules/bridge/types/group/utils'
 import { toast } from 'vue-sonner'
 
 export interface ACState {
@@ -30,48 +31,34 @@ const DEFAULT_STATE: ACState = {
 }
 
 export function useAcControl() {
-  const bridge = getNativeBridge()
   const state = ref<ACState>({ ...DEFAULT_STATE })
   const loading = ref(true)
-  let unsub: (() => void) | null = null
+
+  function handleState(data: unknown) {
+    console.log("空调状态data", data)
+    state.value = { ...DEFAULT_STATE, ...(data as Partial<ACState>) }
+    loading.value = false
+  }
 
   onMounted(() => {
-    if (!isNativeEnv()) {
+    if (!bridge.isNativeEnv()) {
       loading.value = false
       return
     }
-
-    // 订阅实时状态推送
-    bridge.send('bedroomAC', { action: 'subscribeState' })
-
-    unsub = bridge.on('onACStateChanged', (data) => {
-      state.value = { ...DEFAULT_STATE, ...(data as Partial<ACState>) }
-      loading.value = false
-    })
-
-    // 获取当前状态
-    bridge.send('bedroomAC', { action: 'getState' }, {
-      onState: (data) => {
-        state.value = { ...DEFAULT_STATE, ...(data as Partial<ACState>) }
-        loading.value = false
-      },
-    })
+    bridge.on('bedroomAC', 'acState', handleState)
   })
 
   onUnmounted(() => {
-    unsub?.()
-    if (isNativeEnv()) {
-      bridge.send('bedroomAC', { action: 'unsubscribeState' })
-    }
+    bridge.off('bedroomAC', 'acState')
   })
 
-  /** 发送控制指令（单向，无回调） */
-  function sendAction(action: string, extra?: Record<string, unknown>) {
-    if (!isNativeEnv()) {
+  /** 发送控制指令 */
+  function sendAction(action: ActionMessageName<'bedroomAC'>, extra?: Record<string, unknown>) {
+    if (!bridge.isNativeEnv()) {
       toast.info(`[模拟] ${action}`)
       return
     }
-    bridge.send('bedroomAC', { action, ...extra })
+    bridge.send('bedroomAC', action, extra)
   }
 
   return {
@@ -80,6 +67,14 @@ export function useAcControl() {
     togglePower: () => sendAction('togglePower'),
     increaseTemperature: () => sendAction('increaseTemperature'),
     decreaseTemperature: () => sendAction('decreaseTemperature'),
+    toggleSwing: () => sendAction('toggleSwing'),
+    setCoolingMode: () => sendAction('setCoolingMode'),
+    setHeatingMode: () => sendAction('setHeatingMode'),
+    setDryMode: () => sendAction('setDryMode'),
+    setFanMode: () => sendAction('setFanMode'),
+    toggleWindSpeed: () => sendAction('toggleWindSpeed'),
+    enableGentleMode: () => sendAction('enableGentleMode'),
+    toggleLight: () => sendAction('toggleLight'),
     setOnTimer: (minutes: number) => sendAction('setOnTimer', { minutes }),
     setOffTimer: (minutes: number) => sendAction('setOffTimer', { minutes }),
     cancelOnTimer: () => sendAction('cancelOnTimer'),

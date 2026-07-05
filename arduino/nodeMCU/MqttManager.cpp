@@ -46,8 +46,10 @@ bool MqttManager::connect() {
     Serial.println("[MQTT] 连接成功！");
 
     // 发布在线状态（保留消息），覆盖上次离线时 Broker 遗留的遗嘱消息
-    Serial.printf("[MQTT] 已发布在线状态 → %s: %s\n", MQTT_WILL_TOPIC, MQTT_ONLINE_PAYLOAD);
-    _client.publish(MQTT_WILL_TOPIC, MQTT_ONLINE_PAYLOAD, true);
+    char onlinePayload[64];
+    snprintf(onlinePayload, sizeof(onlinePayload), R"({"isOnline":true,"updateTime":%lu})", millis() / 1000);
+    Serial.printf("[MQTT] 已发布在线状态 → %s: %s\n", MQTT_WILL_TOPIC, onlinePayload);
+    _client.publish(MQTT_WILL_TOPIC, onlinePayload, true);
 
     return true;
 }

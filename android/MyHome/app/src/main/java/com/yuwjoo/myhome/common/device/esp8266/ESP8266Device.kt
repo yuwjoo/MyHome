@@ -8,7 +8,7 @@ import com.yuwjoo.myhome.module.mqtt.TopicCallback
 /**
  * ESP8266 设备
  */
-object ESP8266 {
+object ESP8266Device {
 
     // 设备状态监听器集合
     private val statusListeners = LinkedHashSet<ESP8266Callback>()

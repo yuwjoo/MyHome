@@ -13,9 +13,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.LifecycleCoroutineScope
 import com.yuwjoo.myhome.config.AppConfig
-import com.yuwjoo.myhome.module.bridge.AppMessageHandler
-import com.yuwjoo.myhome.module.bridge.NativeHost
-import com.yuwjoo.myhome.module.bridge.WebViewHelper
+import com.yuwjoo.myhome.module.bridge.Bridge
 import com.yuwjoo.myhome.module.update.WebResourceInitializer
 
 /**
@@ -71,10 +69,8 @@ class WebViewManager(
                 allowContentAccess = true
             }
 
-            // NativeBridge — 注入 window.__nativeHost
-            val bridgeHelper = WebViewHelper(this)
-            val messageHandler = AppMessageHandler(bridgeHelper)
-            addJavascriptInterface(NativeHost(messageHandler), "__nativeHost")
+            // Bridge — 注入 NativeProvider 挂载到 window.__bridge:native-provider__
+            Bridge.mount(this)
 
             // WebChromeClient — 处理文件选择器等 WebView 事件
             webChromeClient = object : WebChromeClient() {
