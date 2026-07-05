@@ -4,7 +4,7 @@
 
 ```ts
 // main.ts
-import { initNativeBridge } from '@/modules/nativeBridge'
+import { initNativeBridge } from '@/module/nativeBridge'
 
 initNativeBridge() // 创建实例并挂到 window.__webBridge
 ```
@@ -12,7 +12,7 @@ initNativeBridge() // 创建实例并挂到 window.__webBridge
 ## 获取实例
 
 ```ts
-import { getNativeBridge } from '@/modules/nativeBridge'
+import { getNativeBridge } from '@/module/nativeBridge'
 
 const bridge = getNativeBridge()
 ```
@@ -22,7 +22,7 @@ const bridge = getNativeBridge()
 ## 环境判断
 
 ```ts
-import { isNativeEnv, getNativePlatform } from '@/modules/nativeBridge'
+import { isNativeEnv, getNativePlatform } from '@/module/nativeBridge'
 
 if (isNativeEnv()) {
   const platform = getNativePlatform() // 'android' | 'harmony'
@@ -112,8 +112,8 @@ onUnmounted(() => unlisten())
 
 ```vue
 <script setup lang="ts">
-import { getNativeBridge } from '@/modules/nativeBridge'
-import type { NativeError } from '@/modules/nativeBridge'
+import { getNativeBridge } from '@/module/nativeBridge'
+import type { NativeError } from '@/module/nativeBridge'
 import { onMounted, onUnmounted, ref } from 'vue'
 
 const bridge = getNativeBridge()

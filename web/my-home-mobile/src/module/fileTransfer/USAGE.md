@@ -3,7 +3,7 @@
 ## 快速开始
 
 ```ts
-import { useFileTransferStore, TransferType } from '@/modules/fileTransfer'
+import { useFileTransferStore, TransferType } from '@/module/fileTransfer'
 
 // 一行搞定 — 默认执行器已内置，中断任务自动恢复
 const store = useFileTransferStore()
@@ -17,7 +17,7 @@ const store = useFileTransferStore()
 
 ```vue
 <script setup lang="ts">
-import { useFileTransferStore, TransferType } from '@/modules/fileTransfer'
+import { useFileTransferStore, TransferType } from '@/module/fileTransfer'
 
 const store = useFileTransferStore()
 
@@ -236,8 +236,8 @@ store.concurrency = { upload: 3, download: 5 }
 默认执行器通过 `defaultExecutorFactory` 注入，也可替换为自定义实现：
 
 ```ts
-import type { TransportExecutor, ExecutorCallbacks } from '@/modules/fileTransfer'
-import type { TransferTask } from '@/modules/fileTransfer'
+import type { TransportExecutor, ExecutorCallbacks } from '@/module/fileTransfer'
+import type { TransferTask } from '@/module/fileTransfer'
 
 class MyUploadExecutor implements TransportExecutor {
   async start(task: TransferTask, callbacks: ExecutorCallbacks): Promise<void> {

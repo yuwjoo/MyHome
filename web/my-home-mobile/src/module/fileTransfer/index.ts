@@ -2,7 +2,7 @@
  * 文件传输任务模块 — 统一出口
  *
  * 外部引入方式：
- *   import { useFileTransferStore, TransferType } from '@/modules/fileTransfer'
+ *   import { useFileTransferStore, TransferType } from '@/module/fileTransfer'
  */
 
 export { useFileTransferStore } from './stores/fileTransfer'

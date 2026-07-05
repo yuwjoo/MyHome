@@ -46,7 +46,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { SearchIcon, ArrowRightLeftIcon, PlusIcon } from 'lucide-vue-next'
-import { useFileTransferStore } from '@/modules/fileTransfer'
+import { useFileTransferStore } from '@/module/fileTransfer'
 
 const router = useRouter()
 const fileStore = useFileTransferStore()

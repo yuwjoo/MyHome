@@ -136,7 +136,7 @@ import {
   useFileTransferStore,
   TransferTaskStatus,
   TransferType,
-} from '@/modules/fileTransfer'
+} from '@/module/fileTransfer'
 
 const props = withDefaults(defineProps<{
   /** 是否显示新建面板 */

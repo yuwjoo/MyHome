@@ -114,7 +114,7 @@ Web 前端                          原生端
 
 ```ts
 // main.ts
-import { initNativeBridge } from '@/modules/nativeBridge'
+import { initNativeBridge } from '@/module/nativeBridge'
 
 initNativeBridge()
 // → new NativeBridge()
@@ -139,7 +139,7 @@ webView.addJavascriptInterface(
 ### 步骤 3 — Web 端发送消息（send）
 
 ```ts
-import { getNativeBridge } from '@/modules/nativeBridge'
+import { getNativeBridge } from '@/module/nativeBridge'
 
 const bridge = getNativeBridge()
 
@@ -205,7 +205,7 @@ window.__webBridge.invoke('__listeners', 'networkChange', { isConnected: false }
 ## 4. 目录结构
 
 ```
-src/modules/nativeBridge/
+src/module/nativeBridge/
 ├── index.ts                  ← 模块统一出口
 ├── config.ts                 ← 全局配置常量
 ├── types/

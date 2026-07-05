@@ -90,7 +90,7 @@
 ## 3. 目录结构
 
 ```
-src/modules/fileTransfer/
+src/module/fileTransfer/
 ├── index.ts                     ← 模块统一出口，导出 Store 和所有类型
 ├── types/
 │   ├── index.ts                 ← barrel 导出
@@ -107,7 +107,7 @@ src/modules/fileTransfer/
     └── taskFactory.ts          ← 任务对象工厂
 ```
 
-外部引入方式：`import { useFileTransferStore, TransferType } from '@/modules/fileTransfer'`
+外部引入方式：`import { useFileTransferStore, TransferType } from '@/module/fileTransfer'`
 
 ---
 

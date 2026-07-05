@@ -2,7 +2,7 @@
  * 温湿度传感器数据
  */
 import { ref, onMounted, onUnmounted } from 'vue'
-import { bridge } from '@/modules/bridge'
+import { bridge } from '@/module/bridge'
 
 export function useSensorData() {
   const temperature = ref<number | null>(null)

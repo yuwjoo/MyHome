@@ -18,8 +18,8 @@ import {
   useFileTransferStore,
   TransferTaskStatus,
   TransferType,
-} from '@/modules/fileTransfer'
-import type { TransferTask } from '@/modules/fileTransfer'
+} from '@/module/fileTransfer'
+import type { TransferTask } from '@/module/fileTransfer'
 
 const router = useRouter()
 const store = useFileTransferStore()

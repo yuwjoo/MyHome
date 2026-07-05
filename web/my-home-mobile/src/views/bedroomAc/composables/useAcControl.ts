@@ -2,8 +2,8 @@
  * 卧室空调控制
  */
 import { ref, onMounted, onUnmounted } from 'vue'
-import { bridge } from '@/modules/bridge'
-import type { ActionMessageName } from '@/modules/bridge/types/group/utils'
+import { bridge } from '@/module/bridge'
+import type { ActionMessageName } from '@/module/bridge/types/group/utils'
 import { toast } from 'vue-sonner'
 
 export interface ACState {

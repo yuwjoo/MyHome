@@ -2,7 +2,7 @@
  * 设备在线状态
  */
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { bridge } from '@/modules/bridge'
+import { bridge } from '@/module/bridge'
 
 export type DeviceStatus = 'online' | 'offline' | 'unknown'
 
