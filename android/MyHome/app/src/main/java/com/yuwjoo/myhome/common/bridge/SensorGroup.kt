@@ -26,10 +26,10 @@ class SensorGroup {
 
         when (action) {
             "on" -> {
-                sender.send("onTempHumid", JSONObject(TempHumidSensorDevice.sensorState.toJson()), isRetained = true)
+                sender.sendEventMessage(JSONObject(TempHumidSensorDevice.sensorState.toJson()), isRetained = true)
                 if (stateCallback == null) {
                     stateCallback = TempHumidSensorCallback { state ->
-                        sender.send("onTempHumid", JSONObject(state.toJson()), isRetained = true)
+                        sender.sendEventMessage(JSONObject(state.toJson()), isRetained = true)
                     }
                     TempHumidSensorDevice.registerSensorListener(stateCallback!!)
                 }

@@ -26,10 +26,10 @@ class ESP8266Group {
 
         when (action) {
             "on" -> {
-                sender.send("onDeviceStatus", JSONObject(ESP8266Device.status.toJson()), isRetained = true)
+                sender.sendEventMessage(JSONObject(ESP8266Device.status.toJson()), isRetained = true)
                 if (statusCallback == null) {
                     statusCallback = ESP8266Callback { state ->
-                        sender.send("onDeviceStatus", JSONObject(state.toJson()), isRetained = true)
+                        sender.sendEventMessage(JSONObject(state.toJson()), isRetained = true)
                     }
                     ESP8266Device.registerStatusListener(statusCallback!!)
                 }

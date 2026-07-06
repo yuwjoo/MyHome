@@ -152,10 +152,10 @@ class BedroomACGroup {
 
         when (action) {
             "on" -> {
-                sender.send("onAcState", JSONObject(BedroomACDevice.acState.toJson()), isRetained = true)
+                sender.sendEventMessage(JSONObject(BedroomACDevice.acState.toJson()), isRetained = true)
                 if (stateCallback == null) {
                     stateCallback = ACStateCallback { state ->
-                        sender.send("onAcState", JSONObject(state.toJson()), isRetained = true)
+                        sender.sendEventMessage(JSONObject(state.toJson()), isRetained = true)
                     }
                     BedroomACDevice.registerACStateListener(stateCallback!!)
                 }

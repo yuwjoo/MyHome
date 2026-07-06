@@ -33,6 +33,26 @@ class MessageSender(
         }
         evaluateJs("$receiverPath.onMessage(${JSONObject.quote(msg.toString())})")
     }
+    
+    /**
+     * 发送事件消息
+     *
+     * @param data       回传数据（可选）
+     * @param isRetained 是否保留数据，供后续新注册的回调直接获取（可选）
+     */
+    fun sendEventMessage(data: JSONObject? = null, isRetained: Boolean = false) {
+        send("onMessage", data, isRetained = isRetained)
+    }
+
+    /**
+     * 发送结束消息
+     *
+     * @param callbackName 回调名称
+     * @param data         回传数据（可选）
+     */
+    fun sendEndMessage(callbackName: String, data: JSONObject? = null) {
+        send(callbackName, data, isEnd = true)
+    }
 
     private fun evaluateJs(js: String) {
         webView.post {

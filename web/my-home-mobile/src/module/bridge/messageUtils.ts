@@ -9,7 +9,6 @@ import type {
   EventCallback,
 } from './types/group/utils'
 import { nativeProvider } from './nativeProvider'
-import { bridgeConfig } from './bridgeConfig'
 import { v4 as uuid } from 'uuid'
 import type { Callback } from './types/bridge'
 
@@ -59,8 +58,8 @@ class MessageUtils {
   ): void {
     if (!nativeProvider.isNativeEnv()) return
 
-    const messageId = bridgeConfig.listenEventMessageId
-    const callbackName = 'on' + eventName.charAt(0).toUpperCase() + eventName.slice(1)
+    const messageId = eventName
+    const callbackName = 'onMessage'
     const alreadyListening = callbackCenter.hasHandler(groupName, messageId, callbackName)
 
     callbackCenter.register(groupName, messageId, callbackName, handler)
@@ -87,8 +86,8 @@ class MessageUtils {
   ): void {
     if (!nativeProvider.isNativeEnv()) return
 
-    const messageId = bridgeConfig.listenEventMessageId
-    const callbackName = 'on' + eventName.charAt(0).toUpperCase() + eventName.slice(1)
+    const messageId = eventName
+    const callbackName = 'onMessage'
     const stillListening = callbackCenter.hasHandler(groupName, messageId, callbackName)
 
     callbackCenter.remove(groupName, messageId, callbackName, handler)
