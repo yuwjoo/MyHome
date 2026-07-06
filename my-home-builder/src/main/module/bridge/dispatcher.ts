@@ -11,27 +11,22 @@ import type { NativeMessage } from './types';
 /** 消息处理函数签名 */
 export type MessageHandler = (params: Record<string, unknown>, sender: MessageSender) => void;
 
-/** 分组实例接口：提供 groupName 和消息处理函数映射 */
-export interface BridgeGroup {
-  /** 分组名称 */
-  readonly groupName: string;
-  /** 消息名 → 处理函数的映射 */
-  readonly messages: Record<string, MessageHandler>;
-}
-
 export class Dispatcher {
   // groupName → (messageName → handler)
   private readonly routes: Map<string, Map<string, MessageHandler>> = new Map();
 
   /**
-   * 注册分组实例
+   * 注册分组
+   *
+   * @param groupName 分组名称
+   * @param messages  消息名 → 处理函数的映射
    */
-  register(group: BridgeGroup): void {
-    const messageMap = this.routes.get(group.groupName) ?? new Map();
-    for (const [messageName, handler] of Object.entries(group.messages)) {
+  register(groupName: string, messages: Record<string, MessageHandler>): void {
+    const messageMap = this.routes.get(groupName) ?? new Map();
+    for (const [messageName, handler] of Object.entries(messages)) {
       messageMap.set(messageName, handler);
     }
-    this.routes.set(group.groupName, messageMap);
+    this.routes.set(groupName, messageMap);
   }
 
   /**

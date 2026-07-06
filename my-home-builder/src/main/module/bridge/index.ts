@@ -12,7 +12,7 @@
  */
 import { ipcMain, type BrowserWindow } from 'electron';
 import { bridgeConfig } from './bridgeConfig';
-import { Dispatcher, type BridgeGroup } from './dispatcher';
+import { Dispatcher, type MessageHandler } from './dispatcher';
 import type { NativeMessage } from './types';
 
 export class Bridge {
@@ -23,14 +23,17 @@ export class Bridge {
    * 挂载 Bridge 到 BrowserWindow，注册内置分组模块
    *
    * @param browserWindow BrowserWindow 实例
-   * @param groups 要注册的分组模块（可选）
+   * @param groups        分组名 → 消息处理器映射的映射表（可选）
    */
-  mount(browserWindow: BrowserWindow, groups: BridgeGroup[] = []): void {
+  mount(
+    browserWindow: BrowserWindow,
+    groups: Record<string, Record<string, MessageHandler>> = {},
+  ): void {
     this.browserWindow = browserWindow;
 
     // 注册分组
-    for (const group of groups) {
-      this.dispatcher.register(group);
+    for (const [groupName, messages] of Object.entries(groups)) {
+      this.dispatcher.register(groupName, messages);
     }
 
     // 注册 IPC 处理器：渲染进程 → 主进程
