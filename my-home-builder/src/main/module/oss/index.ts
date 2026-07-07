@@ -1,9 +1,14 @@
 import OSS from 'ali-oss';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { load } from 'js-yaml';
 import type { OssConfig } from './types';
 
-const configPath = resolve(process.cwd(), '.secret', 'oss.json');
-const config = JSON.parse(readFileSync(configPath, 'utf-8')) as OssConfig;
+interface CredentialsYaml {
+  oss: OssConfig;
+}
 
-export default new OSS(config);
+const configPath = resolve(process.cwd(), '.secret', 'credentials.yaml');
+const yaml = load(readFileSync(configPath, 'utf-8')) as CredentialsYaml;
+
+export default new OSS(yaml.oss);
