@@ -3,7 +3,7 @@
  * 对应 Android 端 Bridge.kt
  *
  * 使用方式：
- *   在 electron-main.ts 中调用 Bridge.mount(mainWindow) 挂载
+ *   在 main/main.ts 中调用 Bridge.mount(mainWindow) 挂载
  *   注册分组：Bridge.dispatcher.register(myGroup)
  *
  * 架构摘要：

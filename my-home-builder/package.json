@@ -3,7 +3,7 @@
   "productName": "my-home-builder",
   "version": "1.0.0",
   "description": "MyHome 多端项目统一构建发布工具",
-  "main": ".vite/build/electron-main.js",
+  "main": ".vite/build/main/main.js",
   "private": true,
   "scripts": {
     "start": "electron-forge start",

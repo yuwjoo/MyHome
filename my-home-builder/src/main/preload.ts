@@ -5,7 +5,7 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
-import { bridgeConfig } from './main/module/bridge/bridgeConfig';
+import { bridgeConfig } from './module/bridge/bridgeConfig';
 
 // ============================================================
 // Bridge 注入：主进程 ↔ 渲染进程 双向消息通道
