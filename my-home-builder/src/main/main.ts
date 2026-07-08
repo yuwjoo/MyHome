@@ -8,43 +8,14 @@ import { exec, spawn, type ChildProcess } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
+import { createWindow, getMainWindow } from './module/window';
+import { bridge } from './module/bridge';
+import { bridgeGroup } from './common/bridge';
 
 // 处理 Windows 安装/卸载快捷方式
 if (started) {
   app.quit();
 }
-
-/**
- * 创建主窗口
- */
-const createWindow = (): void => {
-  const mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 860,
-    minWidth: 1024,
-    minHeight: 700,
-    title: 'MyHome Builder - 构建发布工具',
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-
-  // 加载页面
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
-  } else {
-    mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-    );
-  }
-
-  // 开发模式打开 DevTools
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.webContents.openDevTools();
-  }
-};
 
 // ============================================================
 // IPC 处理器注册
@@ -153,7 +124,13 @@ ipcMain.handle(
 // 应用生命周期
 // ============================================================
 
-app.on('ready', createWindow);
+app.on('ready', () => {
+  createWindow();
+  const mainWindow = getMainWindow();
+  if (mainWindow) {
+    bridge.mount(mainWindow, bridgeGroup);
+  }
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
