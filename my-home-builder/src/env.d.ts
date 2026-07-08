@@ -16,12 +16,4 @@ declare module '~icons/*' {
   export default component;
 }
 
-// Electron preload 暴露的 API 类型
-interface Window {
-  electronAPI: {
-    /** 执行 Shell 命令（实时流式输出） */
-    spawnCommand: (command: string, cwd: string, taskId: string) => Promise<{ code: number | null }>;
-    /** 写入文件 */
-    writeFile: (filePath: string, content: string) => Promise<void>;
-  };
-}
+

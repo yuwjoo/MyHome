@@ -36,7 +36,7 @@ async function updatePackageVersion(version: string): Promise<void> {
  * @param outputPath zip 输出路径
  */
 function compressToZip(sourcePath: string, outputPath: string): Promise<void> {
-  return zip.compressDir(sourcePath, outputPath);
+  return zip.compressDir(sourcePath, outputPath, { ignoreBase: true });
 }
 
 /**

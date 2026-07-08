@@ -1,8 +1,8 @@
 {
   "android": {
-    "MyHome": "0.0.8"
+    "MyHome": "0.0.10"
   },
   "web": {
-    "my-home-mobile": "0.0.9"
+    "my-home-mobile": "0.0.10"
   }
 }

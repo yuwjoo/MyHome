@@ -3,7 +3,7 @@
  */
 
 import type { Ref } from 'vue';
-import type { VersionManifest, SemanticVersion } from './publish';
+import type { VersionManifest, SemanticVersion } from './useWebPublish';
 
 /** useVersionManifest Hook 返回值 */
 export interface UseVersionManifestReturn {
@@ -16,7 +16,7 @@ export interface UseVersionManifestReturn {
   /** 加载版本清单 */
   loadManifest: () => Promise<void>;
   /** 更新版本清单中指定项目的版本号 */
-  updateVersion: (projectId: string, newVersion: string) => Promise<void>;
+  updateVersion: (projectId: string, newVersion: string) => void;
   /** 解析版本号字符串为三段数字 */
   parseVersion: (version: string) => SemanticVersion;
   /** 获取指定项目在版本清单中的版本号 */

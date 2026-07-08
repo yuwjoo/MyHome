@@ -149,7 +149,9 @@ import BuildProgress from '@/components/BuildProgress.vue';
 
 import { useVersionManifest } from '@/composables/useVersionManifest';
 import { useWebPublish } from '@/composables/useWebPublish';
-import { getProjectById, projectList, platformLabel, platformColor, VERSION_MANIFEST_PATH, WEB_PROJECT_PATH } from '@/config/projects';
+import { useAndroidPublish } from '@/composables/useAndroidPublish';
+import { bridge } from '@/module/bridge';
+import { getProjectById, projectList, platformLabel, platformColor } from '@/config/projects';
 import type { PublishTask } from '@/types/useWebPublish';
 
 // -- 版本清单 Hook --
@@ -162,13 +164,14 @@ const {
 } = useVersionManifest();
 
 // -- Web 发布 Hook --
-const {
-  currentTask,
-  isPublishing,
-  startPublish,
-  cancelPublish,
-  clearLogs,
-} = useWebPublish();
+const webPublish = useWebPublish();
+
+// -- Android 发布 Hook --
+const androidPublish = useAndroidPublish();
+
+/** 当前平台对应的发布 Hook 状态（动态指向 web/android） */
+const currentTask = computed(() => webPublish.currentTask.value || androidPublish.currentTask.value);
+const isPublishing = computed(() => webPublish.isPublishing.value || androidPublish.isPublishing.value);
 
 /** Ref 自动解包后的任务对象，解决 TS 插件类型推断问题 */
 const taskForBuild = computed(() => currentTask.value);
@@ -219,34 +222,21 @@ onMounted(() => {
   loadManifest();
 });
 
-/** 发布版本清单：先写本地文件，再通过 npm script 上传 OSS */
-const handlePublishManifest = async () => {
+/**
+ * 发布版本清单：通过 bridge 覆盖本地文件并上传 OSS
+ */
+const handlePublishManifest = () => {
   publishingManifest.value = true;
-  try {
-    // 确保 manifest 已写入本地文件
-    await window.electronAPI.writeFile(
-      VERSION_MANIFEST_PATH,
-      JSON.stringify(manifest.value, null, 2) + '\n',
-    );
-
-    // 执行发布清单命令
-    const result = await window.electronAPI.spawnCommand(
-      'npm run publish:manifest',
-      WEB_PROJECT_PATH,
-      `manifest_${Date.now()}`,
-    );
-
-    if (result.code === 0) {
+  bridge.send('versionManifest', 'publishManifest', { manifest: manifest.value }, {
+    onSuccess: () => {
       ElMessage.success('版本清单发布成功');
-    } else {
-      ElMessage.error(`版本清单发布失败，退出码: ${result.code}`);
-    }
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    ElMessage.error(`版本清单发布失败: ${msg}`);
-  } finally {
-    publishingManifest.value = false;
-  }
+      publishingManifest.value = false;
+    },
+    onError: (data) => {
+      ElMessage.error(`版本清单发布失败: ${data.message}`);
+      publishingManifest.value = false;
+    },
+  });
 };
 
 /** 处理发布操作 */
@@ -288,22 +278,31 @@ const handlePublish = async () => {
     startTime: Date.now(),
   };
 
-  // 启动发布流程（hook 内部管理日志输出和状态更新）
+  // 根据平台选择对应的发布 Hook
+  const publishHook = project.platform === 'android' ? androidPublish : webPublish;
+
   try {
-    await startPublish(task);
+    await publishHook.startPublish(task);
   } catch {
     // 错误日志已在 hook 内部输出
+  }
+
+  // 发布成功后更新内存中的版本清单
+  if (task.status === 'success') {
+    updateVersion(form.projectId, form.version);
   }
 };
 
 /** 取消发布 */
 const handleCancel = () => {
-  cancelPublish();
+  webPublish.cancelPublish();
+  androidPublish.cancelPublish();
 };
 
 /** 清空日志 */
 const handleClearLogs = () => {
-  clearLogs();
+  webPublish.clearLogs();
+  androidPublish.clearLogs();
 };
 </script>
 

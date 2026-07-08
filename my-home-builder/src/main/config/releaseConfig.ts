@@ -7,7 +7,7 @@ import { app } from "electron";
 
 const projectRoot = path.resolve(app.getAppPath(), "..");
 
-const ossRoot = "MyHome1";
+const ossRoot = "MyHome";
 
 /** 各端发布产物的 OSS 对象路径 */
 export const releaseConfig = {

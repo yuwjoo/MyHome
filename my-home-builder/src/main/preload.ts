@@ -30,25 +30,4 @@ contextBridge.exposeInMainWorld(bridgeConfig.messageReceiverKey, {
   },
 });
 
-/** 暴露给渲染进程的 API */
-contextBridge.exposeInMainWorld('electronAPI', {
-  /**
-   * 执行 Shell 命令（实时流式输出）
-   * @param command - 要执行的命令
-   * @param cwd - 工作目录
-   * @param taskId - 任务标识，用于区分不同命令的输出流
-   * @returns 进程退出码
-   */
-  spawnCommand: (command: string, cwd: string, taskId: string): Promise<{ code: number | null }> => {
-    return ipcRenderer.invoke('spawn-command', { command, cwd, taskId });
-  },
 
-  /**
-   * 写入文件内容
-   * @param filePath - 文件路径
-   * @param content - 文件内容
-   */
-  writeFile: (filePath: string, content: string): Promise<void> => {
-    return ipcRenderer.invoke('write-file', filePath, content);
-  },
-});

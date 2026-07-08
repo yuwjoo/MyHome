@@ -47,7 +47,7 @@ export function useAndroidPublish() {
    *
    * @param task 发布任务对象
    */
-  async function startPublish(task: PublishTask): Promise<void> {
+  function startPublish(task: PublishTask): Promise<void> {
     currentTask.value = task;
     isPublishing.value = true;
 
@@ -55,45 +55,50 @@ export function useAndroidPublish() {
 
     addLog(task, 'info', `🚀 开始发布 Android MyHome - v${task.version} (code: ${versionCode})`);
 
-    try {
-      bridge.send('android', 'publishMyHome', { version: task.version, versionCode }, {
-        onProgress: (data) => {
-          const info = data.versionCode !== undefined
-            ? `${data.step}: versionName=${data.version} versionCode=${data.versionCode}`
-            : data.step;
-          addLog(task, 'info', `📋 ${info}`);
-          if (data.step === '更新版本号') task.progress = 10;
-          else if (data.step === '执行构建') {
-            setStatus(task, 'publishing');
-            task.progress = 25;
-          }
-          else if (data.step === '上传 OSS') task.progress = 65;
-        },
-        onBuildOutput: (data) => {
-          const lines = data.data.split('\n').filter((l) => l.trim());
-          for (const line of lines) {
-            addLog(task, 'info', line.trim());
-          }
-        },
-        onSuccess: (data) => {
-          task.progress = 100;
-          setStatus(task, 'success');
-          addLog(task, 'info', `🎉 Android MyHome 发布成功，地址: ${data.url}`);
-          ElMessage.success('Android 项目发布成功');
-        },
-        onError: (data) => {
-          addLog(task, 'error', `❌ ${data.message}`);
-          setStatus(task, 'failed');
-        },
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      addLog(task, 'error', `❌ ${msg}`);
-      setStatus(task, 'failed');
-    } finally {
+    return new Promise<void>((resolve) => {
+      try {
+        bridge.send('android', 'publishMyHome', { version: task.version, versionCode }, {
+          onProgress: (data) => {
+            const info = data.versionCode !== undefined
+              ? `${data.step}: versionName=${data.version} versionCode=${data.versionCode}`
+              : data.step;
+            addLog(task, 'info', `📋 ${info}`);
+            if (data.step === '更新版本号') task.progress = 10;
+            else if (data.step === '执行构建') {
+              setStatus(task, 'publishing');
+              task.progress = 25;
+            }
+            else if (data.step === '上传 OSS') task.progress = 65;
+          },
+          onBuildOutput: (data) => {
+            const lines = data.data.split('\n').filter((l) => l.trim());
+            for (const line of lines) {
+              addLog(task, 'info', line.trim());
+            }
+          },
+          onSuccess: (data) => {
+            task.progress = 100;
+            setStatus(task, 'success');
+            addLog(task, 'info', `🎉 Android MyHome 发布成功，地址: ${data.url}`);
+            ElMessage.success('Android 项目发布成功');
+            resolve();
+          },
+          onError: (data) => {
+            addLog(task, 'error', `❌ ${data.message}`);
+            setStatus(task, 'failed');
+            resolve();
+          },
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        addLog(task, 'error', `❌ ${msg}`);
+        setStatus(task, 'failed');
+        resolve();
+      }
+    }).finally(() => {
       task.endTime = Date.now();
       isPublishing.value = false;
-    }
+    });
   }
 
   /**
