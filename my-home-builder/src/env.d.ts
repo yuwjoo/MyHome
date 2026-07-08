@@ -16,6 +16,30 @@ declare module '~icons/*' {
   export default component;
 }
 
+/**
+ * archiver v8 ESM 类型声明
+ * archiver v8 是纯 ESM 包，导出 ZipArchive 等命名类
+ */
+declare module 'archiver' {
+  import { Transform, TransformOptions } from 'node:stream';
+  import { ZlibOptions } from 'node:zlib';
+
+  interface ZipOptions {
+    zlib?: ZlibOptions;
+  }
+
+  class ZipArchive extends Transform {
+    constructor(options?: TransformOptions & ZipOptions);
+    pipe<T extends NodeJS.WritableStream>(destination: T): T;
+    directory(dirpath: string, destpath: string | false): this;
+    finalize(): Promise<void>;
+    on(event: 'error', listener: (err: Error) => void): this;
+    on(event: 'close', listener: () => void): this;
+  }
+
+  export { ZipArchive };
+}
+
 // Electron preload 暴露的 API 类型
 interface Window {
   electronAPI: {
