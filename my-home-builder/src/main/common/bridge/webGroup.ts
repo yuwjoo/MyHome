@@ -3,10 +3,9 @@
  * 处理 my-home-mobile 项目的版本更新、构建、打包与 OSS 上传
  */
 import * as path from "node:path";
-import { createWriteStream } from "node:fs";
 import { readFile, writeFile, unlink } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import { ZipArchive } from 'archiver';
+import { zip } from 'compressing';
 import type { MessageHandler } from "../../module/bridge/dispatcher";
 import ossClient from "../../module/oss";
 import { releaseConfig } from "../../config/releaseConfig";
@@ -36,21 +35,8 @@ async function updatePackageVersion(version: string): Promise<void> {
  * @param sourcePath 要压缩的目录
  * @param outputPath zip 输出路径
  */
-function compressToZip(
-  sourcePath: string,
-  outputPath: string,
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const output = createWriteStream(outputPath);
-    const archive = new ZipArchive({ zlib: { level: 9 } });
-
-    output.on("close", () => resolve(outputPath));
-    archive.on("error", (err: Error) => reject(err));
-
-    archive.pipe(output);
-    archive.directory(sourcePath, false);
-    archive.finalize();
-  });
+function compressToZip(sourcePath: string, outputPath: string): Promise<void> {
+  return zip.compressDir(sourcePath, outputPath);
 }
 
 /**

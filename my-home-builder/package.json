@@ -3,7 +3,7 @@
   "productName": "my-home-builder",
   "version": "1.0.0",
   "description": "MyHome 多端项目统一构建发布工具",
-  "main": ".vite/build/main/main.js",
+  "main": ".vite/build/main.js",
   "private": true,
   "scripts": {
     "start": "electron-forge start",
@@ -46,8 +46,8 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
     "ali-oss": "^6.23.0",
-    "archiver": "^8.0.0",
     "axios": "^1.16.1",
+    "compressing": "^2.1.1",
     "electron-squirrel-startup": "^1.0.1",
     "element-plus": "^2.14.1",
     "js-yaml": "^5.2.1",

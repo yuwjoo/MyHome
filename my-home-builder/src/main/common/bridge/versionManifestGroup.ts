@@ -2,10 +2,10 @@
  * 版本清单消息处理器
  * 处理版本清单的读取与发布
  */
-import { readFile, writeFile } from 'node:fs/promises';
-import type { MessageHandler } from '../../module/bridge/dispatcher';
-import ossClient from '../../module/oss';
-import { releaseConfig } from '../../config/releaseConfig';
+import { readFile, writeFile } from "node:fs/promises";
+import type { MessageHandler } from "../../module/bridge/dispatcher";
+import ossClient from "../../module/oss";
+import { releaseConfig } from "../../config/releaseConfig";
 
 const { localAssets, ossAssets } = releaseConfig;
 
@@ -18,10 +18,10 @@ export const versionManifestGroup: Record<string, MessageHandler> = {
    */
   getManifest: async (_params, sender) => {
     try {
-      const content = await readFile(localAssets.manifest, 'utf-8');
-      sender.sendEndMessage('onSuccess', { manifest: JSON.parse(content) });
+      const content = await readFile(localAssets.manifest, "utf-8");
+      sender.sendEndMessage("onSuccess", { manifest: JSON.parse(content) });
     } catch (err) {
-      sender.sendEndMessage('onError', { message: (err as Error).message });
+      sender.sendEndMessage("onError", { message: (err as Error).message });
     }
   },
 
@@ -34,22 +34,26 @@ export const versionManifestGroup: Record<string, MessageHandler> = {
   publishManifest: async (params, sender) => {
     const manifest = params.manifest as object | undefined;
     if (!manifest) {
-      sender.sendEndMessage('onError', { message: '参数 manifest 缺失' });
+      sender.sendEndMessage("onError", { message: "参数 manifest 缺失" });
       return;
     }
 
     try {
       // 覆盖本地版本清单文件
-      await writeFile(localAssets.manifest, JSON.stringify(manifest, null, 2), 'utf-8');
+      await writeFile(
+        localAssets.manifest,
+        JSON.stringify(manifest, null, 2),
+        "utf-8",
+      );
 
       // 上传到 OSS
       const buffer = await readFile(localAssets.manifest);
       const result = await ossClient.put(ossAssets.manifest, buffer, {
-        headers: { 'x-oss-object-acl': 'public-read' },
+        headers: { "x-oss-object-acl": "public-read" },
       });
-      sender.sendEndMessage('onSuccess', { url: result.url });
+      sender.sendEndMessage("onSuccess", { url: result.url });
     } catch (err) {
-      sender.sendEndMessage('onError', { message: (err as Error).message });
+      sender.sendEndMessage("onError", { message: (err as Error).message });
     }
   },
 };

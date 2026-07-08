@@ -13,14 +13,24 @@ import { messageUtils } from './messageUtils';
 import { nativeProvider } from './nativeProvider';
 
 export const bridge = {
-  /** 发送消息到主进程 */
-  send: messageUtils.send.bind(messageUtils),
-  /** 监听主进程事件 */
-  on: messageUtils.on.bind(messageUtils),
-  /** 取消监听主进程事件 */
-  off: messageUtils.off.bind(messageUtils),
-  /** 是否在 Electron 环境中 */
+  /**
+   * 发送消息到主进程
+   */
+  send: messageUtils.send.bind(messageUtils) as typeof messageUtils.send,
+  /**
+   * 监听主进程事件
+   */
+  on: messageUtils.on.bind(messageUtils) as typeof messageUtils.on,
+  /**
+   * 取消监听主进程事件
+   */
+  off: messageUtils.off.bind(messageUtils) as typeof messageUtils.off,
+  /**
+   * 是否在 Electron 环境中
+   */
   isNativeEnv: nativeProvider.isNativeEnv.bind(nativeProvider),
-  /** 获取当前平台 */
+  /**
+   * 获取当前平台
+   */
   getPlatform: nativeProvider.getPlatform.bind(nativeProvider),
 };

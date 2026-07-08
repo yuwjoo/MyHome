@@ -3,9 +3,9 @@
  * 管理窗口创建、IPC 通信处理
  */
 
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
-import { exec, spawn, type ChildProcess } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { app, BrowserWindow, ipcMain } from 'electron';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { createWindow, getMainWindow } from './module/window';
@@ -20,30 +20,6 @@ if (started) {
 // ============================================================
 // IPC 处理器注册
 // ============================================================
-
-/**
- * 执行 Shell 命令
- * 用于运行各端项目的构建脚本
- */
-ipcMain.handle(
-  'exec-command',
-  async (
-    _event,
-    { command, cwd }: { command: string; cwd?: string },
-  ): Promise<{ stdout: string; stderr: string }> => {
-    return new Promise((resolve, reject) => {
-      const options = cwd ? { cwd: path.resolve(cwd) } : {};
-      exec(command, { ...options, maxBuffer: 50 * 1024 * 1024 }, (error, stdout, stderr) => {
-        if (error) {
-          // 构建失败时，返回 stdout/stderr 供日志展示
-          resolve({ stdout, stderr: stderr || error.message });
-        } else {
-          resolve({ stdout, stderr });
-        }
-      });
-    });
-  },
-);
 
 /**
  * 执行 Shell 命令（实时流式输出）
@@ -87,26 +63,6 @@ ipcMain.handle(
     });
   },
 );
-
-/**
- * 打开目录选择对话框
- */
-ipcMain.handle('select-directory', async (): Promise<string | null> => {
-  const result = await dialog.showOpenDialog({
-    properties: ['openDirectory'],
-    title: '选择项目目录',
-  });
-  return result.canceled ? null : result.filePaths[0];
-});
-
-/**
- * 读取文件内容
- * 支持相对路径（基于应用目录解析）
- */
-ipcMain.handle('read-file', async (_event, filePath: string): Promise<string> => {
-  const resolved = path.isAbsolute(filePath) ? filePath : path.resolve(app.getAppPath(), '..', filePath);
-  return readFile(resolved, 'utf-8');
-});
 
 /**
  * 写入文件

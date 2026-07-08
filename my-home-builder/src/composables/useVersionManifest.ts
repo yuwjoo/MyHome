@@ -1,24 +1,22 @@
 /**
  * 版本清单管理 Hook
- * 读取和更新 myhome 目录下的版本清单 JSON 文件
+ * 通过 bridge 模块读取和更新版本清单
  */
-
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { VersionManifest, SemanticVersion } from '@/types/useWebPublish';
 import type { UseVersionManifestReturn } from '@/types/useVersionManifest';
 import { getProjectById, VERSION_MANIFEST_PATH } from '@/config/projects';
+import { bridge } from '@/module/bridge';
 
 /**
  * 版本清单 Hook
- * 封装版本清单的读取、解析和更新逻辑
  */
 export const useVersionManifest = (): UseVersionManifestReturn => {
   const manifest = ref<VersionManifest>({});
   const latestVersion = ref('0.0.0');
   const loading = ref(false);
 
-  /** 解析版本号字符串 */
   const parseVersion = (version: string): SemanticVersion => {
     const parts = version.split('.').map(Number);
     return {
@@ -28,7 +26,6 @@ export const useVersionManifest = (): UseVersionManifestReturn => {
     };
   };
 
-  /** 获取指定项目在版本清单中的版本号 */
   const getProjectVersion = (projectId: string): string => {
     const project = getProjectById(projectId);
     if (!project) return '0.0.0';
@@ -38,46 +35,54 @@ export const useVersionManifest = (): UseVersionManifestReturn => {
     return version || '0.0.0';
   };
 
-  /** 加载版本清单 */
+  /**
+   * 加载版本清单
+   */
   const loadManifest = async () => {
     loading.value = true;
-    try {
-      const content = await window.electronAPI.readFile(VERSION_MANIFEST_PATH);
-      manifest.value = JSON.parse(content);
-    } catch (err) {
-      console.warn('读取版本清单失败:', err);
-      manifest.value = {};
-    } finally {
-      loading.value = false;
-    }
+    return new Promise<void>((resolve) => {
+      bridge.send('versionManifest', 'getManifest', {}, {
+        onSuccess: (data) => {
+          manifest.value = data.manifest as VersionManifest;
+          loading.value = false;
+          resolve();
+        },
+        onError: (data) => {
+          console.warn('读取版本清单失败:', data.message);
+          manifest.value = {};
+          loading.value = false;
+          resolve();
+        },
+      });
+    });
   };
 
-  /** 更新版本清单中指定项目的版本号 */
-  const updateVersion = async (projectId: string, newVersion: string) => {
+  /**
+   * 更新版本清单中指定项目的版本号并写回本地文件
+   */
+  const updateVersion = (projectId: string, newVersion: string): Promise<void> => {
     const project = getProjectById(projectId);
     if (!project) {
       ElMessage.error('未找到项目配置');
-      return;
+      return Promise.resolve();
     }
 
     const [platform, projectName] = project.manifestKey.split('.');
 
-    // 确保清单中存在对应结构
     if (!manifest.value[platform]) {
       manifest.value[platform] = {};
     }
     manifest.value[platform][projectName] = newVersion;
 
-    try {
-      await window.electronAPI.writeFile(
-        VERSION_MANIFEST_PATH,
-        JSON.stringify(manifest.value, null, 2),
-      );
-      ElMessage.success('版本清单已更新');
-    } catch (err) {
-      ElMessage.error('更新版本清单失败');
-      console.error(err);
-    }
+    return new Promise<void>((resolve) => {
+      bridge.send('localFile', 'writeFile', {
+        filePath: VERSION_MANIFEST_PATH,
+        content: JSON.stringify(manifest.value, null, 2),
+      }, {
+        onSuccess: () => { ElMessage.success('版本清单已更新'); resolve(); },
+        onError: (data) => { ElMessage.error(`更新版本清单失败: ${data.message}`); resolve(); },
+      });
+    });
   };
 
   return {

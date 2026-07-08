@@ -8,7 +8,7 @@ interface CredentialsYaml {
   oss: OssConfig;
 }
 
-const configPath = resolve(process.cwd(), '.secret', 'credentials.yaml');
+const configPath = resolve(process.cwd(), '../.secret', 'credentials.yaml');
 const yaml = load(readFileSync(configPath, 'utf-8')) as CredentialsYaml;
 
 export default new OSS(yaml.oss);
