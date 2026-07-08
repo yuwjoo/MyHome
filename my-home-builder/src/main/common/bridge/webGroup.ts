@@ -125,7 +125,9 @@ export const webGroup: Record<string, MessageHandler> = {
       // 4. 上传 OSS
       sender.send("onProgress", { step: "上传 OSS" }, false);
       const buffer = await readFile(zipPath);
-      const result = await ossClient.put(ossAssets.web, buffer);
+      const result = await ossClient.put(ossAssets.web, buffer, {
+        headers: { 'x-oss-object-acl': 'public-read' },
+      });
 
       // 清理临时 zip
       await unlink(zipPath).catch(() => {});

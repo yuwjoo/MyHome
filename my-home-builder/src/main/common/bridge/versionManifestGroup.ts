@@ -44,7 +44,9 @@ export const versionManifestGroup: Record<string, MessageHandler> = {
 
       // 上传到 OSS
       const buffer = await readFile(localAssets.manifest);
-      const result = await ossClient.put(ossAssets.manifest, buffer);
+      const result = await ossClient.put(ossAssets.manifest, buffer, {
+        headers: { 'x-oss-object-acl': 'public-read' },
+      });
       sender.sendEndMessage('onSuccess', { url: result.url });
     } catch (err) {
       sender.sendEndMessage('onError', { message: (err as Error).message });

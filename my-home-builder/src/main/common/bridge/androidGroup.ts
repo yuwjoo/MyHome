@@ -117,7 +117,9 @@ export const androidGroup: Record<string, MessageHandler> = {
       // 3. 上传 OSS
       sender.send("onProgress", { step: "上传 OSS" }, false);
       const buffer = await readFile(apkPath);
-      const result = await ossClient.put(ossAssets.android, buffer);
+      const result = await ossClient.put(ossAssets.android, buffer, {
+        headers: { 'x-oss-object-acl': 'public-read' },
+      });
 
       sender.sendEndMessage("onSuccess", {
         url: result.url,
