@@ -3,10 +3,8 @@
  * 通过 bridge 模块读取和更新版本清单
  */
 import { ref } from 'vue';
-import { ElMessage } from 'element-plus';
-import type { VersionManifest, SemanticVersion } from '@/types/useWebPublish';
+import type { VersionManifest } from '@/types/useWebPublish';
 import type { UseVersionManifestReturn } from '@/types/useVersionManifest';
-import { getProjectById } from '@/config/projects';
 import { bridge } from '@/module/bridge';
 
 /**
@@ -14,43 +12,21 @@ import { bridge } from '@/module/bridge';
  */
 export const useVersionManifest = (): UseVersionManifestReturn => {
   const manifest = ref<VersionManifest>({});
-  const latestVersion = ref('0.0.0');
-  const loading = ref(false);
-
-  const parseVersion = (version: string): SemanticVersion => {
-    const parts = version.split('.').map(Number);
-    return {
-      major: !isNaN(parts[0]) ? parts[0] : 0,
-      minor: !isNaN(parts[1]) ? parts[1] : 0,
-      patch: !isNaN(parts[2]) ? parts[2] : 0,
-    };
-  };
-
-  const getProjectVersion = (projectId: string): string => {
-    const project = getProjectById(projectId);
-    if (!project) return '0.0.0';
-
-    const [platform, projectName] = project.manifestKey.split('.');
-    const version = manifest.value[platform]?.[projectName];
-    return version || '0.0.0';
-  };
 
   /**
-   * 加载版本清单
+   * 初始化版本清单：从主进程加载。
+   * 加载状态由调用方自行管理。
    */
-  const loadManifest = async () => {
-    loading.value = true;
+  const initManifest = async (): Promise<void> => {
     return new Promise<void>((resolve) => {
       bridge.send('versionManifest', 'getManifest', {}, {
         onSuccess: (data) => {
           manifest.value = data.manifest as VersionManifest;
-          loading.value = false;
           resolve();
         },
         onError: (data) => {
           console.warn('读取版本清单失败:', data.message);
           manifest.value = {};
-          loading.value = false;
           resolve();
         },
       });
@@ -58,30 +34,48 @@ export const useVersionManifest = (): UseVersionManifestReturn => {
   };
 
   /**
-   * 更新内存中版本清单的指定项目版本号
+   * 获取指定项目的版本号
+   * @param platform 项目端，如 'android'、'web'
+   * @param projectName 项目名称，如 'MyHome'、'my-home-mobile'
    */
-  const updateVersion = (projectId: string, newVersion: string) => {
-    const project = getProjectById(projectId);
-    if (!project) {
-      ElMessage.error('未找到项目配置');
-      return;
-    }
+  const getVersion = (platform: string, projectName: string): string => {
+    return manifest.value[platform]?.[projectName] || '0.0.0';
+  };
 
-    const [platform, projectName] = project.manifestKey.split('.');
-
+  /**
+   * 更新内存中版本清单的指定项目版本号
+   * @param platform 项目端，如 'android'、'web'
+   * @param projectName 项目名称，如 'MyHome'、'my-home-mobile'
+   * @param version 新版本号
+   */
+  const updateVersion = (platform: string, projectName: string, version: string): void => {
     if (!manifest.value[platform]) {
       manifest.value[platform] = {};
     }
-    manifest.value[platform][projectName] = newVersion;
+    manifest.value[platform][projectName] = version;
+  };
+
+  /**
+   * 同步版本清单到主进程（写入本地文件 + 上传 OSS）
+   */
+  const syncManifest = async (): Promise<void> => {
+    return new Promise<void>((resolve, reject) => {
+      bridge.send('versionManifest', 'publishManifest', { manifest: manifest.value }, {
+        onSuccess: () => {
+          resolve();
+        },
+        onError: (data) => {
+          reject(new Error(data.message));
+        },
+      });
+    });
   };
 
   return {
     manifest,
-    latestVersion,
-    loading,
-    loadManifest,
+    initManifest,
+    getVersion,
     updateVersion,
-    parseVersion,
-    getProjectVersion,
+    syncManifest,
   };
 };

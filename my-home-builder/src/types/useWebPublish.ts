@@ -2,21 +2,11 @@
  * 发布功能相关类型定义
  */
 
+// 任务相关类型从 usePublishTask 集中管理，此处重导出保持向后兼容
+export type { BuildStatus, LogEntry, PublishTask } from './usePublishTask';
+
 /** 项目平台类型 */
 export type PlatformType = 'android' | 'web';
-
-/** 构建任务状态 */
-export type BuildStatus = 'idle' | 'publishing' | 'success' | 'failed';
-
-/** 构建日志条目 */
-export interface LogEntry {
-  /** 时间戳 */
-  timestamp: number;
-  /** 日志级别 */
-  level: 'info' | 'warn' | 'error';
-  /** 日志内容 */
-  message: string;
-}
 
 /** 项目配置 */
 export interface ProjectConfig {
@@ -59,24 +49,4 @@ export interface PublishForm {
   projectId: string;
   /** 发布版本号 */
   version: string;
-}
-
-/** 发布任务 */
-export interface PublishTask {
-  /** 任务 ID */
-  id: string;
-  /** 关联项目 */
-  projectId: string;
-  /** 发布版本号 */
-  version: string;
-  /** 当前状态 */
-  status: BuildStatus;
-  /** 进度百分比 (0-100) */
-  progress: number;
-  /** 发布日志 */
-  logs: LogEntry[];
-  /** 开始时间 */
-  startTime?: number;
-  /** 结束时间 */
-  endTime?: number;
 }

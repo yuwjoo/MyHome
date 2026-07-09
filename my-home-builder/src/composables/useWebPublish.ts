@@ -1,40 +1,34 @@
 /**
  * useWebPublish - Web 项目发布 Hook
- * 通过 bridge 模块调用主进程发布流程，利用回调管理 UI 状态
+ * 通过 bridge 模块调用主进程发布流程
  */
-import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import type { LogEntry, PublishTask, BuildStatus } from '@/types/useWebPublish';
+import type { PublishTask } from '@/types/usePublishTask';
 import { bridge } from '@/module/bridge';
+import { usePublishTask } from '@/composables/usePublishTask';
 
 /**
  * Web 项目发布流程 Hook
  */
 export function useWebPublish() {
-  const currentTask = ref<PublishTask | null>(null);
-  const isPublishing = ref(false);
-
-  const addLog = (task: PublishTask, level: LogEntry['level'], message: string) => {
-    task.logs.push({ timestamp: Date.now(), level, message });
-  };
-
-  const setStatus = (task: PublishTask, status: BuildStatus) => {
-    task.status = status;
-  };
+  const {
+    currentTask,
+    isPublishing,
+    addLog,
+    setStatus,
+    cancelPublish,
+    clearLogs,
+    wrapPublish,
+  } = usePublishTask();
 
   /**
-   * 启动发布任务
-   *
-   * @param task 发布任务对象
+   * 启动 Web 发布任务
    */
   function startPublish(task: PublishTask): Promise<void> {
-    currentTask.value = task;
-    isPublishing.value = true;
-
     addLog(task, 'info', `🚀 开始发布 Web 移动端 - ${task.version}`);
 
-    return new Promise<void>((resolve) => {
-      try {
+    return wrapPublish(task, () =>
+      new Promise<void>((resolve) => {
         bridge.send('web', 'publishMyHomeMobile', { version: task.version }, {
           onProgress: (data) => {
             addLog(task, 'info', `📋 ${data.step}${data.version ? `: ${data.version}` : ''}`);
@@ -42,8 +36,7 @@ export function useWebPublish() {
             else if (data.step === '执行构建') {
               setStatus(task, 'publishing');
               task.progress = 20;
-            }
-            else if (data.step === '压缩打包') task.progress = 60;
+            } else if (data.step === '压缩打包') task.progress = 60;
             else if (data.step === '上传 OSS') task.progress = 65;
           },
           onBuildOutput: (data) => {
@@ -65,36 +58,8 @@ export function useWebPublish() {
             resolve();
           },
         });
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        addLog(task, 'error', `❌ ${msg}`);
-        setStatus(task, 'failed');
-        resolve();
-      }
-    }).finally(() => {
-      task.endTime = Date.now();
-      isPublishing.value = false;
-    });
-  }
-
-  /**
-   * 取消当前发布任务
-   */
-  function cancelPublish() {
-    if (currentTask.value) {
-      addLog(currentTask.value, 'warn', '⚠️ 发布已被用户取消');
-      setStatus(currentTask.value, 'failed');
-      isPublishing.value = false;
-    }
-  }
-
-  /**
-   * 清空当前任务日志
-   */
-  function clearLogs() {
-    if (currentTask.value) {
-      currentTask.value.logs = [];
-    }
+      }),
+    );
   }
 
   return {

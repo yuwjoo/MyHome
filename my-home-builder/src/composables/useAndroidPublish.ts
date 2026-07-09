@@ -1,11 +1,11 @@
 /**
  * useAndroidPublish - Android 项目构建发布 Hook
- * 通过 bridge 模块调用主进程发布流程，利用回调管理 UI 状态
+ * 通过 bridge 模块调用主进程发布流程
  */
-import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import type { LogEntry, PublishTask, BuildStatus } from '@/types/useWebPublish';
+import type { PublishTask } from '@/types/usePublishTask';
 import { bridge } from '@/module/bridge';
+import { usePublishTask } from '@/composables/usePublishTask';
 
 /**
  * 版本号字符串解析为三段数字
@@ -31,32 +31,26 @@ function versionToCode(version: string): number {
  * Android 项目发布流程 Hook
  */
 export function useAndroidPublish() {
-  const currentTask = ref<PublishTask | null>(null);
-  const isPublishing = ref(false);
-
-  const addLog = (task: PublishTask, level: LogEntry['level'], message: string) => {
-    task.logs.push({ timestamp: Date.now(), level, message });
-  };
-
-  const setStatus = (task: PublishTask, status: BuildStatus) => {
-    task.status = status;
-  };
+  const {
+    currentTask,
+    isPublishing,
+    addLog,
+    setStatus,
+    cancelPublish,
+    clearLogs,
+    wrapPublish,
+  } = usePublishTask();
 
   /**
    * 启动 Android 发布任务
-   *
-   * @param task 发布任务对象
    */
   function startPublish(task: PublishTask): Promise<void> {
-    currentTask.value = task;
-    isPublishing.value = true;
-
     const versionCode = versionToCode(task.version);
 
     addLog(task, 'info', `🚀 开始发布 Android MyHome - v${task.version} (code: ${versionCode})`);
 
-    return new Promise<void>((resolve) => {
-      try {
+    return wrapPublish(task, () =>
+      new Promise<void>((resolve) => {
         bridge.send('android', 'publishMyHome', { version: task.version, versionCode }, {
           onProgress: (data) => {
             const info = data.versionCode !== undefined
@@ -67,8 +61,7 @@ export function useAndroidPublish() {
             else if (data.step === '执行构建') {
               setStatus(task, 'publishing');
               task.progress = 25;
-            }
-            else if (data.step === '上传 OSS') task.progress = 65;
+            } else if (data.step === '上传 OSS') task.progress = 65;
           },
           onBuildOutput: (data) => {
             const lines = data.data.split('\n').filter((l) => l.trim());
@@ -89,36 +82,8 @@ export function useAndroidPublish() {
             resolve();
           },
         });
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        addLog(task, 'error', `❌ ${msg}`);
-        setStatus(task, 'failed');
-        resolve();
-      }
-    }).finally(() => {
-      task.endTime = Date.now();
-      isPublishing.value = false;
-    });
-  }
-
-  /**
-   * 取消当前发布任务
-   */
-  function cancelPublish() {
-    if (currentTask.value) {
-      addLog(currentTask.value, 'warn', '⚠️ 发布已被用户取消');
-      setStatus(currentTask.value, 'failed');
-      isPublishing.value = false;
-    }
-  }
-
-  /**
-   * 清空当前任务日志
-   */
-  function clearLogs() {
-    if (currentTask.value) {
-      currentTask.value.logs = [];
-    }
+      }),
+    );
   }
 
   return {
