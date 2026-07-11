@@ -31,6 +31,9 @@ object MqttManager {
     // 连接状态监听列表
     private val connectionCallbacks = CopyOnWriteArraySet<ConnectionCallback>()
 
+    // 断连期间暂存的消息队列
+    private val pendingQueue = PendingMessageQueue(maxSize = 10)
+
     // IO 单线程执行器
     private val ioExecutor = Executors.newSingleThreadExecutor { r ->
         Thread(r, "mqtt-io").apply { isDaemon = true }
@@ -42,6 +45,9 @@ object MqttManager {
                 Log.d(TAG, "onConnectionChanged: connected=true, cause=null")
                 topicManager.getTopicList().forEach { entry ->
                     subscribe(entry.topic, entry.qos)
+                }
+                for (msg in pendingQueue.drain()) {
+                    publish(msg.topic, msg.payload, msg.qos, msg.retained)
                 }
                 connectionCallbacks.forEach { it.onConnectionChanged(true) }
             }
@@ -187,6 +193,11 @@ object MqttManager {
         qos: Int = 1,
         retained: Boolean = false,
     ) {
+        if (!client.isConnected) {
+            Log.w(TAG, "publish: 客户机未连接，暂存消息 topic=$topic")
+            pendingQueue.enqueue(PendingMessage(topic, payload, qos, retained))
+            return
+        }
         ioExecutor.execute {
             client.publish(topic, MqttMessage().apply {
                 this.payload = payload.toByteArray(Charsets.UTF_8)
