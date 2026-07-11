@@ -6,6 +6,7 @@ import type { ShellGroup } from './ShellGroup'
 import type { WebGroup } from './WebGroup'
 import type { AndroidGroup } from './AndroidGroup'
 import type { VersionManifestGroup } from './VersionManifestGroup'
+import type { SecretGroup } from './SecretGroup'
 
 export interface Groups {
   /**
@@ -32,4 +33,9 @@ export interface Groups {
    * 版本清单管理
    */
   versionManifest: VersionManifestGroup
+
+  /**
+   * 加密凭证推送/拉取
+   */
+  secret: SecretGroup
 }

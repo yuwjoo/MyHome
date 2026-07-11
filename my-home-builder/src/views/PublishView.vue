@@ -10,6 +10,8 @@
       <p class="page-desc">统一管理 MyHome 各端项目的发布流程</p>
     </div>
 
+    <SecretPublishPanel />
+
     <VersionManifestPanel
       :manifest="manifest"
       :loading="manifestLoading"
@@ -59,7 +61,7 @@
 <script setup lang="ts">
 /**
  * 发布主页面
- * 组合三个独立面板：版本清单、Android 发布、Web 发布（Tab 切换）
+ * 顶部凭证管理面板 + 版本清单 + 各端发布面板（Tab 切换）
  */
 import { computed, ref, onMounted } from 'vue';
 
@@ -70,6 +72,7 @@ import IconMobile from '~icons/my/mobile';
 import VersionManifestPanel from '@/components/VersionManifestPanel.vue';
 import AndroidPublishPanel from '@/components/AndroidPublishPanel.vue';
 import WebPublishPanel from '@/components/WebPublishPanel.vue';
+import SecretPublishPanel from '@/components/SecretPublishPanel.vue';
 
 import { useVersionManifest } from '@/composables/useVersionManifest';
 import { projectList } from '@/config/projects';

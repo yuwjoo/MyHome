@@ -19,6 +19,8 @@ export const releaseConfig = {
     android: `${ossRoot}/android/MyHome.zip`,
     /** Web 打包文件 */
     web: `${ossRoot}/web/my-home-mobile.zip`,
+    /** 加密凭证文件（私有权限） */
+    secret: `${ossRoot}/.secret.zip`,
   },
 
   /** 各端发布产物的本地绝对路径 */
@@ -34,5 +36,7 @@ export const releaseConfig = {
     },
     /** Web 打包文件 */
     web: path.resolve(projectRoot, "web/my-home-mobile/dist"),
+    /** 凭证目录 */
+    secret: path.resolve(projectRoot, ".secret"),
   },
 };

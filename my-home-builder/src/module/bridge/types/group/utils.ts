@@ -62,7 +62,7 @@ export type EventParams<G extends EventGroupName, M extends EventMessageName<G>>
 /**
  * 指定 action 消息的 callbacks 类型
  */
-export type ActionCallbacks<G extends ActionGroupName, M extends ActionMessageName<G>> = Callbacks<G, M>
+export type ActionCallbacks<G extends ActionGroupName, M extends ActionMessageName<G>> = Partial<Callbacks<G, M>>
 
 /**
  * 指定 event 消息的 callbacks 类型
