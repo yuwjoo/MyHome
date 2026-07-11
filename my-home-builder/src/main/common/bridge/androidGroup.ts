@@ -13,13 +13,10 @@ import type { MessageSender } from "@/main/module/bridge/messageSender";
 const { localAssets, ossAssets } = releaseConfig;
 
 /** Android 项目配置 */
-const { projectDir, apkPath } = localAssets.android;
+const { projectDir, apkPath, jdkHome } = localAssets.android;
 
 /** gradlew 脚本名 */
 const gradlew = process.platform === "win32" ? "gradlew.bat" : "./gradlew";
-
-/** Android Studio 自带 JDK（JBR）路径 */
-const androidStudioJdkHome = "D:\\InstallSoftware\\Android\\Android Studio\\jbr";
 
 /**
  * 更新 build.gradle.kts 中的版本号
@@ -54,7 +51,7 @@ function runBuild(sender: MessageSender): Promise<void> {
     const child = spawn(gradlew, ["assembleRelease"], {
       cwd: projectDir,
       shell: true,
-      env: { ...process.env, JAVA_HOME: androidStudioJdkHome, FORCE_COLOR: "1" },
+      env: { ...process.env, JAVA_HOME: jdkHome, FORCE_COLOR: "1" },
     });
 
     child.stdout?.on("data", (data: Buffer) => {

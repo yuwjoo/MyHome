@@ -72,7 +72,12 @@ object MqttManager {
      * 是否已连接
      */
     val isConnected: Boolean
-        get() = client.isConnected
+        get() = try {
+            client.isConnected
+        } catch (e: Exception) {
+            Log.e(TAG, "isConnected error: ${e.message}", e)
+            false
+        }
 
     /**
      * 注册连接状态监听器
@@ -113,7 +118,11 @@ object MqttManager {
                     )
                 }
             }
-            client.connect(options)
+            try {
+                client.connect(options)
+            } catch (e: Exception) {
+                Log.e(TAG, "connect error: ${e.message}", e)
+            }
         }
     }
 
@@ -122,7 +131,11 @@ object MqttManager {
      */
     fun disconnect() {
         ioExecutor.execute {
-            client.disconnect()
+            try {
+                client.disconnect()
+            } catch (e: Exception) {
+                Log.e(TAG, "disconnect error: ${e.message}", e)
+            }
         }
     }
 
@@ -174,8 +187,12 @@ object MqttManager {
         if (!client.isConnected || !topicManager.getListeners(topic).isEmpty()) return
 
         ioExecutor.execute {
-            client.unsubscribe(topic)
-            topicManager.removeTopic(topic)
+            try {
+                client.unsubscribe(topic)
+                topicManager.removeTopic(topic)
+            } catch (e: Exception) {
+                Log.e(TAG, "unsubscribe error: ${e.message}", e)
+            }
         }
     }
 
@@ -199,11 +216,15 @@ object MqttManager {
             return
         }
         ioExecutor.execute {
-            client.publish(topic, MqttMessage().apply {
-                this.payload = payload.toByteArray(Charsets.UTF_8)
-                this.qos = qos
-                this.isRetained = retained
-            })
+            try {
+                client.publish(topic, MqttMessage().apply {
+                    this.payload = payload.toByteArray(Charsets.UTF_8)
+                    this.qos = qos
+                    this.isRetained = retained
+                })
+            } catch (e: Exception) {
+                Log.e(TAG, "publish error: ${e.message}", e)
+            }
         }
     }
 }

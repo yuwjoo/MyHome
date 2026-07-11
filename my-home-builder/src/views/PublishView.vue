@@ -5,9 +5,9 @@
         <span class="header-icon">
           <IconPublish />
         </span>
-        MyHome 项目发布
+        MyHome 项目管理
       </h2>
-      <p class="page-desc">统一管理 MyHome 各端项目的发布流程</p>
+      <p class="page-desc">统一管理 MyHome 项目</p>
     </div>
 
     <SecretPublishPanel />

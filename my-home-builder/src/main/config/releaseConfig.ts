@@ -9,9 +9,8 @@ const projectRoot = path.resolve(app.getAppPath(), "..");
 
 const ossRoot = "MyHome";
 
-/** 各端发布产物的 OSS 对象路径 */
 export const releaseConfig = {
-  /** OSS 上各端发布产物的对象路径 */
+  /** OSS资源 */
   ossAssets: {
     /** 版本清单 */
     manifest: `${ossRoot}/versionManifest.json`,
@@ -23,7 +22,7 @@ export const releaseConfig = {
     secret: `${ossRoot}/.secret.zip`,
   },
 
-  /** 各端发布产物的本地绝对路径 */
+  /** 本地资源 */
   localAssets: {
     /** 版本清单 */
     manifest: path.resolve(projectRoot, "versionManifest.json"),
@@ -32,7 +31,12 @@ export const releaseConfig = {
       /** 项目目录 */
       projectDir: path.resolve(projectRoot, "android/MyHome"),
       /** APK 文件路径 */
-      apkPath: path.resolve(projectRoot, "android/MyHome/app/build/outputs/apk/release/app-release.apk"),
+      apkPath: path.resolve(
+        projectRoot,
+        "android/MyHome/app/build/outputs/apk/release/app-release.apk",
+      ),
+      /** Android Studio 自带 JDK（JBR）路径 */
+      jdkHome: "D:\\InstallSoftware\\Android\\Android Studio\\jbr",
     },
     /** Web 打包文件 */
     web: path.resolve(projectRoot, "web/my-home-mobile/dist"),
