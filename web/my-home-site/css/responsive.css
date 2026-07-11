@@ -1,0 +1,85 @@
+/* ═══════════════════════════════════════════════════════
+   MyHome 官网 - 响应式样式
+   ═══════════════════════════════════════════════════════ */
+
+/* ── 平板 (≤ 1024px) ── */
+@media (max-width: 1024px) {
+  .section { padding: 80px 20px; }
+  .section-header h2 { font-size: 1.8rem; }
+
+  .hero-device { display: none; }
+
+  .hero-title { font-size: clamp(2.2rem, 5vw, 3rem); }
+
+  .preview-showcase { gap: 20px; }
+  .showcase-frame { width: 200px; height: 400px; }
+}
+
+/* ── 手机 (≤ 768px) ── */
+@media (max-width: 768px) {
+  .section { padding: 60px 16px; }
+  .section-header { margin-bottom: 40px; }
+  .section-header h2 { font-size: 1.6rem; }
+
+  /* 导航汉堡菜单 */
+  .nav-toggle { display: flex; z-index: 1001; }
+  .nav-links {
+    position: fixed;
+    top: 0; right: -100%;
+    width: 70%;
+    max-width: 280px;
+    height: 100vh;
+    background: rgba(17,22,29,0.98);
+    backdrop-filter: blur(16px);
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 80px 32px;
+    gap: 24px;
+    transition: right var(--transition);
+  }
+  .nav-links.open {
+    right: 0;
+    box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+  }
+  .nav-links a {
+    font-size: 1.05rem;
+  }
+
+  /* Hero */
+  .hero { padding: 120px 16px 80px; min-height: auto; }
+  .hero-stats { gap: 32px; }
+  .stat-num { font-size: 1.6rem; }
+
+  /* 功能网格 */
+  .features-grid { grid-template-columns: 1fr; }
+  .feature-card { padding: 24px 20px; }
+
+  /* 平台 */
+  .platforms-grid { grid-template-columns: 1fr; }
+
+  /* 预览 */
+  .preview-showcase { gap: 12px; }
+  .showcase-frame { width: 160px; height: 340px; }
+
+  /* 下载 */
+  .download-grid { grid-template-columns: 1fr; }
+
+  /* 页脚 */
+  .footer-inner { flex-direction: column; gap: 32px; }
+  .footer-links { gap: 40px; flex-wrap: wrap; }
+
+  .back-top { bottom: 20px; right: 20px; }
+}
+
+/* ── 小屏手机 (≤ 480px) ── */
+@media (max-width: 480px) {
+  .hero-title { font-size: 1.9rem; }
+  .hero-desc { font-size: 0.95rem; }
+  .hero-br { display: none; }
+  .hero-actions { flex-direction: column; align-items: center; }
+  .hero-actions .btn { width: 100%; justify-content: center; }
+  .hero-stats { gap: 20px; }
+
+  .preview-showcase { flex-direction: column; align-items: center; }
+  .showcase-frame { width: 200px; height: 360px; }
+}

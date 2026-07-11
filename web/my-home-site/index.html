@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MyHome - 智能家居综合管理平台，支持设备控制、云盘存储、快递查询、天气预报等功能">
+  <title>MyHome - 智能家居管理平台</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🏠</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body class="theme-dark">
+
+  <!-- ========== 导航栏 ========== -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="#hero" class="nav-brand">
+        <span class="brand-icon">&#9670;</span>
+        <span>MyHome</span>
+      </a>
+      <button class="nav-toggle" id="navToggle" aria-label="菜单">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#features">功能</a></li>
+        <li><a href="#platforms">平台</a></li>
+        <li><a href="#preview">预览</a></li>
+        <li><a href="#download">下载</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ========== 首屏 Hero ========== -->
+  <section class="hero" id="hero">
+    <div class="hero-bg">
+      <div class="hero-grid"></div>
+      <div class="hero-glow"></div>
+    </div>
+    <div class="hero-content">
+      <span class="hero-badge">v<span id="heroVersion">0.0.16</span></span>
+      <h1 class="hero-title">
+        <span class="title-line">连接你的</span>
+        <span class="title-line accent">智能生活</span>
+      </h1>
+      <p class="hero-desc">
+        一站式智能家居管理平台，掌控设备、云端存储、生活服务，<br class="hero-br">让家更聪明，让生活更简单。
+      </p>
+      <div class="hero-actions">
+        <a href="#download" class="btn btn-primary">
+          <span class="btn-icon">&#8595;</span> 立即下载
+        </a>
+        <a href="#features" class="btn btn-outline">
+          了解更多 <span class="btn-arrow">&#8594;</span>
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-num" data-count="3">0</span>
+          <span class="stat-label">多端支持</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" data-count="8">0</span>
+          <span class="stat-label">核心功能</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" data-count="99">0</span>
+          <span class="stat-label">% 稳定运行</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-device">
+      <div class="device-frame">
+        <div class="device-screen">
+          <div class="screen-demo">
+            <div class="demo-status">&#9679; 已连接</div>
+            <div class="demo-grid">
+              <div class="demo-card"><span>💡</span>客厅灯</div>
+              <div class="demo-card"><span>🌡️</span>23°C</div>
+              <div class="demo-card"><span>📦</span>2件快递</div>
+              <div class="demo-card"><span>☁️</span>云盘</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 功能介绍 ========== -->
+  <section class="features section" id="features">
+    <div class="section-header">
+      <span class="section-tag">核心功能</span>
+      <h2>一切尽在掌控</h2>
+      <p>从智能设备到生活服务，一个应用全搞定</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🏠</div>
+        <h3>智能家居</h3>
+        <p>远程控制灯光、空调、电视等设备，支持场景联动，一键切换生活模式</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">☁️</div>
+        <h3>云盘存储</h3>
+        <p>安全可靠的个人云存储，支持文件管理、在线预览、分享链接</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <h3>快递追踪</h3>
+        <p>自动识别快递单号，实时追踪物流状态，取件提醒不遗漏</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌤️</div>
+        <h3>天气预报</h3>
+        <p>精准多城市天气查询，出行前掌握最新气象信息</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>朋友圈</h3>
+        <p>分享生活点滴，与家人朋友互动，点赞评论收藏一站集齐</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔔</div>
+        <h3>消息通知</h3>
+        <p>设备异常、快递到达、天气预警，重要消息实时推送</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 平台支持 ========== -->
+  <section class="platforms section" id="platforms">
+    <div class="section-header">
+      <span class="section-tag">全平台覆盖</span>
+      <h2>随时随地，随心所用</h2>
+      <p>无论使用什么设备，都能享受一致的智能体验</p>
+    </div>
+    <div class="platforms-grid">
+      <div class="platform-card">
+        <div class="platform-badge android">Android</div>
+        <h3>Android 手机</h3>
+        <p>原生 Kotlin + 混合 WebView 架构，流畅稳定，最低支持 Android 8.0</p>
+        <span class="platform-ver">v<span class="ver-android">0.0.16</span></span>
+      </div>
+      <div class="platform-card">
+        <div class="platform-badge harmony">HarmonyOS</div>
+        <h3>鸿蒙手机</h3>
+        <p>ArkTS 原生开发，完美适配 HarmonyOS，支持 Stage 模型</p>
+        <span class="platform-ver">v<span class="ver-harmony">1.0.0</span></span>
+      </div>
+      <div class="platform-card">
+        <div class="platform-badge web">Web</div>
+        <h3>浏览器访问</h3>
+        <p>Vue 3 + TypeScript 构建，移动端优化，无需安装随时随地使用</p>
+        <span class="platform-ver">v<span class="ver-web">0.0.12</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 预览展示 ========== -->
+  <section class="preview section" id="preview">
+    <div class="section-header">
+      <span class="section-tag">界面预览</span>
+      <h2>简洁优雅的设计语言</h2>
+      <p>精心打磨每一个界面细节</p>
+    </div>
+    <div class="preview-showcase">
+      <div class="showcase-frame">
+        <div class="showcase-screen sc-home">
+          <div class="sc-topbar"><span>9:41</span></div>
+          <div class="sc-content">
+            <div class="sc-greet">早上好 👋</div>
+            <div class="sc-device-row">
+              <div class="sc-device on">💡 客厅灯</div>
+              <div class="sc-device on">🌀 空调 26°</div>
+            </div>
+            <div class="sc-device-row">
+              <div class="sc-device off">📺 电视</div>
+              <div class="sc-device on">🔒 门锁</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="showcase-frame">
+        <div class="showcase-screen sc-devices">
+          <div class="sc-topbar"><span>9:41</span></div>
+          <div class="sc-content">
+            <div class="sc-back">← 设备详情</div>
+            <div class="sc-ac-panel">
+              <div class="sc-temp">26°</div>
+              <div class="sc-mode">制冷模式</div>
+              <div class="sc-controls">
+                <span>−</span><span>+</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="showcase-frame">
+        <div class="showcase-screen sc-cloud">
+          <div class="sc-topbar"><span>9:41</span></div>
+          <div class="sc-content">
+            <div class="sc-back">← 我的云盘</div>
+            <div class="sc-file-list">
+              <div class="sc-file">📁 照片</div>
+              <div class="sc-file">📁 文档</div>
+              <div class="sc-file">📄 说明.pdf</div>
+              <div class="sc-file">🎵 音乐.mp3</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="preview-dots">
+      <span class="dot active"></span><span class="dot"></span><span class="dot"></span>
+    </div>
+  </section>
+
+  <!-- ========== 下载区域 ========== -->
+  <section class="download section" id="download">
+    <div class="section-header">
+      <span class="section-tag">下载安装</span>
+      <h2>选择你的平台</h2>
+      <p>扫描二维码或点击下载，开启智能生活</p>
+    </div>
+    <div class="download-grid">
+      <div class="download-card">
+        <div class="dl-platform">
+          <span class="dl-icon">🤖</span>
+          <span>Android APK</span>
+        </div>
+        <div class="dl-info">
+          <span class="dl-ver">版本 <span class="ver-android">0.0.16</span></span>
+          <span class="dl-size" id="apkSize">--</span>
+        </div>
+        <button class="btn btn-primary btn-block" id="btnAndroid">
+          <span class="btn-icon">&#8595;</span> 下载 Android APK
+        </button>
+      </div>
+
+      <div class="download-card">
+        <div class="dl-platform">
+          <span class="dl-icon">🌐</span>
+          <span>鸿蒙 HarmonyOS</span>
+        </div>
+        <div class="dl-info">
+          <span class="dl-ver">版本 <span class="ver-harmony">1.0.0</span></span>
+          <span class="dl-size">即将发布</span>
+        </div>
+        <button class="btn btn-outline btn-block" disabled>
+          敬请期待
+        </button>
+      </div>
+
+      <div class="download-card">
+        <div class="dl-platform">
+          <span class="dl-icon">🌍</span>
+          <span>Web 在线版</span>
+        </div>
+        <div class="dl-info">
+          <span class="dl-ver">版本 <span class="ver-web">0.0.12</span></span>
+          <span class="dl-size">即将发布</span>
+        </div>
+        <button class="btn btn-outline btn-block" disabled>
+          敬请期待
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 页脚 ========== -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="footer-logo">&#9670; MyHome</span>
+        <p>智能家居综合管理平台</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>平台</h4>
+          <a href="#platforms">Android</a>
+          <a href="#platforms">HarmonyOS</a>
+          <a href="#platforms">Web</a>
+        </div>
+        <div class="footer-col">
+          <h4>功能</h4>
+          <a href="#features">智能家居</a>
+          <a href="#features">云盘存储</a>
+          <a href="#features">快递追踪</a>
+        </div>
+        <div class="footer-col">
+          <h4>关于</h4>
+          <a href="mailto:1191759350@qq.com" id="linkContact">联系我们</a>
+
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; <span id="year">2025</span> MyHome · Hui Yang. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- 回到顶部 -->
+  <button class="back-top" id="backTop" aria-label="回到顶部">&#8593;</button>
+
+  <script src="js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+  <script src="js/version.js"></script>
+  <script src="js/download.js"></script>
+  <script src="js/scroll.js"></script>
+  <script src="js/anim.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
