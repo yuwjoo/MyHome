@@ -41,11 +41,12 @@ internal object MqttConfig {
     const val ENABLE_WILL = true
 
     /**
-     * 返回动态客户端 ID，格式 "client-{设备名}"。
-     * 设备名取自 [android.os.Build.MODEL]，特殊字符替换为下划线。
+     * 返回动态客户端 ID，格式 "mh-client-{品牌}-{型号}"。
+     * 品牌取自 [android.os.Build.MANUFACTURER]，型号取自 [android.os.Build.MODEL]，特殊字符替换为下划线。
      */
     fun clientId(): String {
-        val deviceName = android.os.Build.MODEL.replace(Regex("[^a-zA-Z0-9\\-_]"), "_")
-        return "mh-client-$deviceName"
+        val brand = android.os.Build.MANUFACTURER.replace(Regex("[^a-zA-Z0-9\\-_]"), "_")
+        val model = android.os.Build.MODEL.replace(Regex("[^a-zA-Z0-9\\-_]"), "_")
+        return "mh-client-${brand}-$model"
     }
 }
