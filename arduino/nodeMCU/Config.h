@@ -19,8 +19,8 @@ const char *const WIFI_PASSWORD = "17136375393";  // WiFi 密码
 const char *const MQTT_BROKER = "47.115.161.79";       // Broker IP 地址
 const int MQTT_PORT = 1883;                             // Broker 端口
 const char *const MQTT_USERNAME = "myhome";             // 用户名
-const char *const MQTT_PASSWORD = "your_mqtt_password"; // 密码
-const char *const MQTT_CLIENT_ID = "esp8266-nodemcu";   // 客户端 ID（需唯一）
+const char *const MQTT_PASSWORD = "36c28zkat0tm6w9/"; // 密码
+const char *const MQTT_CLIENT_ID = "mh-device-ESP8266";  // 客户端 ID（需唯一）
 
 // MQTT 遗嘱消息：设备离线时 Broker 自动发布
 // 设备重新上线时会主动发布在线消息覆盖，避免遗留离线状态

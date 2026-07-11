@@ -11,7 +11,7 @@ internal object MqttConfig {
     const val USERNAME = "myhome"
 
     /** 认证密码 */
-    const val PASSWORD = "your_mqtt_password"
+    const val PASSWORD = "36c28zkat0tm6w9/"
 
     /** 心跳间隔（秒），超时 Broker 发布遗嘱 */
     const val KEEP_ALIVE = 10
@@ -40,11 +40,12 @@ internal object MqttConfig {
     /** 是否启用遗嘱消息 */
     const val ENABLE_WILL = true
 
-    /** 客户端固定 ID，配合遗嘱消息机制 */
-    private const val CLIENT_ID = "android-myhome"
-
     /**
-     * 返回客户端 ID
+     * 返回动态客户端 ID，格式 "client-{设备名}"。
+     * 设备名取自 [android.os.Build.MODEL]，特殊字符替换为下划线。
      */
-    fun clientId() = CLIENT_ID
+    fun clientId(): String {
+        val deviceName = android.os.Build.MODEL.replace(Regex("[^a-zA-Z0-9\\-_]"), "_")
+        return "mh-client-$deviceName"
+    }
 }
