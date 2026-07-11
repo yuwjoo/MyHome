@@ -8,7 +8,7 @@
           :loading="publishing"
           @click="handlePublish"
         >
-          {{ publishing ? '更新中...' : '更新版本清单' }}
+          {{ publishing ? '发布中...' : '发布版本清单' }}
         </el-button>
       </div>
     </template>
