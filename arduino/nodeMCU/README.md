@@ -94,7 +94,7 @@ const unsigned long DHT_REPORT_INTERVAL = 60000;  // 上报间隔，默认 60 �
 
 ### 3. 烧录程序
 
-1. 在 Arduino IDE 中打开 `nodeMCU/` 文件夹
+1. 在 Arduino IDE 中打开 `nodeMCU/nodeMCU.ino`
 2. 选择开发板：工具 → 开发板 → ESP8266 Boards → NodeMCU 1.0
 3. 选择端口：工具 → 端口 → 对应的 COM 口
 4. 点击上传

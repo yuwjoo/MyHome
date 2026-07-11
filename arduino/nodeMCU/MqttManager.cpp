@@ -69,6 +69,11 @@ bool MqttManager::subscribe(const char *topic) {
     }
     if (_client.subscribe(topic)) {
         Serial.printf("[MQTT] 已订阅: %s\n", topic);
+        // 首次订阅成功时记录，用于重连后补订阅（去重）
+        for (const auto &t : _topics) {
+            if (t.equals(topic)) return true;
+        }
+        _topics.push_back(String(topic));
         return true;
     } else {
         Serial.printf("[MQTT] 订阅失败: %s\n", topic);
@@ -80,6 +85,10 @@ bool MqttManager::unsubscribe(const char *topic) {
     if (!_client.connected()) return false;
     if (_client.unsubscribe(topic)) {
         Serial.printf("[MQTT] 已取消订阅: %s\n", topic);
+        // 从记录列表中移除
+        for (auto it = _topics.begin(); it != _topics.end(); ++it) {
+            if (it->equals(topic)) { _topics.erase(it); break; }
+        }
         return true;
     }
     return false;
@@ -111,9 +120,14 @@ void MqttManager::loop() {
         if (now - lastRetry >= MQTT_RETRY_INTERVAL) {
             lastRetry = now;
             Serial.println("[MQTT] 连接断开，尝试重连...");
-            connect();
-            // 重连成功后重新订阅之前的主题
-            // （PubSubClient 不会自动恢复订阅）
+            if (connect()) {
+                // 重连成功，补订阅之前所有主题
+                for (const auto &topic : _topics) {
+                    if (_client.subscribe(topic.c_str())) {
+                        Serial.printf("[MQTT] 重连后恢复订阅: %s\n", topic.c_str());
+                    }
+                }
+            }
         }
     }
 

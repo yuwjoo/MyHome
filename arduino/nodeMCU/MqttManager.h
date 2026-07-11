@@ -3,6 +3,7 @@
 
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <vector>
 #include "Config.h"
 
 /** MQTT 消息回调函数类型：topic=主题, payload=消息体, length=消息长度 */
@@ -92,6 +93,7 @@ private:
     WiFiClient &_wifiClient;       // WiFi 客户端引用
     PubSubClient _client;           // PubSubClient 实例
     MqttMessageCallback _onMessage = nullptr;  // 消息回调
+    std::vector<String> _topics;    // 已订阅主题列表，重连后补订阅
 
     static const int MQTT_BUFFER_SIZE = 512;   // MQTT 缓冲区大小
 
