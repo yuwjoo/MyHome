@@ -129,6 +129,13 @@ const progressStatus = computed(() => {
 
 /** 格式化耗时 */
 const elapsedTime = computed(() => {
+  if (!props.task || !props.task.startTime) return '0分0秒';
+  if (props.task.endTime) {
+    const secs = Math.floor((props.task.endTime - props.task.startTime) / 1000);
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}分${s}秒`;
+  }
   const secs = elapsedSeconds.value;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
@@ -166,13 +173,14 @@ const handleCopy = async () => {
 
 /** 自动滚动到底部 */
 watch(
-  () => props.task?.logs.length,
+  () => props.task?.logs,
   async () => {
     await nextTick();
     if (logContainer.value) {
       logContainer.value.scrollTop = logContainer.value.scrollHeight;
     }
   },
+  { deep: true },
 );
 </script>
 

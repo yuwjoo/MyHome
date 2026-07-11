@@ -1,6 +1,5 @@
 <template>
   <div class="publish-view">
-    <!-- 顶部标题栏 -->
     <div class="page-header">
       <h2>
         <span class="header-icon">
@@ -11,7 +10,6 @@
       <p class="page-desc">统一管理 MyHome 各端项目的发布流程</p>
     </div>
 
-    <!-- 版本清单面板 -->
     <VersionManifestPanel
       :manifest="manifest"
       :loading="manifestLoading"
@@ -19,28 +17,55 @@
       :sync-manifest="syncManifest"
     />
 
-    <!-- Android 发布面板 -->
-    <AndroidPublishPanel
-      :current-version="getVersion('android', 'MyHome')"
-      @version-updated="(v) => updateVersion('android', 'MyHome', v)"
-    />
+    <div class="tab-bar">
+      <button
+        class="tab-item"
+        :class="{ active: activeTab === 'android' }"
+        @click="activeTab = 'android'"
+      >
+        <span class="tab-icon">
+          <IconAndroid />
+        </span>
+        <span class="tab-label">Android 端</span>
+      </button>
+      <button
+        class="tab-item"
+        :class="{ active: activeTab === 'web' }"
+        @click="activeTab = 'web'"
+      >
+        <span class="tab-icon">
+          <IconMobile />
+        </span>
+        <span class="tab-label">Web 移动端</span>
+      </button>
+      <div class="tab-indicator" :style="indicatorStyle" />
+    </div>
 
-    <!-- Web 发布面板 -->
-    <WebPublishPanel
-      :current-version="getVersion('web', 'my-home-mobile')"
-      @version-updated="(v) => updateVersion('web', 'my-home-mobile', v)"
-    />
+    <div class="tab-content">
+      <AndroidPublishPanel
+        v-show="activeTab === 'android'"
+        :current-version="getVersion('android', 'MyHome')"
+        @version-updated="(v) => updateVersion('android', 'MyHome', v)"
+      />
+      <WebPublishPanel
+        v-show="activeTab === 'web'"
+        :current-version="getVersion('web', 'my-home-mobile')"
+        @version-updated="(v) => updateVersion('web', 'my-home-mobile', v)"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 /**
  * 发布主页面
- * 组合三个独立面板：版本清单、Android 发布、Web 发布
+ * 组合三个独立面板：版本清单、Android 发布、Web 发布（Tab 切换）
  */
 import { computed, ref, onMounted } from 'vue';
 
 import IconPublish from '~icons/my/publish';
+import IconAndroid from '~icons/my/android';
+import IconMobile from '~icons/my/mobile';
 
 import VersionManifestPanel from '@/components/VersionManifestPanel.vue';
 import AndroidPublishPanel from '@/components/AndroidPublishPanel.vue';
@@ -57,8 +82,12 @@ const {
   syncManifest,
 } = useVersionManifest();
 
-/** 加载状态由调用方自行管理 */
 const manifestLoading = ref(false);
+const activeTab = ref<'android' | 'web'>('android');
+
+const indicatorStyle = computed(() => ({
+  left: activeTab.value === 'android' ? '0' : '50%',
+}));
 
 /** 从 manifest 计算各项目条目（供版本清单展示） */
 const projectEntries = computed(() =>
@@ -83,12 +112,10 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .publish-view {
-  height: 100%;
+  padding: 24px;
+  gap: 16px;
   display: flex;
   flex-direction: column;
-  padding: 24px;
-  overflow-y: auto;
-  gap: 16px;
 
   .page-header {
     flex-shrink: 0;
@@ -115,5 +142,67 @@ onMounted(async () => {
       margin-left: 32px;
     }
   }
+
+  .tab-bar {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border: none;
+      background: transparent;
+      color: #909399;
+      font-size: 14px;
+      cursor: pointer;
+      transition: color 0.25s, background 0.25s;
+      position: relative;
+      z-index: 1;
+
+      &:hover {
+        color: #606266;
+        background: rgba(64, 158, 255, 0.04);
+      }
+
+      &.active {
+        color: #409eff;
+
+        .tab-icon {
+          color: #409eff;
+        }
+      }
+
+      .tab-icon {
+        display: flex;
+        align-items: center;
+        font-size: 18px;
+        color: #c0c4cc;
+        transition: color 0.25s;
+      }
+
+      .tab-label {
+        font-weight: 500;
+      }
+    }
+
+    .tab-indicator {
+      position: absolute;
+      bottom: 0;
+      width: 50%;
+      height: 2px;
+      background: #409eff;
+      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+
 }
 </style>

@@ -153,10 +153,6 @@ const handleClearLogs = () => {
 </script>
 
 <style lang="scss" scoped>
-.section-card {
-  flex-shrink: 0;
-}
-
 .panel-header {
   display: flex;
   align-items: center;

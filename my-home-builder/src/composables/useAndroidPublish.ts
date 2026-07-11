@@ -47,38 +47,38 @@ export function useAndroidPublish() {
   function startPublish(task: PublishTask): Promise<void> {
     const versionCode = versionToCode(task.version);
 
-    addLog(task, 'info', `🚀 开始发布 Android MyHome - v${task.version} (code: ${versionCode})`);
-
     return wrapPublish(task, () =>
       new Promise<void>((resolve) => {
+        addLog('info', `🚀 开始发布 Android MyHome - v${task.version} (code: ${versionCode})`);
+
         bridge.send('android', 'publishMyHome', { version: task.version, versionCode }, {
           onProgress: (data) => {
             const info = data.versionCode !== undefined
               ? `${data.step}: versionName=${data.version} versionCode=${data.versionCode}`
               : data.step;
-            addLog(task, 'info', `📋 ${info}`);
+            addLog('info', `📋 ${info}`);
             if (data.step === '更新版本号') task.progress = 10;
             else if (data.step === '执行构建') {
-              setStatus(task, 'publishing');
+              setStatus('publishing');
               task.progress = 25;
             } else if (data.step === '上传 OSS') task.progress = 65;
           },
           onBuildOutput: (data) => {
             const lines = data.data.split('\n').filter((l) => l.trim());
             for (const line of lines) {
-              addLog(task, 'info', line.trim());
+              addLog('info', line.trim());
             }
           },
           onSuccess: (data) => {
             task.progress = 100;
-            setStatus(task, 'success');
-            addLog(task, 'info', `🎉 Android MyHome 发布成功，地址: ${data.url}`);
+            setStatus('success');
+            addLog('info', `🎉 Android MyHome 发布成功，地址: ${data.url}`);
             ElMessage.success('Android 项目发布成功');
             resolve();
           },
           onError: (data) => {
-            addLog(task, 'error', `❌ ${data.message}`);
-            setStatus(task, 'failed');
+            addLog('error', `❌ ${data.message}`);
+            setStatus('failed');
             resolve();
           },
         });
