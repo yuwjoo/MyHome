@@ -16,7 +16,7 @@
         class="flex items-center gap-2 px-4 py-2 rounded-full bg-background/90 backdrop-blur-md shadow-lg border border-border/60 text-xs text-muted-foreground"
       >
         <LoaderCircleIcon :size="13" class="animate-spin text-primary shrink-0" />
-        <span>指令发送中</span>
+        <span>等待设备响应</span>
       </div>
     </div>
   </Transition>
