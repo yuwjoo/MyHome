@@ -57,9 +57,10 @@ public:
     /**
      * 订阅主题
      * @param topic 订阅的主题
+     * @param qos   服务质量等级（0 或 1）
      * @return true=订阅成功
      */
-    bool subscribe(const char *topic);
+    bool subscribe(const char *topic, uint8_t qos = 0);
 
     /**
      * 取消订阅主题
@@ -73,9 +74,10 @@ public:
      * @param topic   发布主题
      * @param payload 消息体（字符串）
      * @param retained 是否保留消息
+     * @param qos     服务质量等级（0 或 1）
      * @return true=发布成功
      */
-    bool publish(const char *topic, const char *payload, bool retained = false);
+    bool publish(const char *topic, const char *payload, uint8_t qos = 0, bool retained = false);
 
     /**
      * 注册消息回调
@@ -93,7 +95,8 @@ private:
     WiFiClient &_wifiClient;       // WiFi 客户端引用
     PubSubClient _client;           // PubSubClient 实例
     MqttMessageCallback _onMessage = nullptr;  // 消息回调
-    std::vector<String> _topics;    // 已订阅主题列表，重连后补订阅
+    struct TopicInfo { String topic; uint8_t qos; }; // 主题与 QoS 信息
+    std::vector<TopicInfo> _topics;  // 已订阅主题列表，重连后补订阅
 
     static const int MQTT_BUFFER_SIZE = 512;   // MQTT 缓冲区大小
 

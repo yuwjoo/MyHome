@@ -4,12 +4,5 @@
 package com.yuwjoo.myhome
 
 import android.app.Application
-import com.yuwjoo.myhome.module.mqtt.MqttManager
 
-class MyApplication : Application() {
-
-    override fun onCreate() {
-        super.onCreate()
-        MqttManager.connect()
-    }
-}
+class MyApplication : Application()

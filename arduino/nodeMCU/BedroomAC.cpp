@@ -1,4 +1,5 @@
 #include "BedroomAC.h"
+#include "Log.h"
 
 BedroomAC::BedroomAC() : _ac(IR_LED_PIN) {
     _state.power       = false;   // 开关：true=开, false=关
@@ -14,8 +15,8 @@ BedroomAC::BedroomAC() : _ac(IR_LED_PIN) {
 
 void BedroomAC::begin() {
     _ac.begin();
-    Serial.println("[BedroomAC] TCL112AC 协议模块已就绪");
-    Serial.println("[BedroomAC] 初始状态: " + _state.toJson());
+    LOG_PRINTLN("[BedroomAC] TCL112AC 协议模块已就绪");
+    LOG_PRINTF("[BedroomAC] 初始状态: %s\n", _state.toJson().c_str());
     _notifyState();
 }
 
@@ -62,8 +63,6 @@ void BedroomAC::_syncAndSend() {
 }
 
 bool BedroomAC::handleAction(const String &action, const String &params) {
-    _currentParams = params;
-
     if (action == "togglePower")        return togglePower();
     if (action == "increaseTemperature") return increaseTemperature();
     if (action == "decreaseTemperature") return decreaseTemperature();
@@ -75,18 +74,18 @@ bool BedroomAC::handleAction(const String &action, const String &params) {
     if (action == "toggleWindSpeed")    return toggleWindSpeed();
     if (action == "enableGentleMode")   return enableGentleMode();
     if (action == "toggleLight")        return toggleLight();
-    if (action == "setOnTimer")         return setOnTimer();
-    if (action == "setOffTimer")        return setOffTimer();
+    if (action == "setOnTimer")         return setOnTimer(params);
+    if (action == "setOffTimer")        return setOffTimer(params);
     if (action == "cancelOnTimer")      return cancelOnTimer();
     if (action == "cancelOffTimer")     return cancelOffTimer();
 
-    Serial.printf("[BedroomAC] 未知指令: %s\n", action.c_str());
+    LOG_PRINTF("[BedroomAC] 未知指令: %s\n", action.c_str());
     return false;
 }
 
 bool BedroomAC::togglePower() {
     _state.power = !_state.power;
-    Serial.printf("[BedroomAC] 电源 → %s\n", _state.power ? "开" : "关");
+    LOG_PRINTF("[BedroomAC] 电源 → %s\n", _state.power ? "开" : "关");
     _syncAndSend();
     _notifyState();
     return true;
@@ -94,7 +93,7 @@ bool BedroomAC::togglePower() {
 
 bool BedroomAC::increaseTemperature() {
     if (_state.temperature < 30) _state.temperature++;
-    Serial.printf("[BedroomAC] 温度 → %d°C\n", _state.temperature);
+    LOG_PRINTF("[BedroomAC] 温度 → %d°C\n", _state.temperature);
     _syncAndSend();
     _notifyState();
     return true;
@@ -102,7 +101,7 @@ bool BedroomAC::increaseTemperature() {
 
 bool BedroomAC::decreaseTemperature() {
     if (_state.temperature > 16) _state.temperature--;
-    Serial.printf("[BedroomAC] 温度 → %d°C\n", _state.temperature);
+    LOG_PRINTF("[BedroomAC] 温度 → %d°C\n", _state.temperature);
     _syncAndSend();
     _notifyState();
     return true;
@@ -110,7 +109,7 @@ bool BedroomAC::decreaseTemperature() {
 
 bool BedroomAC::toggleSwing() {
     _state.swing = !_state.swing;
-    Serial.printf("[BedroomAC] 摆风 → %s\n", _state.swing ? "开" : "关");
+    LOG_PRINTF("[BedroomAC] 摆风 → %s\n", _state.swing ? "开" : "关");
     _syncAndSend();
     _notifyState();
     return true;
@@ -118,7 +117,7 @@ bool BedroomAC::toggleSwing() {
 
 bool BedroomAC::setCoolingMode() {
     _state.mode = "cool";
-    Serial.println("[BedroomAC] 模式 → 制冷");
+    LOG_PRINTLN("[BedroomAC] 模式 → 制冷");
     _syncAndSend();
     _notifyState();
     return true;
@@ -126,7 +125,7 @@ bool BedroomAC::setCoolingMode() {
 
 bool BedroomAC::setHeatingMode() {
     _state.mode = "heat";
-    Serial.println("[BedroomAC] 模式 → 制热");
+    LOG_PRINTLN("[BedroomAC] 模式 → 制热");
     _syncAndSend();
     _notifyState();
     return true;
@@ -134,7 +133,7 @@ bool BedroomAC::setHeatingMode() {
 
 bool BedroomAC::setDryMode() {
     _state.mode = "dry";
-    Serial.println("[BedroomAC] 模式 → 除湿");
+    LOG_PRINTLN("[BedroomAC] 模式 → 除湿");
     _syncAndSend();
     _notifyState();
     return true;
@@ -142,7 +141,7 @@ bool BedroomAC::setDryMode() {
 
 bool BedroomAC::setFanMode() {
     _state.mode = "fan";
-    Serial.println("[BedroomAC] 模式 → 送风");
+    LOG_PRINTLN("[BedroomAC] 模式 → 送风");
     _syncAndSend();
     _notifyState();
     return true;
@@ -150,7 +149,7 @@ bool BedroomAC::setFanMode() {
 
 bool BedroomAC::toggleWindSpeed() {
     _state.windSpeed = _cycleWindSpeed(_state.windSpeed);
-    Serial.printf("[BedroomAC] 风速 → %s\n", _state.windSpeed.c_str());
+    LOG_PRINTF("[BedroomAC] 风速 → %s\n", _state.windSpeed.c_str());
     _syncAndSend();
     _notifyState();
     return true;
@@ -158,7 +157,7 @@ bool BedroomAC::toggleWindSpeed() {
 
 bool BedroomAC::enableGentleMode() {
     _state.gentle = true;
-    Serial.println("[BedroomAC] 舒风 → 开");
+    LOG_PRINTLN("[BedroomAC] 舒风 → 开");
     _syncAndSend();
     _notifyState();
     return true;
@@ -166,17 +165,17 @@ bool BedroomAC::enableGentleMode() {
 
 bool BedroomAC::toggleLight() {
     _state.light = !_state.light;
-    Serial.printf("[BedroomAC] 屏显 → %s\n", _state.light ? "亮" : "灭");
+    LOG_PRINTF("[BedroomAC] 屏显 → %s\n", _state.light ? "亮" : "灭");
     _syncAndSend();
     _notifyState();
     return true;
 }
 
-uint16_t BedroomAC::_parseTimerMinutes() {
+uint16_t BedroomAC::_parseTimerMinutes(const String &params) {
     StaticJsonDocument<JSON_DOC_SIZE_RC> doc;
-    DeserializationError err = deserializeJson(doc, _currentParams);
+    DeserializationError err = deserializeJson(doc, params);
     if (err || !doc.containsKey("minutes")) {
-        Serial.printf("[BedroomAC] 定时器参数解析失败: %s\n", _currentParams.c_str());
+        LOG_PRINTF("[BedroomAC] 定时器参数解析失败: %s\n", params.c_str());
         return UINT16_MAX;
     }
     uint16_t mins = doc["minutes"];
@@ -184,21 +183,21 @@ uint16_t BedroomAC::_parseTimerMinutes() {
     return mins;
 }
 
-bool BedroomAC::setOnTimer() {
-    uint16_t mins = _parseTimerMinutes();
+bool BedroomAC::setOnTimer(const String &params) {
+    uint16_t mins = _parseTimerMinutes(params);
     if (mins == UINT16_MAX) return false;
     _state.onTimer = mins;
-    Serial.printf("[BedroomAC] 定时开机 → %d 分钟\n", mins);
+    LOG_PRINTF("[BedroomAC] 定时开机 → %d 分钟\n", mins);
     _syncAndSend();
     _notifyState();
     return true;
 }
 
-bool BedroomAC::setOffTimer() {
-    uint16_t mins = _parseTimerMinutes();
+bool BedroomAC::setOffTimer(const String &params) {
+    uint16_t mins = _parseTimerMinutes(params);
     if (mins == UINT16_MAX) return false;
     _state.offTimer = mins;
-    Serial.printf("[BedroomAC] 定时关机 → %d 分钟\n", mins);
+    LOG_PRINTF("[BedroomAC] 定时关机 → %d 分钟\n", mins);
     _syncAndSend();
     _notifyState();
     return true;
@@ -206,7 +205,7 @@ bool BedroomAC::setOffTimer() {
 
 bool BedroomAC::cancelOnTimer() {
     _state.onTimer = 0;
-    Serial.println("[BedroomAC] 定时开机 → 取消");
+    LOG_PRINTLN("[BedroomAC] 定时开机 → 取消");
     _syncAndSend();
     _notifyState();
     return true;
@@ -214,7 +213,7 @@ bool BedroomAC::cancelOnTimer() {
 
 bool BedroomAC::cancelOffTimer() {
     _state.offTimer = 0;
-    Serial.println("[BedroomAC] 定时关机 → 取消");
+    LOG_PRINTLN("[BedroomAC] 定时关机 → 取消");
     _syncAndSend();
     _notifyState();
     return true;

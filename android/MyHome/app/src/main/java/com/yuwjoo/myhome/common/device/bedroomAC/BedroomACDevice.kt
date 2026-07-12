@@ -138,9 +138,10 @@ object BedroomACDevice {
      */
     private fun sendCommand(action: ACAction, params: Map<String, Any>? = null) {
         val payload = CmdBedroomACPayload(action = action, params = params)
+        val json = payload.toJson()
         MqttManager.publish(
             topic = CmdBedroomACTopic.topic,
-            payload = payload.toJson(),
+            payload = json,
             qos = CmdBedroomACTopic.qos,
         )
     }

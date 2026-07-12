@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include "Config.h"
+#include "Log.h"
 
 // ============================================================
 //  MessageDto — 消息结构定义（类似 Java data class）
@@ -58,7 +59,7 @@ struct RemoteCommand {
 
         RemoteCommand cmd;
         if (err) {
-            Serial.printf("[Dto] JSON 解析失败: %s\n", err.c_str());
+            LOG_PRINTF("[Dto] JSON 解析失败: %s\n", err.c_str());
             return cmd;  // action 为空字符串
         }
 

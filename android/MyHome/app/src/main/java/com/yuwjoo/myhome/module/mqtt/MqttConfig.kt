@@ -38,7 +38,7 @@ internal object MqttConfig {
     const val WILL_RETAINED = false
 
     /** 是否启用遗嘱消息 */
-    const val ENABLE_WILL = true
+    const val ENABLE_WILL = false
 
     /**
      * 返回动态客户端 ID，格式 "mh-client-{品牌}-{型号}"。

@@ -31,9 +31,11 @@
 //  引入模块
 // ============================================================
 #include "Config.h"
+#include "Log.h"
 #include "MessageDto.h"
 #include "WiFiManager.h"
 #include "MqttManager.h"
+// #include "UdpManager.h"
 #include "DhtSensor.h"
 #include "BedroomAC.h"
 
@@ -43,6 +45,7 @@
 WiFiClient wifiClient;
 WiFiManager wifiManager;
 MqttManager mqttManager(wifiClient);
+// UdpManager udpManager;
 DhtSensor dhtSensor;
 BedroomAC bedroomAC;
 
@@ -51,20 +54,24 @@ BedroomAC bedroomAC;
 // ============================================================
 
 void setup() {
-    Serial.begin(115200);
-    Serial.println();
-    Serial.println("=========================================");
-    Serial.println("  智能家居 ESP8266 节点启动");
-    Serial.printf("  Client ID: %s\n", MQTT_CLIENT_ID);
-    Serial.println("=========================================");
+    LOG_BEGIN(115200);
+    LOG_PRINTLN();
+    LOG_PRINTLN("=========================================");
+    LOG_PRINTLN("  智能家居 ESP8266 节点启动");
+    LOG_PRINTF("  Client ID: %s\n", MQTT_CLIENT_ID);
+    LOG_PRINTLN("=========================================");
 
     // ── 1. 连接 WiFi ──
     wifiManager.connect();
 
-    // ── 2. 初始化 MQTT ──
+    // ── 2. 初始化 UDP ──
+    // udpManager.setOnMessage(onMqttMessage);
+    // udpManager.connect();
+
+    // ── 3. 初始化 MQTT ──
     mqttManager.setOnMessage(onMqttMessage);
     mqttManager.connect();
-    mqttManager.subscribe(TOPIC_RC_BEDROOM_AC);
+    mqttManager.subscribe(TOPIC_RC_BEDROOM_AC, 1);
 
     // ── 3. 初始化各模块 ──
     dhtSensor.begin();
@@ -73,15 +80,16 @@ void setup() {
     // ── 4. 注册 AC 状态变更回调 ──
     // 每次空调操作后，自动将状态 JSON 通过 MQTT 保留消息上报
     bedroomAC.setOnStateChanged([](const String &stateJson) {
-        mqttManager.publish(TOPIC_DEVICE_BEDROOM_AC, stateJson.c_str(), true);
-        Serial.printf("[MQTT] AC 状态已上报(保留): %s\n", stateJson.c_str());
+        mqttManager.publish(TOPIC_DEVICE_BEDROOM_AC, stateJson.c_str(), 1, true);
+        LOG_PRINTF("[MQTT] AC 状态已上报(保留): %s\n", stateJson.c_str());
     });
 
-    Serial.println("[系统] 初始化完成");
+    LOG_PRINTLN("[系统] 初始化完成");
 }
 
 void loop() {
     wifiManager.loop();
+    // udpManager.loop();
     mqttManager.loop();
 
     // ── DHT11 定时上报（保留消息）──
@@ -92,7 +100,7 @@ void loop() {
         msg.humidity    = dhtSensor.getHumidity();
 
         String json = msg.toJson();
-        mqttManager.publish(TOPIC_SENSOR_TEMP_HUMID, json.c_str(), true);
+        mqttManager.publish(TOPIC_SENSOR_TEMP_HUMID, json.c_str(), 1, true);
     }
 
     delay(LOOP_DELAY);
@@ -113,19 +121,21 @@ void loop() {
  * 反序列化后路由到 BedroomAC 模块处理。
  */
 void onMqttMessage(const char *topic, const uint8_t *payload, unsigned int length) {
+    if (strcmp(topic, TOPIC_RC_BEDROOM_AC) != 0) return;
+
     // 一步反序列化，直接得到结构化数据
     RemoteCommand cmd = RemoteCommand::fromPayload(payload, length);
 
     if (cmd.action.length() == 0) {
-        Serial.println("[MQTT] 消息解析失败或缺少 action 字段，忽略");
+        LOG_PRINTLN("[MQTT] 消息解析失败或缺少 action 字段，忽略");
         return;
     }
 
-    Serial.printf("[MQTT] 收到指令: %s", cmd.action.c_str());
+    LOG_PRINTF("[MQTT] 收到指令: %s", cmd.action.c_str());
     if (cmd.params.length() > 0) {
-        Serial.printf("，参数: %s", cmd.params.c_str());
+        LOG_PRINTF("，参数: %s", cmd.params.c_str());
     }
-    Serial.println();
+    LOG_PRINTLN();
 
     // 路由到空调遥控器模块
     bedroomAC.handleAction(cmd.action, cmd.params);

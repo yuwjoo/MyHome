@@ -49,8 +49,8 @@ public:
     bool toggleWindSpeed();      // 切换风速（自动→低→中→高→自动）
     bool enableGentleMode();     // 舒风模式
     bool toggleLight();          // 切换屏显
-    bool setOnTimer();           // 设置定时开机
-    bool setOffTimer();          // 设置定时关机
+    bool setOnTimer(const String &params);           // 设置定时开机
+    bool setOffTimer(const String &params);          // 设置定时关机
     bool cancelOnTimer();        // 取消定时开机
     bool cancelOffTimer();       // 取消定时关机
 
@@ -58,15 +58,13 @@ private:
     IRTcl112Ac _ac;                       // TCL112AC 协议红外发送器
     OnStateChanged _onStateChanged = nullptr;  // 状态变更回调
     ACStateMessage _state;                 // 本地追踪的空调状态
-    String _currentParams;                 // 当前指令的参数字符串
-
     /**
      * 将当前 _state 同步到 _ac 并发送完整协议帧
      */
     void _syncAndSend();
 
     void _notifyState();
-    uint16_t _parseTimerMinutes();       // 从 _currentParams 解析 minutes 字段
+    uint16_t _parseTimerMinutes(const String &params); // 从 params 解析 minutes 字段
 
     static const char* _cycleWindSpeed(const String &current);
 };

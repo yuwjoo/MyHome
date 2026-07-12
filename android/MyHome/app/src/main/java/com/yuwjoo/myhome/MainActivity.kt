@@ -9,6 +9,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.yuwjoo.myhome.module.mqtt.MqttManager
+import com.yuwjoo.myhome.module.udp.UdpManager
 import com.yuwjoo.myhome.ui.webview.WebViewManager
 
 /**
@@ -29,6 +30,14 @@ class MainActivity : AppCompatActivity() {
         setupEdgeToEdgeInsets(webViewManager.webView)
         onBackPressedDispatcher.addCallback(this, webViewManager.backPressCallback)
         webViewManager.initializeResources()
+        Thread { MqttManager.connect() }.start() // 建立 MQTT 连接
+        Thread { UdpManager.connect(this) }.start() // 加入组播组
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Thread { MqttManager.disconnect() }.start() // 断开 MQTT 连接
+        Thread { UdpManager.disconnect() }.start() // 离开组播组
     }
 
     override fun onResume() {

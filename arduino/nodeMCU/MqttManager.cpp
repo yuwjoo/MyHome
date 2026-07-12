@@ -1,4 +1,5 @@
 #include "MqttManager.h"
+#include "Log.h"
 
 // ============================================================
 //  MqttManager 实现
@@ -23,10 +24,10 @@ bool MqttManager::connect() {
         return true;  // 已连接，无需重复连接
     }
 
-    Serial.print("[MQTT] 正在连接 Broker: ");
-    Serial.print(MQTT_BROKER);
-    Serial.print(":");
-    Serial.println(MQTT_PORT);
+    LOG_PRINT("[MQTT] 正在连接 Broker: ");
+    LOG_PRINT(MQTT_BROKER);
+    LOG_PRINT(":");
+    LOG_PRINTLN(MQTT_PORT);
 
     // 设置遗嘱消息（设备离线时 Broker 自动发布）
     if (!_client.connect(
@@ -38,17 +39,17 @@ bool MqttManager::connect() {
             true,                       // 遗嘱消息 retained
             MQTT_WILL_PAYLOAD           // 遗嘱消息内容
         )) {
-        Serial.print("[MQTT] 连接失败，状态码: ");
-        Serial.println(_client.state());
+        LOG_PRINT("[MQTT] 连接失败，状态码: ");
+        LOG_PRINTLN(_client.state());
         return false;
     }
 
-    Serial.println("[MQTT] 连接成功！");
+    LOG_PRINTLN("[MQTT] 连接成功！");
 
     // 发布在线状态（保留消息），覆盖上次离线时 Broker 遗留的遗嘱消息
     char onlinePayload[64];
     snprintf(onlinePayload, sizeof(onlinePayload), R"({"isOnline":true,"updateTime":%lu})", millis() / 1000);
-    Serial.printf("[MQTT] 已发布在线状态 → %s: %s\n", MQTT_WILL_TOPIC, onlinePayload);
+    LOG_PRINTF("[MQTT] 已发布在线状态 → %s: %s\n", MQTT_WILL_TOPIC, onlinePayload);
     _client.publish(MQTT_WILL_TOPIC, onlinePayload, true);
 
     return true;
@@ -62,21 +63,21 @@ bool MqttManager::isConnected() {
     return _client.connected();
 }
 
-bool MqttManager::subscribe(const char *topic) {
+bool MqttManager::subscribe(const char *topic, uint8_t qos) {
     if (!_client.connected()) {
-        Serial.println("[MQTT] 未连接，无法订阅");
+        LOG_PRINTLN("[MQTT] 未连接，无法订阅");
         return false;
     }
-    if (_client.subscribe(topic)) {
-        Serial.printf("[MQTT] 已订阅: %s\n", topic);
+    if (_client.subscribe(topic, qos)) {
+        LOG_PRINTF("[MQTT] 已订阅 (QoS%d): %s\n", qos, topic);
         // 首次订阅成功时记录，用于重连后补订阅（去重）
         for (const auto &t : _topics) {
-            if (t.equals(topic)) return true;
+            if (t.topic.equals(topic)) return true;
         }
-        _topics.push_back(String(topic));
+        _topics.push_back({String(topic), qos});
         return true;
     } else {
-        Serial.printf("[MQTT] 订阅失败: %s\n", topic);
+        LOG_PRINTF("[MQTT] 订阅失败: %s\n", topic);
         return false;
     }
 }
@@ -84,26 +85,26 @@ bool MqttManager::subscribe(const char *topic) {
 bool MqttManager::unsubscribe(const char *topic) {
     if (!_client.connected()) return false;
     if (_client.unsubscribe(topic)) {
-        Serial.printf("[MQTT] 已取消订阅: %s\n", topic);
+        LOG_PRINTF("[MQTT] 已取消订阅: %s\n", topic);
         // 从记录列表中移除
         for (auto it = _topics.begin(); it != _topics.end(); ++it) {
-            if (it->equals(topic)) { _topics.erase(it); break; }
+            if (it->topic.equals(topic)) { _topics.erase(it); break; }
         }
         return true;
     }
     return false;
 }
 
-bool MqttManager::publish(const char *topic, const char *payload, bool retained) {
+bool MqttManager::publish(const char *topic, const char *payload, uint8_t qos, bool retained) {
     if (!_client.connected()) {
-        Serial.println("[MQTT] 未连接，无法发布");
+        LOG_PRINTLN("[MQTT] 未连接，无法发布");
         return false;
     }
     if (_client.publish(topic, payload, retained)) {
-        Serial.printf("[MQTT] 已发布 → %s: %s\n", topic, payload);
+        LOG_PRINTF("[MQTT] 已发布 (QoS%d) → %s: %s\n", qos, topic, payload);
         return true;
     } else {
-        Serial.printf("[MQTT] 发布失败 → %s\n", topic);
+        LOG_PRINTF("[MQTT] 发布失败 → %s\n", topic);
         return false;
     }
 }
@@ -119,12 +120,12 @@ void MqttManager::loop() {
         unsigned long now = millis();
         if (now - lastRetry >= MQTT_RETRY_INTERVAL) {
             lastRetry = now;
-            Serial.println("[MQTT] 连接断开，尝试重连...");
+            LOG_PRINTLN("[MQTT] 连接断开，尝试重连...");
             if (connect()) {
                 // 重连成功，补订阅之前所有主题
-                for (const auto &topic : _topics) {
-                    if (_client.subscribe(topic.c_str())) {
-                        Serial.printf("[MQTT] 重连后恢复订阅: %s\n", topic.c_str());
+                for (const auto &info : _topics) {
+                    if (_client.subscribe(info.topic.c_str(), info.qos)) {
+                        LOG_PRINTF("[MQTT] 重连后恢复订阅 (QoS%d): %s\n", info.qos, info.topic.c_str());
                     }
                 }
             }

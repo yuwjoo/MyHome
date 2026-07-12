@@ -1,195 +1,217 @@
 ﻿package com.yuwjoo.myhome.module.udp
 
-import android.os.Handler
-import android.os.Looper
+import android.content.Context
+import android.net.wifi.WifiManager
+import android.util.Log
 import org.json.JSONObject
-import java.net.DatagramPacket
-import java.net.DatagramSocket
-import java.net.InetAddress
 
-class UdpManager private constructor() {
+/**
+ * UDP 管理器（单例），封装组播通信与设备发现。
+ */
+object UdpManager {
 
-    companion object {
-        private val _instance: UdpManager by lazy { UdpManager() }
+    private const val TAG = "UdpManager"
+    private const val MULTICAST_LOCK_TAG = "MyHome:UdpMulticast"
 
-        fun getInstance(): UdpManager = _instance
-    }
+    private val client = UdpClient(
+        UdpClientConfig(
+            multicastAddr = UdpConfig.MULTICAST_ADDR,
+            listenPort = UdpConfig.LISTEN_PORT,
+            sendPort = UdpConfig.BROADCAST_PORT,
+        )
+    )
 
-    // ──────────────── 内部状态 ────────────────
+    private val topicManager = TopicManager()
+    private val deviceManager = DeviceManager()
 
-    private var socket: DatagramSocket? = null
-    private var receiveThread: Thread? = null
-    private var running = false
+    val deviceList: List<UdpDevice> // 全部设备列表
+        get() = deviceManager.deviceList
 
-    private val callbacks = mutableListOf<UdpCallback>()
-    private val topicCallbacks = mutableMapOf<String, MutableList<UdpTopicCallback>>()
-    private val onlineDevices = mutableMapOf<String, UdpDevice>()
-    private val handler = Handler(Looper.getMainLooper())
+    val onlineDeviceList: List<UdpDevice> // 在线设备列表
+        get() = deviceManager.onlineDeviceList
 
-    val deviceList: List<UdpDevice>
-        get() = onlineDevices.values.toList()
+    val isConnected: Boolean // 是否已连接组播
+        get() = client.isConnected
 
-    // ──────────────── 生命周期 ────────────────
+    private var wifiManager: WifiManager? = null // WiFi 管理器
+    private var multicastLock: WifiManager.MulticastLock? = null // 组播锁
+
+    private val localDevice = LocalDevice() // 本机设备
 
     init {
-        startReceive()
-    }
-
-    fun close() {
-        running = false
-        receiveThread?.interrupt()
-        socket?.close()
-        socket = null
-    }
-
-    // ──────────────── 回调管理 ────────────────
-
-    fun addCallback(callback: UdpCallback) {
-        if (!callbacks.contains(callback)) {
-            callbacks.add(callback)
-        }
-    }
-
-    fun removeCallback(callback: UdpCallback) {
-        callbacks.remove(callback)
-    }
-
-    // ──────────────── 设备发现 ────────────────
-
-    fun scanDevices() {
-        onlineDevices.clear()
-        callbacks.forEach { it.onDeviceChanged(emptyList()) }
-        sendBroadcast(
-            UdpConfig.BROADCAST_PORT,
-            buildMessage(UdpConfig.TOPIC_SCAN_DEVICES),
-            UdpConfig.SCAN_COUNT,
-            UdpConfig.SCAN_INTERVAL,
-        )
-    }
-
-    // ──────────────── Topic 操作 ────────────────
-
-    fun subscribe(topic: String, callback: UdpTopicCallback) {
-        topicCallbacks.getOrPut(topic) { mutableListOf() }.add(callback)
-    }
-
-    fun unsubscribe(topic: String, callback: UdpTopicCallback? = null) {
-        if (callback != null) {
-            topicCallbacks[topic]?.remove(callback)
-            if (topicCallbacks[topic].isNullOrEmpty()) {
-                topicCallbacks.remove(topic)
-            }
-        } else {
-            topicCallbacks.remove(topic)
-        }
-    }
-
-    fun publish(topic: String, payload: Any?, targetIp: String? = null) {
-        val message = buildMessage(topic, payload)
-
-        if (targetIp != null) {
-            sendUnicast(targetIp, UdpConfig.BROADCAST_PORT, message)
-        } else {
-            sendBroadcast(UdpConfig.BROADCAST_PORT, message)
-        }
-    }
-
-    // ──────────────── 接收消息处理 ────────────────
-
-    private fun startReceive() {
-        running = true
-        socket = DatagramSocket(UdpConfig.LISTEN_PORT)
-        socket?.broadcast = true
-
-        receiveThread = Thread {
-            val buffer = ByteArray(UdpConfig.BUFFER_SIZE)
-            while (running && !Thread.currentThread().isInterrupted) {
-                try {
-                    val packet = DatagramPacket(buffer, buffer.size)
-                    socket?.receive(packet)
-                    val msgText = String(packet.data, 0, packet.length, Charsets.UTF_8)
-                    val (topic, data) = parseMessage(msgText)
-                    handleMessage(topic, data, packet.address?.hostAddress ?: "", packet.port)
-                } catch (_: Exception) { }
-            }
-        }.apply { start() }
-    }
-
-    private fun handleMessage(topic: String?, data: Any?, ip: String, port: Int) {
-        if (topic == null) return
-
-        handler.post {
-            when (topic) {
-                UdpConfig.TOPIC_DEVICE_ONLINE -> handleDeviceOnline(data, ip, port)
-                else -> dispatchMessage(topic, data)
-            }
-        }
-    }
-
-    private fun handleDeviceOnline(data: Any?, ip: String, port: Int) {
-        val json = data as? JSONObject ?: return
-        val deviceId = json.optString("deviceId", "").takeIf { it.isNotEmpty() } ?: return
-        val device = UdpDevice(
-            ipAddress = ip,
-            port = json.optInt("port", port),
-            deviceId = deviceId,
-            deviceName = json.optString("deviceName", ""),
-            deviceType = json.optString("deviceType", ""),
-        )
-        onlineDevices[deviceId] = device
-        val list = onlineDevices.values.toList()
-        callbacks.forEach { it.onDeviceChanged(list) }
-    }
-
-    private fun dispatchMessage(topic: String, data: Any?) {
-        callbacks.forEach { it.onMessageArrived(topic, data) }
-        topicCallbacks[topic]?.forEach { it.onMessageArrived(topic, data) }
-    }
-
-    // ──────────────── UDP 收发底层 ────────────────
-
-    private fun sendBroadcast(port: Int, message: String, count: Int = 1, interval: Long = 0) {
-        Thread {
-            val address = InetAddress.getByName("255.255.255.255")
-            repeat(count) { i ->
-                try {
-                    DatagramSocket().use { s ->
-                        s.broadcast = true
-                        val data = message.toByteArray(Charsets.UTF_8)
-                        s.send(DatagramPacket(data, data.size, address, port))
-                    }
-                } catch (_: Exception) { }
-                if (i < count - 1 && interval > 0) Thread.sleep(interval)
-            }
-        }.start()
-    }
-
-    private fun sendUnicast(targetIp: String, port: Int, message: String) {
-        Thread {
-            try {
-                DatagramSocket().use { s ->
-                    val data = message.toByteArray(Charsets.UTF_8)
-                    s.send(DatagramPacket(data, data.size, InetAddress.getByName(targetIp), port))
+        client.setMessageCallback { data, fromIp, fromPort ->
+            val msgText = String(data, Charsets.UTF_8)
+            val msg = TopicManager.parseMessage(msgText) ?: return@setMessageCallback
+            when (msg.topic) {
+                // 设备扫描主题
+                UdpConfig.TOPIC_SCAN_DEVICES -> {
+                    localDevice.online = true
+                    val payload = LocalDevice.toPayload(localDevice)
+                    val data = TopicManager.buildMessage(UdpConfig.TOPIC_LOCAL_DEVICE, payload)
+                    client.send(data, fromIp)
                 }
-            } catch (_: Exception) { }
-        }.start()
-    }
+                // 本地设备信息主题
+                UdpConfig.TOPIC_LOCAL_DEVICE -> {
+                    val device =
+                        UdpDevice.fromPayload(msg.payload, fromIp) ?: return@setMessageCallback
+                    deviceManager.updateDevice(device)
+                }
+                // 其他主题
+                else -> {
+                    Log.d(TAG, "onMessageArrived: topic=${msg.topic}")
+                    topicManager.notifyListener(msg.topic, msg.payload)
+                }
+            }
+        }
 
-    private fun buildMessage(topic: String, data: Any? = null): String {
-        val json = JSONObject()
-        json.put("topic", topic)
-        if (data != null) json.put("data", data)
-        return json.toString()
-    }
-
-    private fun parseMessage(msgText: String): Pair<String?, Any?> {
-        return try {
-            val json = JSONObject(msgText)
-            val topic = json.optString("topic", "").takeIf { it.isNotEmpty() }
-            val data = if (json.has("data")) json.get("data") else null
-            topic to data
-        } catch (_: Exception) {
-            null to null
+        client.setConnectionCallback { connected ->
+            localDevice.online = connected
+            client.send(
+                TopicManager.buildMessage(
+                    UdpConfig.TOPIC_LOCAL_DEVICE,
+                    LocalDevice.toPayload(localDevice)
+                )
+            )
+            if (connected) scanDevices()
         }
     }
+
+    /**
+     * 连接到组播组并启动消息接收
+     *
+     * @param context 用于获取组播锁的上下文，传入 null 则不申请锁
+     */
+    fun connect(context: Context? = null) {
+        if (context != null && wifiManager == null) {
+            wifiManager =
+                context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        }
+        multicastLock?.release()
+        multicastLock = wifiManager?.createMulticastLock(MULTICAST_LOCK_TAG)?.apply {
+            acquire()
+        }
+        client.connect()
+    }
+
+    /**
+     * 断开连接并释放所有资源
+     */
+    fun disconnect() {
+        multicastLock?.release()
+        multicastLock = null
+        client.disconnect()
+    }
+
+    /**
+     * 注册设备变更监听器
+     *
+     * @param listener 设备变更回调
+     */
+    fun registerDeviceListener(listener: DeviceChangeListener) {
+        deviceManager.registerListener(listener)
+    }
+
+    /**
+     * 取消注册设备变更监听器
+     *
+     * @param listener 已注册的监听器
+     */
+    fun unregisterDeviceListener(listener: DeviceChangeListener) {
+        deviceManager.unregisterListener(listener)
+    }
+
+    /**
+     * 清空所有设备变更监听器
+     */
+    fun clearDeviceListeners() {
+        deviceManager.clearListeners()
+    }
+
+    /**
+     * 组播发送扫描设备消息
+     */
+    fun scanDevices() {
+        val data = TopicManager.buildMessage(UdpConfig.TOPIC_SCAN_DEVICES)
+        repeat(UdpConfig.SCAN_COUNT) { i ->
+            try {
+                client.send(data)
+            } catch (e: Exception) {
+                Log.e(TAG, "scanDevices error round=$i: ${e.message}", e)
+            }
+            if (i < UdpConfig.SCAN_COUNT - 1) Thread.sleep(UdpConfig.SCAN_INTERVAL)
+        }
+    }
+
+    /**
+     * 订阅主题
+     *
+     * @param topic    主题名称
+     * @param callback 消息回调
+     */
+    fun subscribe(topic: String, callback: UdpTopicCallback) {
+        topicManager.registerListener(topic, callback)
+    }
+
+    /**
+     * 取消订阅主题，callback 为 null 时清除该主题全部监听器
+     *
+     * @param topic    主题名称
+     * @param callback 要移除的回调，null 表示清除所有
+     */
+    fun unsubscribe(topic: String, callback: UdpTopicCallback? = null) {
+        if (callback == null) {
+            topicManager.clearTopicListeners(topic)
+        } else {
+            topicManager.unregisterListener(topic, callback)
+        }
+    }
+
+    /**
+     * 发布消息，targetIp 为 null 时组播，否则单播到指定 IP
+     *
+     * @param topic    主题
+     * @param payload  消息内容
+     * @param targetIp 目标 IP，null 表示组播
+     */
+    fun publish(topic: String, payload: JSONObject, targetIp: String? = null) {
+        client.send(TopicManager.buildMessage(topic, payload), targetIp)
+    }
+
+    /**
+     * 仅向订阅了该主题的在线设备发送消息
+     *
+     * @param topic          主题
+     * @param payload        消息内容
+     * @param onlySubscribers 是否仅发给订阅者，传 true 时生效
+     * @return 成功发送的设备数，onlySubscribers 为 false 时返回 -1
+     */
+    fun publish(topic: String, payload: JSONObject, onlySubscribers: Boolean): Int {
+        if (!onlySubscribers) {
+            client.send(TopicManager.buildMessage(topic, payload))
+            return -1
+        }
+        val data = TopicManager.buildMessage(topic, payload)
+        var count = 0
+        for (device in deviceManager.onlineDeviceList) {
+            if (topic in device.topics) {
+                client.send(data, device.ipAddress)
+                count++
+            }
+        }
+        return count
+    }
+
+}
+
+/**
+ * 主题消息回调。
+ */
+fun interface UdpTopicCallback {
+    /**
+     * 收到匹配主题的消息
+     *
+     * @param topic   消息主题
+     * @param payload 负载数据
+     */
+    fun onMessageArrived(topic: String, payload: JSONObject?)
 }

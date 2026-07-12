@@ -1,4 +1,5 @@
 #include "DhtSensor.h"
+#include "Log.h"
 
 // ============================================================
 //  DhtSensor 实现
@@ -8,7 +9,7 @@
 #include <SimpleDHT.h>
 
 void DhtSensor::begin() {
-    Serial.println("[DHT11] 传感器已就绪");
+    LOG_PRINTLN("[DHT11] 传感器已就绪");
 }
 
 bool DhtSensor::read() {
@@ -18,11 +19,11 @@ bool DhtSensor::read() {
     int err = dht11.read(&temperature, &humidity, nullptr);
 
     if (err != SimpleDHTErrSuccess) {
-        Serial.print("[DHT11] 读取失败，错误码: ");
-        Serial.print(err);
-        Serial.print(" (");
-        Serial.print(SimpleDHTErrCode(err));
-        Serial.println(")");
+        LOG_PRINT("[DHT11] 读取失败，错误码: ");
+        LOG_PRINT(err);
+        LOG_PRINT(" (");
+        LOG_PRINT(SimpleDHTErrCode(err));
+        LOG_PRINTLN(")");
         _lastReadSuccess = false;
         return false;
     }
@@ -32,7 +33,7 @@ bool DhtSensor::read() {
     _humidity = (float)humidity;
     _lastReadSuccess = true;
 
-    Serial.printf("[DHT11] 温度: %.0f°C, 湿度: %.0f%%\n",
+    LOG_PRINTF("[DHT11] 温度: %.0f°C, 湿度: %.0f%%\n",
                   _temperature, _humidity);
     return true;
 }

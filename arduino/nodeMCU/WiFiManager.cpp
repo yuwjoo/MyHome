@@ -1,4 +1,5 @@
 #include "WiFiManager.h"
+#include "Log.h"
 
 // ============================================================
 //  WiFiManager 实现
@@ -25,8 +26,8 @@ void WiFiManager::loop() {
 // ── 私有方法 ──
 
 bool WiFiManager::connectBlocking() {
-    Serial.print("[WiFi] 正在连接: ");
-    Serial.println(WIFI_SSID);
+    LOG_PRINT("[WiFi] 正在连接: ");
+    LOG_PRINTLN(WIFI_SSID);
 
     // 设置为 STA 模式（客户端模式）
     WiFi.mode(WIFI_STA);
@@ -36,17 +37,17 @@ bool WiFiManager::connectBlocking() {
     int retryCount = 0;
     while (WiFi.status() != WL_CONNECTED) {
         delay(WIFI_RETRY_INTERVAL);
-        Serial.print(".");
+        LOG_PRINT(".");
         retryCount++;
 
         // 每 20 次重试打印一次状态
         if (retryCount % 40 == 0) {
-            Serial.printf("\n[WiFi] 仍在连接中... (已重试 %d 次)\n", retryCount);
+            LOG_PRINTF("\n[WiFi] 仍在连接中... (已重试 %d 次)\n", retryCount);
         }
     }
 
-    Serial.println();
-    Serial.print("[WiFi] 连接成功！IP: ");
-    Serial.println(WiFi.localIP());
+    LOG_PRINTLN();
+    LOG_PRINT("[WiFi] 连接成功！IP: ");
+    LOG_PRINTLN(WiFi.localIP());
     return true;
 }

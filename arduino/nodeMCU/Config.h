@@ -43,7 +43,7 @@ const char *const TOPIC_DEVICE_BEDROOM_AC = "YHome/data/bedroomAC";
 //  DHT11 温湿度传感器配置
 // ──────────────────────────────────
 const int DHT_PIN = D5;                           // 数据引脚（NodeMCU D4 = GPIO2）
-const unsigned long DHT_REPORT_INTERVAL = 10000;  // 上报间隔（毫秒），默认 60 秒
+const unsigned long DHT_REPORT_INTERVAL = 20000;  // 上报间隔（毫秒），默认 60 秒
 const bool DHT_REPORT_RETAINED = true;            // 是否保留消息
 
 // ──────────────────────────────────
@@ -60,10 +60,34 @@ const size_t JSON_DOC_SIZE_RC = 128;            // RemoteCommand {"action":"setC
 const size_t JSON_DOC_SIZE_AC_STATE = 256;      // ACStateMessage 含定时器字段
 
 // ──────────────────────────────────
+//  日志开关
+// ──────────────────────────────────
+// #define LOG_ENABLED  // 注释此行关闭全局日志
+
+// ──────────────────────────────────
 //  系统配置
 // ──────────────────────────────────
 const unsigned long WIFI_RETRY_INTERVAL = 500;    // WiFi 连接失败重试间隔（毫秒）
 const unsigned long MQTT_RETRY_INTERVAL = 5000;   // MQTT 连接失败重试间隔（毫秒）
 const unsigned long LOOP_DELAY = 10;              // 主循环间隔（毫秒）
+
+// ──────────────────────────────────
+//  UDP 组播配置
+// ──────────────────────────────────
+const char *const UDP_MULTICAST_ADDR = "224.0.0.100"; // 组播地址
+const unsigned int UDP_LISTEN_PORT = 8899;             // 组播监听端口
+const unsigned int UDP_SEND_PORT = 8899;               // 组播发送端口
+const unsigned int UDP_BUFFER_SIZE = 1024;             // 接收缓冲区大小
+
+const char *const UDP_TOPIC_SCAN_DEVICES = "YHome/cmd/scanDevices";   // 扫描设备主题
+const char *const UDP_TOPIC_LOCAL_DEVICE = "YHome/data/localDevice";  // 本地设备信息主题
+const char *const UDP_TOPIC_BEDROOM_AC = "YHome/cmd/bedroomAC";       // 卧室空调控制主题
+
+const char *const UDP_DEVICE_NAME = "ESP8266-NodeMCU"; // 本机设备名称
+
+const char *const UDP_SUBSCRIBED_TOPICS[] = {
+    UDP_TOPIC_BEDROOM_AC,
+};
+const size_t UDP_SUBSCRIBED_TOPICS_COUNT = sizeof(UDP_SUBSCRIBED_TOPICS) / sizeof(UDP_SUBSCRIBED_TOPICS[0]);
 
 #endif  // CONFIG_H
