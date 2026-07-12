@@ -1,5 +1,28 @@
 <template>
   <div class="grid grid-cols-2 gap-3">
+    <!-- Wind Speed -->
+    <button
+      @click="$emit('toggleWindSpeed')"
+      class="flex items-center gap-3 p-4 rounded-2xl border shadow-custom transition-all active:scale-95 bg-card border-border hover:border-primary/40"
+      :disabled="!power || isOffline || sending"
+      :class="!power || isOffline || sending ? 'opacity-40 cursor-not-allowed' : ''"
+    >
+      <div
+        class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+        :class="
+          power && !isOffline && !sending
+            ? 'bg-blue-100 text-blue-500'
+            : 'bg-muted text-muted-foreground'
+        "
+      >
+        <WindIcon :size="18" :stroke-width="2" />
+      </div>
+      <div class="flex flex-col items-start">
+        <span class="text-xs font-bold text-foreground">风速</span>
+        <span class="text-[10px] mt-0.5 text-muted-foreground">{{ windLabel }}</span>
+      </div>
+    </button>
+
     <!-- Power -->
     <button
       @click="$emit('togglePower')"
@@ -56,52 +79,6 @@
       </div>
     </button>
 
-    <!-- Timer (cancel / set) -->
-    <button
-      v-if="offTimer > 0 || onTimer > 0"
-      @click="$emit('cancelTimer')"
-      class="flex items-center gap-3 p-4 rounded-2xl border shadow-custom transition-all active:scale-95 bg-primary/10 border-primary/30"
-      :disabled="isOffline || sending"
-      :class="isOffline || sending ? 'opacity-40 cursor-not-allowed' : ''"
-    >
-      <div
-        class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-        :class="
-          !isOffline && !sending
-            ? 'bg-primary/20 text-primary'
-            : 'bg-muted text-muted-foreground'
-        "
-      >
-        <TimerOffIcon :size="18" :stroke-width="2" />
-      </div>
-      <div class="flex flex-col items-start">
-        <span class="text-xs font-bold text-primary">取消定时</span>
-        <span class="text-[10px] mt-0.5 text-primary/70">{{ timerDetail }}</span>
-      </div>
-    </button>
-    <button
-      v-else
-      @click="$emit('openTimerSheet')"
-      class="flex items-center gap-3 p-4 rounded-2xl border shadow-custom transition-all active:scale-95 bg-card border-border hover:border-primary/40"
-      :disabled="!power || isOffline || sending"
-      :class="!power || isOffline || sending ? 'opacity-40 cursor-not-allowed' : ''"
-    >
-      <div
-        class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-        :class="
-          power && !isOffline && !sending
-            ? 'bg-violet-100 text-violet-500'
-            : 'bg-muted text-muted-foreground'
-        "
-      >
-        <TimerIcon :size="18" :stroke-width="2" />
-      </div>
-      <div class="flex flex-col items-start">
-        <span class="text-xs font-bold text-foreground">定时</span>
-        <span class="text-[10px] mt-0.5 text-muted-foreground">设置定时关机</span>
-      </div>
-    </button>
-
     <!-- Temp + -->
     <button
       @click="$emit('increaseTemp')"
@@ -124,16 +101,85 @@
         <span class="text-[10px] mt-0.5 text-muted-foreground">最高 30°C</span>
       </div>
     </button>
+
+    <!-- 定时开机 -->
+    <button
+      @click="$emit('openOnTimerSheet')"
+      class="flex items-center gap-3 p-4 rounded-2xl border shadow-custom transition-all active:scale-95"
+      :disabled="!power || isOffline || sending"
+      :class="[
+        onTimer > 0
+          ? 'bg-amber-500 border-transparent text-white'
+          : 'bg-card border-border hover:border-primary/40',
+        !power || isOffline || sending ? 'opacity-40 cursor-not-allowed' : '',
+      ]"
+    >
+      <div
+        class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+        :class="onTimer > 0 ? 'bg-white/20' : 'bg-amber-100'"
+      >
+        <TimerIcon
+          :size="18"
+          :stroke-width="2"
+          :class="onTimer > 0 ? 'text-white' : 'text-amber-500'"
+        />
+      </div>
+      <div class="flex flex-col items-start">
+        <span
+          class="text-xs font-bold"
+          :class="onTimer > 0 ? 'text-white' : 'text-foreground'"
+        >定时开机</span>
+        <span
+          class="text-[10px] mt-0.5"
+          :class="onTimer > 0 ? 'text-white/70' : 'text-muted-foreground'"
+        >{{ onTimer > 0 ? onTimerLabel : '选择开机时间' }}</span>
+      </div>
+    </button>
+
+    <!-- 定时关机 -->
+    <button
+      @click="$emit('openOffTimerSheet')"
+      class="flex items-center gap-3 p-4 rounded-2xl border shadow-custom transition-all active:scale-95"
+      :class="[
+        offTimer > 0
+          ? 'bg-violet-500 border-transparent text-white'
+          : 'bg-card border-border hover:border-primary/40',
+        !power || isOffline || sending ? 'opacity-40 cursor-not-allowed' : '',
+      ]"
+      :disabled="!power || isOffline || sending"
+    >
+      <div
+        class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+        :class="offTimer > 0 ? 'bg-white/20' : 'bg-violet-100'"
+      >
+        <TimerOffIcon
+          :size="18"
+          :stroke-width="2"
+          :class="offTimer > 0 ? 'text-white' : 'text-violet-500'"
+        />
+      </div>
+      <div class="flex flex-col items-start">
+        <span
+          class="text-xs font-bold"
+          :class="offTimer > 0 ? 'text-white' : 'text-foreground'"
+        >定时关机</span>
+        <span
+          class="text-[10px] mt-0.5"
+          :class="offTimer > 0 ? 'text-white/70' : 'text-muted-foreground'"
+        >{{ offTimer > 0 ? offTimerLabel : '选择关机时间' }}</span>
+      </div>
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { PowerIcon, PlusIcon, MinusIcon, TimerIcon, TimerOffIcon } from 'lucide-vue-next'
-import { formatMinutes } from '../constants'
+import { PowerIcon, PlusIcon, MinusIcon, TimerIcon, TimerOffIcon, WindIcon } from 'lucide-vue-next'
+import { minutesToTime, WIND_SPEED_MAP } from '../constants'
 
 const props = defineProps<{
   power: boolean
+  windSpeed: string
   offTimer: number
   onTimer: number
   isOffline: boolean
@@ -142,15 +188,20 @@ const props = defineProps<{
 
 defineEmits<{
   togglePower: []
+  toggleWindSpeed: []
   increaseTemp: []
   decreaseTemp: []
-  cancelTimer: []
-  openTimerSheet: []
+  openOffTimerSheet: []
+  openOnTimerSheet: []
 }>()
 
-const timerDetail = computed(() => {
-  if (props.offTimer > 0) return `定时 ${formatMinutes(props.offTimer)} 后关机`
-  if (props.onTimer > 0) return `定时 ${formatMinutes(props.onTimer)} 后开机`
-  return ''
-})
+const windLabel = computed(() => WIND_SPEED_MAP[props.windSpeed] || props.windSpeed)
+
+const offTimerLabel = computed(() =>
+  props.offTimer > 0 ? `${minutesToTime(props.offTimer)} 关机` : '',
+)
+
+const onTimerLabel = computed(() =>
+  props.onTimer > 0 ? `${minutesToTime(props.onTimer)} 开机` : '',
+)
 </script>

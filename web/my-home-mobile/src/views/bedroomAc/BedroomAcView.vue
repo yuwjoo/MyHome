@@ -34,23 +34,38 @@
     <div class="px-5">
       <AcControlGrid
         :power="ac.state.value.power"
+        :wind-speed="ac.state.value.windSpeed"
         :off-timer="ac.state.value.offTimer"
         :on-timer="ac.state.value.onTimer"
         :is-offline="isOffline"
         :sending="sending"
         @toggle-power="withSending(() => ac.togglePower())"
+        @toggle-wind-speed="withSending(() => ac.toggleWindSpeed())"
         @increase-temp="withSending(() => ac.increaseTemperature())"
         @decrease-temp="withSending(() => ac.decreaseTemperature())"
-        @cancel-timer="withSending(() => handleCancelTimer())"
-        @open-timer-sheet="showTimerSheet = true"
+        @open-off-timer-sheet="showOffTimerSheet = true"
+        @open-on-timer-sheet="showOnTimerSheet = true"
       />
     </div>
 
-    <!-- Timer Bottom Sheet -->
-    <TimerSheet
-      :show="showTimerSheet"
-      @close="showTimerSheet = false"
-      @confirm="(minutes: number) => withSending(() => handleTimerConfirm(minutes))"
+    <!-- 定时关机选择器 -->
+    <TimePickerSheet
+      :show="showOffTimerSheet"
+      title="定时关机"
+      :value="offTimerValue"
+      @close="showOffTimerSheet = false"
+      @confirm="(time: string) => withSending(() => handleOffTimerConfirm(time))"
+      @clear="withSending(() => handleClearOffTimer())"
+    />
+
+    <!-- 定时开机选择器 -->
+    <TimePickerSheet
+      :show="showOnTimerSheet"
+      title="定时开机"
+      :value="onTimerValue"
+      @close="showOnTimerSheet = false"
+      @confirm="(time: string) => withSending(() => handleOnTimerConfirm(time))"
+      @clear="withSending(() => handleClearOnTimer())"
     />
   </div>
 </template>
@@ -61,10 +76,10 @@ import { toast } from 'vue-sonner'
 import { useAcControl } from './composables/useAcControl'
 import { useSensorData } from './composables/useSensorData'
 import { useDeviceOnline } from './composables/useDeviceOnline'
-import { formatMinutes } from './constants'
+import { timeToMinutes, minutesToTime } from './constants'
 import AcDashboard from './components/AcDashboard.vue'
 import AcControlGrid from './components/AcControlGrid.vue'
-import TimerSheet from './components/TimerSheet.vue'
+import TimePickerSheet from './components/TimePickerSheet.vue'
 import SendingIndicator from './components/SendingIndicator.vue'
 
 const SENDING_TIMEOUT = 30_000 // 30 秒超时
@@ -76,9 +91,18 @@ const deviceOnline = useDeviceOnline()
 const { isOffline, isOnline, statusLabel } = deviceOnline
 const { temperature, humidity } = sensor
 
-const showTimerSheet = ref(false)
+const showOffTimerSheet = ref(false)
+const showOnTimerSheet = ref(false)
 const sending = ref(false)
 let sendingTimer: ReturnType<typeof setTimeout> | null = null
+
+const offTimerValue = computed(() =>
+  ac.state.value.offTimer > 0 ? minutesToTime(ac.state.value.offTimer) : '',
+)
+
+const onTimerValue = computed(() =>
+  ac.state.value.onTimer > 0 ? minutesToTime(ac.state.value.onTimer) : '',
+)
 
 /**
  * 收到 AC 状态更新时，取消发送中状态
@@ -117,20 +141,27 @@ const statusTextClass = computed(() => {
   return 'text-muted-foreground'
 })
 
-function handleTimerConfirm(minutes: number) {
-  ac.setOffTimer(minutes)
-  showTimerSheet.value = false
-  toast.success(`定时已设为 ${formatMinutes(minutes)} 后关机`)
+function handleOffTimerConfirm(time: string) {
+  ac.setOffTimer(timeToMinutes(time))
+  toast.success(`${time} 定时关机已设置`)
+  showOffTimerSheet.value = false
 }
 
-function handleCancelTimer() {
-  if (ac.state.value.offTimer > 0) {
-    ac.cancelOffTimer()
-    toast.success('定时关机已取消')
-  }
-  if (ac.state.value.onTimer > 0) {
-    ac.cancelOnTimer()
-    toast.success('定时开机已取消')
-  }
+function handleOnTimerConfirm(time: string) {
+  ac.setOnTimer(timeToMinutes(time))
+  toast.success(`${time} 定时开机已设置`)
+  showOnTimerSheet.value = false
+}
+
+function handleClearOffTimer() {
+  ac.cancelOffTimer()
+  toast.success('定时关机已取消')
+  showOffTimerSheet.value = false
+}
+
+function handleClearOnTimer() {
+  ac.cancelOnTimer()
+  toast.success('定时开机已取消')
+  showOnTimerSheet.value = false
 }
 </script>

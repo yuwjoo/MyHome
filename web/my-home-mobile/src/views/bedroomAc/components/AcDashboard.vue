@@ -122,7 +122,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ThermometerIcon, GaugeIcon, TimerIcon } from 'lucide-vue-next'
-import { MODE_MAP, WIND_SPEED_MAP, formatMinutes } from '../constants'
+import { MODE_MAP, WIND_SPEED_MAP, minutesToTime } from '../constants'
 
 const props = defineProps<{
   power: boolean
@@ -139,14 +139,18 @@ const modeLabel = computed(() => MODE_MAP[props.mode] || props.mode)
 const windSpeedLabel = computed(() => WIND_SPEED_MAP[props.windSpeed] || props.windSpeed)
 
 const timerSummary = computed(() => {
-  if (props.offTimer > 0) return formatMinutes(props.offTimer)
-  if (props.onTimer > 0) return `${formatMinutes(props.onTimer)}后开`
+  const hasOff = props.offTimer > 0
+  const hasOn = props.onTimer > 0
+  if (hasOff && hasOn) return `${minutesToTime(props.offTimer)} / ${minutesToTime(props.onTimer)}`
+  if (hasOff) return `${minutesToTime(props.offTimer)} 关`
+  if (hasOn) return `${minutesToTime(props.onTimer)} 开`
   return '未设置'
 })
 
 const timerDetail = computed(() => {
-  if (props.offTimer > 0) return `定时 ${formatMinutes(props.offTimer)} 后关机`
-  if (props.onTimer > 0) return `定时 ${formatMinutes(props.onTimer)} 后开机`
-  return ''
+  const parts: string[] = []
+  if (props.offTimer > 0) parts.push(`${minutesToTime(props.offTimer)} 关机`)
+  if (props.onTimer > 0) parts.push(`${minutesToTime(props.onTimer)} 开机`)
+  return parts.join(' · ')
 })
 </script>
