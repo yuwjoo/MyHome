@@ -141,16 +141,16 @@ const windSpeedLabel = computed(() => WIND_SPEED_MAP[props.windSpeed] || props.w
 const timerSummary = computed(() => {
   const hasOff = props.offTimer > 0
   const hasOn = props.onTimer > 0
-  if (hasOff && hasOn) return `${minutesToTime(props.offTimer)} / ${minutesToTime(props.onTimer)}`
-  if (hasOff) return `${minutesToTime(props.offTimer)} 关`
+  if (hasOn && hasOff) return `${minutesToTime(props.onTimer)} / ${minutesToTime(props.offTimer)}`
   if (hasOn) return `${minutesToTime(props.onTimer)} 开`
+  if (hasOff) return `${minutesToTime(props.offTimer)} 关`
   return '未设置'
 })
 
 const timerDetail = computed(() => {
   const parts: string[] = []
-  if (props.offTimer > 0) parts.push(`${minutesToTime(props.offTimer)} 关机`)
   if (props.onTimer > 0) parts.push(`${minutesToTime(props.onTimer)} 开机`)
+  if (props.offTimer > 0) parts.push(`${minutesToTime(props.offTimer)} 关机`)
   return parts.join(' · ')
 })
 </script>
