@@ -13,21 +13,15 @@ object UdpManager {
     private const val TAG = "UdpManager"
     private const val MULTICAST_LOCK_TAG = "MyHome:UdpMulticast"
 
-    private val client = UdpClient(
-        UdpClientConfig(
-            multicastAddr = UdpConfig.MULTICAST_ADDR,
-            listenPort = UdpConfig.LISTEN_PORT,
-            sendPort = UdpConfig.BROADCAST_PORT,
-        )
-    )
+    private val client = UdpClient()
 
     private val topicManager = TopicManager()
     private val deviceManager = DeviceManager()
 
-    val deviceList: List<UdpDevice> // 全部设备列表
+    val deviceList: List<UdpLocalDevice> // 全部设备列表
         get() = deviceManager.deviceList
 
-    val onlineDeviceList: List<UdpDevice> // 在线设备列表
+    val onlineDeviceList: List<UdpLocalDevice> // 在线设备列表
         get() = deviceManager.onlineDeviceList
 
     val isConnected: Boolean // 是否已连接组播
@@ -53,8 +47,8 @@ object UdpManager {
                 // 本地设备信息主题
                 UdpConfig.TOPIC_LOCAL_DEVICE -> {
                     val device =
-                        UdpDevice.fromPayload(msg.payload, fromIp) ?: return@setMessageCallback
-                    deviceManager.updateDevice(device)
+                        UdpLocalDevice.fromPayload(msg.payload, fromIp) ?: return@setMessageCallback
+                    deviceManager.saveDevice(device)
                 }
                 // 其他主题
                 else -> {
@@ -124,7 +118,7 @@ object UdpManager {
      * 清空所有设备变更监听器
      */
     fun clearDeviceListeners() {
-        deviceManager.clearListeners()
+        deviceManager.clearAllListener()
     }
 
     /**
@@ -193,7 +187,7 @@ object UdpManager {
         val data = TopicManager.buildMessage(topic, payload)
         var count = 0
         for (device in deviceManager.onlineDeviceList) {
-            if (topic in device.topics) {
+            if (UdpConfig.ABILITY_PREFIX_TOPIC + topic in device.abilities) {
                 client.send(data, device.ipAddress)
                 count++
             }

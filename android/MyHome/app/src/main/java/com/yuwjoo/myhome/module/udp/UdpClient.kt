@@ -6,20 +6,14 @@ import java.net.InetAddress
 import java.net.MulticastSocket
 
 /**
- * UDP 客户端配置
- */
-data class UdpClientConfig(
-    val multicastAddr: String = "224.0.0.100", // 组播组地址
-    val listenPort: Int = 8001, // 接收端口
-    val sendPort: Int = 8000, // 发送端口
-    val bufferSize: Int = 1024, // 接收缓冲区大小（字节）
-    val soTimeout: Int = 1000, // socket 接收超时（毫秒）
-)
-
-/**
  * UDP 客户端，管理组播连接与消息收发。
  */
-class UdpClient(private val config: UdpClientConfig) {
+class UdpClient(
+    private val multicastAddr: String = UdpConfig.MULTICAST_ADDR, // 组播组地址
+    private val port: Int = UdpConfig.PORT, // 端口（监听与发送共用）
+    private val bufferSize: Int = 1024, // 接收缓冲区大小（字节）
+    private val soTimeout: Int = 0, // socket 接收超时（毫秒），0 为无限阻塞
+) {
 
     companion object {
         private const val TAG = "UdpClient"
@@ -61,10 +55,10 @@ class UdpClient(private val config: UdpClientConfig) {
         }
         running = true
         socket = try {
-            MulticastSocket(config.listenPort).apply {
+            MulticastSocket(port).apply {
                 loopbackMode = true
-                soTimeout = config.soTimeout
-                joinGroup(InetAddress.getByName(config.multicastAddr))
+                soTimeout = soTimeout
+                joinGroup(InetAddress.getByName(multicastAddr))
             }
         } catch (e: Exception) {
             Log.e(TAG, "connect error: ${e.message}", e)
@@ -77,7 +71,7 @@ class UdpClient(private val config: UdpClientConfig) {
         connected = true
         connectionCallback?.onConnectionChanged(true)
         startReceive()
-        Log.d(TAG, "connect: joined ${config.multicastAddr}:${config.listenPort}")
+        Log.d(TAG, "connect: joined ${multicastAddr}:${port}")
     }
 
     /**
@@ -91,7 +85,7 @@ class UdpClient(private val config: UdpClientConfig) {
         receiveThread?.interrupt()
         socket?.let { s ->
             try {
-                s.leaveGroup(InetAddress.getByName(config.multicastAddr))
+                s.leaveGroup(InetAddress.getByName(multicastAddr))
             } catch (_: Exception) {
             }
             try {
@@ -115,8 +109,8 @@ class UdpClient(private val config: UdpClientConfig) {
                 return
             }
             try {
-                val addr = InetAddress.getByName(targetIp ?: config.multicastAddr)
-                s.send(DatagramPacket(data, data.size, addr, config.sendPort))
+                val addr = InetAddress.getByName(targetIp ?: multicastAddr)
+                s.send(DatagramPacket(data, data.size, addr, port))
             } catch (e: Exception) {
                 Log.e(TAG, "send error: ${e.message}", e)
             }
@@ -128,16 +122,15 @@ class UdpClient(private val config: UdpClientConfig) {
      */
     private fun startReceive() {
         val s = socket ?: return
-        val buffer = ByteArray(config.bufferSize)
+        val buffer = ByteArray(bufferSize)
         receiveThread = Thread({
             while (running && !Thread.currentThread().isInterrupted) {
                 val packet = try {
                     val p = DatagramPacket(buffer, buffer.size)
-                    s.receive(p)
+                    s.receive(p) // 阻塞直到收到消息或 socket 被 close
                     p
                 } catch (_: Exception) {
-                    if (!running || s.isClosed) break
-                    continue
+                    break // socket 已关闭
                 }
                 messageCallback?.onMessage(
                     packet.data.copyOf(packet.length),

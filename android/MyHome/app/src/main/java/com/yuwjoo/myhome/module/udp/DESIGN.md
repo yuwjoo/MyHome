@@ -45,7 +45,7 @@ UdpManager.unregisterDeviceListener(listener)
 UdpManager.scanDevices()
 
 // 读取当前设备列表
-val devices: List<UdpDevice> = UdpManager.deviceList
+val devices: List<UdpLocalDevice> = UdpManager.deviceList
 ```
 
 ### 2.4 主题操作
@@ -83,7 +83,7 @@ udp/
 ├── UdpConfig.kt            ← [internal object] 端口/组播地址等配置常量
 ├── DeviceChangeListener.kt ← [fun interface] 设备变更监听器
 ├── UdpTopicCallback.kt     ← [fun interface] 主题级回调，供 subscribe() 注册
-└── UdpDevice.kt            ← [data class] 在线设备信息
+└── UdpLocalDevice.kt       ← [data class] 在线设备信息
 ```
 
 ---
@@ -98,7 +98,7 @@ udp/
 | `UdpManager` → `UdpConfig` | 读取端口、组播地址、扫描参数等配置常量 |
 | `UdpManager` → `DeviceChangeListener` | 持有 `CopyOnWriteArraySet`，设备变化时回调 |
 | `UdpManager` → `UdpTopicCallback` | 按 topic 管理，消息到达时精确分发 |
-| `UdpManager` → `UdpDevice` | `onlineDevices` 映射表的值类型 |
+| `UdpManager` → `UdpLocalDevice` | `onlineDevices` 映射表的值类型 |
 
 ---
 

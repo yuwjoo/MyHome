@@ -1,21 +1,21 @@
 package com.yuwjoo.myhome.module.udp
 
+import com.yuwjoo.myhome.common.ListenerRegistry
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.concurrent.CopyOnWriteArraySet
 
 /**
  * 设备管理器，维护在线设备记录与设备变更监听。
  */
 class DeviceManager {
 
-    private val listeners = CopyOnWriteArraySet<DeviceChangeListener>() // 设备变更监听器集合
-    private val devices = mutableMapOf<String, UdpDevice>() // 在线设备（ipAddress → 设备信息）
+    private val listeners = ListenerRegistry<Unit, DeviceChangeListener>() // 设备变更监听器集合
+    private val devices = mutableMapOf<String, UdpLocalDevice>() // 在线设备（ipAddress → 设备信息）
 
-    val deviceList: List<UdpDevice> // 全部设备列表
+    val deviceList: List<UdpLocalDevice> // 全部设备列表
         get() = devices.values.toList()
 
-    val onlineDeviceList: List<UdpDevice> // 在线设备列表
+    val onlineDeviceList: List<UdpLocalDevice> // 在线设备列表
         get() = devices.values.filter { it.online }
 
     /**
@@ -24,7 +24,7 @@ class DeviceManager {
      * @param listener 设备变更回调
      */
     fun registerListener(listener: DeviceChangeListener) {
-        listeners.add(listener)
+        listeners.register(Unit, listener)
     }
 
     /**
@@ -33,49 +33,97 @@ class DeviceManager {
      * @param listener 已注册的监听器
      */
     fun unregisterListener(listener: DeviceChangeListener) {
-        listeners.remove(listener)
+        listeners.unregister(Unit, listener)
     }
 
     /**
      * 清空所有设备变更监听器
      */
-    fun clearListeners() {
-        listeners.clear()
+    fun clearAllListener() {
+        listeners.clearAll()
     }
 
     /**
      * 触发所有设备变更监听器
      */
-    fun notifyListeners() {
+    fun notifyAllListener() {
         val list = devices.values.toList()
-        listeners.forEach { it.onDeviceChanged(list) }
+        listeners.dispatch(Unit) { it.onDeviceChanged(list) }
     }
 
     /**
-     * 更新设备信息
+     * 保存设备
      *
      * @param device 设备信息
      */
-    fun updateDevice(device: UdpDevice) {
-        val existing = devices[device.ipAddress]
-        if (existing == device) return
+    fun saveDevice(device: UdpLocalDevice) {
+        if (devices[device.ipAddress] == device) return
         devices[device.ipAddress] = device
-        notifyListeners()
+        notifyAllListener()
     }
 
     /**
-     * 清空所有设备记录
+     * 移除设备
+     *
+     * @param ipAddress 设备 IP
      */
-    fun clearDevices() {
+    fun removeDevice(ipAddress: String) {
+        if (devices.remove(ipAddress) != null) {
+            notifyAllListener()
+        }
+    }
+
+    /**
+     * 清空所有设备
+     */
+    fun clearAllDevice() {
         devices.clear()
+    }
+
+    /**
+     * 检查 IP 对应的设备是否存在
+     *
+     * @param ipAddress 设备 IP
+     */
+    fun hasDevice(ipAddress: String): Boolean = devices.containsKey(ipAddress)
+
+    /**
+     * 更新设备心跳时间（收到心跳响应时调用）
+     *
+     * @param ipAddress 设备 IP
+     */
+    fun updateHeartbeat(ipAddress: String) {
+        val device = devices[ipAddress] ?: return
+        val now = System.currentTimeMillis()
+        val updated = if (device.online) {
+            device.copy(lastHeartbeatTime = now)
+        } else {
+            device.copy(online = true, lastHeartbeatTime = now)
+        }
+        devices[ipAddress] = updated
+        notifyAllListener()
+    }
+
+    /**
+     * 将设备标记为离线
+     *
+     * @param ipAddress 设备 IP
+     */
+    fun markOffline(ipAddress: String) {
+        val device = devices[ipAddress] ?: return
+        if (device.online) {
+            devices[ipAddress] = device.copy(online = false)
+            notifyAllListener()
+        }
     }
 }
 
-data class UdpDevice(
+data class UdpLocalDevice(
     val ipAddress: String, // IP 地址
     val deviceName: String, // 设备名称
     val online: Boolean, // 在线状态
-    val topics: List<String>, // 订阅的主题列表
+    val abilities: List<String>, // 能力列表（如 "topic:xxx"、"skill:xxx"）
+    val lastHeartbeatTime: Long = System.currentTimeMillis(), // 最后一次心跳时间
 ) {
     companion object {
         /**
@@ -85,20 +133,20 @@ data class UdpDevice(
          * @param ip      发送方 IP
          * @return 设备信息，解析失败返回 null
          */
-        fun fromPayload(payload: JSONObject?, ip: String): UdpDevice? {
+        fun fromPayload(payload: JSONObject?, ip: String): UdpLocalDevice? {
             val json = payload ?: return null
             if (ip.isEmpty()) return null
-            val topicsArr = json.optJSONArray("topics")
-            val topics = if (topicsArr != null) {
-                (0 until topicsArr.length()).map { topicsArr.getString(it) }
+            val abilitiesArr = json.optJSONArray("abilities")
+            val abilities = if (abilitiesArr != null) {
+                (0 until abilitiesArr.length()).map { abilitiesArr.getString(it) }
             } else {
                 emptyList()
             }
-            return UdpDevice(
+            return UdpLocalDevice(
                 ipAddress = ip,
                 deviceName = json.optString("deviceName", ""),
                 online = json.optBoolean("online", true),
-                topics = topics,
+                abilities = abilities,
             )
         }
 
@@ -108,12 +156,12 @@ data class UdpDevice(
          * @param device 设备信息
          * @return JSONObject
          */
-        fun toPayload(device: UdpDevice): JSONObject {
+        fun toPayload(device: UdpLocalDevice): JSONObject {
             val json = JSONObject()
             json.put("ipAddress", device.ipAddress)
             json.put("deviceName", device.deviceName)
             json.put("online", device.online)
-            json.put("topics", JSONArray(device.topics))
+            json.put("abilities", JSONArray(device.abilities))
             return json
         }
     }
@@ -128,5 +176,5 @@ fun interface DeviceChangeListener {
      *
      * @param devices 当前全部已发现的在线设备
      */
-    fun onDeviceChanged(devices: List<UdpDevice>)
+    fun onDeviceChanged(devices: List<UdpLocalDevice>)
 }

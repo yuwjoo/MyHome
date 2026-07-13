@@ -9,7 +9,7 @@ import org.json.JSONObject
 data class LocalDevice(
     val deviceName: String = UdpConfig.deviceName, // 设备名称
     var online: Boolean = true, // 在线状态
-    val topics: List<String> = UdpConfig.deviceTopics, // 订阅的主题列表
+    val abilities: List<String> = UdpConfig.deviceAbilities, // 能力列表（如 "topic:xxx"、"skill:xxx"）
 ) {
     companion object {
         /**
@@ -20,16 +20,16 @@ data class LocalDevice(
          */
         fun fromPayload(payload: JSONObject?): LocalDevice? {
             val json = payload ?: return null
-            val topicsArr = json.optJSONArray("topics")
-            val topics = if (topicsArr != null) {
-                (0 until topicsArr.length()).map { topicsArr.getString(it) }
+            val abilitiesArr = json.optJSONArray("abilities")
+            val abilities = if (abilitiesArr != null) {
+                (0 until abilitiesArr.length()).map { abilitiesArr.getString(it) }
             } else {
                 emptyList()
             }
             return LocalDevice(
                 deviceName = json.optString("deviceName", ""),
                 online = json.optBoolean("online", true),
-                topics = topics,
+                abilities = abilities,
             )
         }
 
@@ -43,7 +43,7 @@ data class LocalDevice(
             val json = JSONObject()
             json.put("deviceName", device.deviceName)
             json.put("online", device.online)
-            json.put("topics", JSONArray(device.topics))
+            json.put("abilities", JSONArray(device.abilities))
             return json
         }
     }

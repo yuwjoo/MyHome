@@ -1,8 +1,8 @@
 package com.yuwjoo.myhome.module.udp
 
 import android.util.Log
+import com.yuwjoo.myhome.common.ListenerRegistry
 import org.json.JSONObject
-import java.util.concurrent.CopyOnWriteArraySet
 
 /**
  * 主题管理器，维护主题与监听器的映射关系及消息解析。
@@ -47,7 +47,7 @@ class TopicManager {
         }
     }
 
-    private val callbacks = mutableMapOf<String, CopyOnWriteArraySet<UdpTopicCallback>>()
+    private val listeners = ListenerRegistry<String, UdpTopicCallback>()
 
     /**
      * 注册主题监听器
@@ -56,7 +56,7 @@ class TopicManager {
      * @param callback 消息回调
      */
     fun registerListener(topic: String, callback: UdpTopicCallback) {
-        callbacks.getOrPut(topic) { CopyOnWriteArraySet() }.add(callback)
+        listeners.register(topic, callback)
     }
 
     /**
@@ -66,10 +66,7 @@ class TopicManager {
      * @param callback 要移除的监听器
      */
     fun unregisterListener(topic: String, callback: UdpTopicCallback) {
-        callbacks[topic]?.remove(callback)
-        if (callbacks[topic].isNullOrEmpty()) {
-            callbacks.remove(topic)
-        }
+        listeners.unregister(topic, callback)
     }
 
     /**
@@ -78,14 +75,14 @@ class TopicManager {
      * @param topic 主题名称
      */
     fun clearTopicListeners(topic: String) {
-        callbacks.remove(topic)
+        listeners.clearKey(topic)
     }
 
     /**
      * 清空所有监听器
      */
     fun clearListeners() {
-        callbacks.clear()
+        listeners.clearAll()
     }
 
     /**
@@ -95,7 +92,7 @@ class TopicManager {
      * @param payload 负载数据
      */
     fun notifyListener(topic: String, payload: JSONObject?) {
-        callbacks[topic]?.forEach { it.onMessageArrived(topic, payload) }
+        listeners.dispatch(topic) { it.onMessageArrived(topic, payload) }
     }
 }
 
