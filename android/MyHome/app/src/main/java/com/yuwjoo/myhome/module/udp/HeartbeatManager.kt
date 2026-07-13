@@ -3,27 +3,13 @@ package com.yuwjoo.myhome.module.udp
 import android.util.Log
 
 /**
- * 心跳管理器，定期向所有在线设备发送心跳包以维持在线状态感知。
- *
- * 使用方式：
- * ```kotlin
- * val heartbeat = HeartbeatManager(deviceManager, udpClient)
- * heartbeat.start()
- * // ...
- * heartbeat.stop()
- * ```
+ * 心跳管理器
  */
 class HeartbeatManager(
-    /** 设备管理器，维护在线设备记录 */
-    private val deviceManager: DeviceManager,
-    /** UDP 客户端，发送心跳消息 */
-    private val udpClient: UdpClient,
-    /** 心跳主题 */
-    private val heartbeatTopic: String = UdpConfig.HEARTBEAT_TOPIC,
-    /** 心跳间隔（毫秒） */
-    private val intervalMs: Long = UdpConfig.HEARTBEAT_INTERVAL,
-    /** 设备离线超时（毫秒），超过该时间未收到心跳响应则标记为离线 */
-    private val offlineTimeoutMs: Long = UdpConfig.HEARTBEAT_OFFLINE_TIMEOUT,
+    private val deviceManager: DeviceManager, // 设备管理器
+    private val udpClient: UdpClient, // UDP 客户端
+    private val intervalMs: Long = UdpConfig.HEARTBEAT_INTERVAL, // 心跳间隔（毫秒）
+    private val offlineTimeoutMs: Long = UdpConfig.HEARTBEAT_OFFLINE_TIMEOUT, // 设备离线超时（毫秒）
 ) {
     companion object {
         private const val TAG = "HeartbeatManager"
@@ -34,13 +20,10 @@ class HeartbeatManager(
     @Volatile
     private var running = false
 
-    /** 心跳是否正在运行 */
-    val isRunning: Boolean get() = running
+    val isRunning: Boolean get() = running // 心跳是否正在运行
 
     /**
-     * 启动心跳，每隔 [intervalMs] 毫秒向所有在线设备发送心跳包，
-     * 同时清理超时未响应的设备。
-     * 如果已在运行则忽略。
+     * 启动心跳
      */
     fun start() {
         if (running) {
@@ -66,12 +49,11 @@ class HeartbeatManager(
             isDaemon = true
             start()
         }
-        Log.d(TAG, "heartbeat started, interval=${intervalMs}ms topic=$heartbeatTopic timeout=${offlineTimeoutMs}ms")
+        Log.d(TAG, "heartbeat started, interval=${intervalMs}ms timeout=${offlineTimeoutMs}ms")
     }
 
     /**
-     * 停止心跳，中断后台线程。
-     * 如果未在运行则忽略。
+     * 停止心跳
      */
     fun stop() {
         if (!running) {
@@ -85,33 +67,26 @@ class HeartbeatManager(
     }
 
     /**
-     * 向所有在线设备发送心跳包。
+     * 发送心跳包
      */
     private fun sendHeartbeats() {
-        val onlineDevices = deviceManager.onlineDeviceList
-        if (onlineDevices.isEmpty()) return
-        val data = TopicManager.buildMessage(heartbeatTopic, null)
-        for (device in onlineDevices) {
-            if (!running) break
-            try {
-                udpClient.send(data, device.ipAddress)
-            } catch (e: Exception) {
-                Log.e(TAG, "send heartbeat to ${device.ipAddress} failed: ${e.message}", e)
-            }
+        try {
+            udpClient.send(byteArrayOf(0x01))
+        } catch (e: Exception) {
+            Log.e(TAG, "send heartbeat failed: ${e.message}", e)
         }
     }
 
     /**
-     * 检测超时未响应心跳的设备，将其标记为离线。
+     * 检测离线设备
      */
     private fun detectOfflineDevices() {
         val cutoff = System.currentTimeMillis() - offlineTimeoutMs
-        val staleDevices = deviceManager.onlineDeviceList.filter {
-            it.lastHeartbeatTime > 0 && it.lastHeartbeatTime < cutoff
-        }
-        for (device in staleDevices) {
-            Log.w(TAG, "device ${device.ipAddress} heartbeat timeout (last=${device.lastHeartbeatTime}, cutoff=$cutoff), marking offline")
-            deviceManager.markOffline(device.ipAddress)
+        for (device in deviceManager.onlineDeviceList) {
+            if (device.lastHeartbeatTime > 0 && device.lastHeartbeatTime < cutoff) {
+                Log.w(TAG, "device ${device.ipAddress} heartbeat timeout (last=${device.lastHeartbeatTime}, cutoff=$cutoff), marking offline")
+                deviceManager.updateOnlineStatus(device.ipAddress, false)
+            }
         }
     }
 }

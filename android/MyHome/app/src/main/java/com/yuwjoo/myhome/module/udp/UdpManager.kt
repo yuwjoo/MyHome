@@ -3,10 +3,15 @@
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.util.Log
+import com.yuwjoo.myhome.module.udp.listener.DeviceListener
+import com.yuwjoo.myhome.module.udp.listener.TopicListener
+import com.yuwjoo.myhome.module.udp.model.LocalDevice
+import com.yuwjoo.myhome.module.udp.model.LanDevice
+import com.yuwjoo.myhome.module.udp.model.TopicMessage
 import org.json.JSONObject
 
 /**
- * UDP 管理器（单例），封装组播通信与设备发现。
+ * UDP 管理器
  */
 object UdpManager {
 
@@ -17,11 +22,12 @@ object UdpManager {
 
     private val topicManager = TopicManager()
     private val deviceManager = DeviceManager()
+    private val heartbeatManager = HeartbeatManager(deviceManager, client)
 
-    val deviceList: List<UdpLocalDevice> // 全部设备列表
+    val deviceList: List<LanDevice> // 全部设备列表
         get() = deviceManager.deviceList
 
-    val onlineDeviceList: List<UdpLocalDevice> // 在线设备列表
+    val onlineDeviceList: List<LanDevice> // 在线设备列表
         get() = deviceManager.onlineDeviceList
 
     val isConnected: Boolean // 是否已连接组播
@@ -30,27 +36,43 @@ object UdpManager {
     private var wifiManager: WifiManager? = null // WiFi 管理器
     private var multicastLock: WifiManager.MulticastLock? = null // 组播锁
 
-    private val localDevice = LocalDevice() // 本机设备
-
     init {
-        client.setMessageCallback { data, fromIp, fromPort ->
-            val msgText = String(data, Charsets.UTF_8)
-            val msg = TopicManager.parseMessage(msgText) ?: return@setMessageCallback
-            when (msg.topic) {
-                // 设备扫描主题
-                UdpConfig.TOPIC_SCAN_DEVICES -> {
-                    localDevice.online = true
-                    val payload = LocalDevice.toPayload(localDevice)
-                    val data = TopicManager.buildMessage(UdpConfig.TOPIC_LOCAL_DEVICE, payload)
-                    client.send(data, fromIp)
+        client.setMessageListener { data, fromIp, fromPort ->
+            // 架构消息
+            if (data.size == 1) {
+                when (data[0]) {
+                    // 心跳消息
+                    0x01.toByte() -> {
+                        deviceManager.updateHeartbeatTime(fromIp)
+                        if (!deviceManager.hasDevice(fromIp)) {
+                            val localPayload = LocalDevice.toObject(deviceManager.createLocalDevice())
+                            client.send(TopicMessage.toBytes(UdpConfig.TOPIC_CALL, localPayload), fromIp)
+                        }
+                    }
+                    // 离线消息
+                    0x02.toByte() -> {
+                        deviceManager.updateOnlineStatus(fromIp, false)
+                    }
                 }
-                // 本地设备信息主题
-                UdpConfig.TOPIC_LOCAL_DEVICE -> {
-                    val device =
-                        UdpLocalDevice.fromPayload(msg.payload, fromIp) ?: return@setMessageCallback
+                return@setMessageListener
+            }
+            val msgText = String(data, Charsets.UTF_8)
+            val msg = TopicMessage.from(msgText) ?: return@setMessageListener
+            when (msg.topic) {
+                // 呼叫主题
+                UdpConfig.TOPIC_CALL -> {
+                    val payload = msg.payload ?: return@setMessageListener
+                    val device = LanDevice.from(fromIp, payload) ?: return@setMessageListener
+                    deviceManager.saveDevice(device)
+                    val localPayload = LocalDevice.toObject(deviceManager.createLocalDevice())
+                    client.send(TopicMessage.toBytes(UdpConfig.TOPIC_RESPONSE, localPayload), fromIp)
+                }
+                // 应答主题
+                UdpConfig.TOPIC_RESPONSE -> {
+                    val payload = msg.payload ?: return@setMessageListener
+                    val device = LanDevice.from(fromIp, payload) ?: return@setMessageListener
                     deviceManager.saveDevice(device)
                 }
-                // 其他主题
                 else -> {
                     Log.d(TAG, "onMessageArrived: topic=${msg.topic}")
                     topicManager.notifyListener(msg.topic, msg.payload)
@@ -58,15 +80,12 @@ object UdpManager {
             }
         }
 
-        client.setConnectionCallback { connected ->
-            localDevice.online = connected
-            client.send(
-                TopicManager.buildMessage(
-                    UdpConfig.TOPIC_LOCAL_DEVICE,
-                    LocalDevice.toPayload(localDevice)
-                )
-            )
-            if (connected) scanDevices()
+        client.setConnectionListener { connected ->
+            if (connected) {
+                heartbeatManager.start()
+            } else {
+                heartbeatManager.stop()
+            }
         }
     }
 
@@ -88,9 +107,15 @@ object UdpManager {
     }
 
     /**
-     * 断开连接并释放所有资源
+     * 断开连接
      */
     fun disconnect() {
+        heartbeatManager.stop()
+        try {
+            client.send(byteArrayOf(0x02))
+        } catch (e: Exception) {
+            Log.e(TAG, "send offline failed: ${e.message}", e)
+        }
         multicastLock?.release()
         multicastLock = null
         client.disconnect()
@@ -101,7 +126,7 @@ object UdpManager {
      *
      * @param listener 设备变更回调
      */
-    fun registerDeviceListener(listener: DeviceChangeListener) {
+    fun registerDeviceListener(listener: DeviceListener) {
         deviceManager.registerListener(listener)
     }
 
@@ -110,7 +135,7 @@ object UdpManager {
      *
      * @param listener 已注册的监听器
      */
-    fun unregisterDeviceListener(listener: DeviceChangeListener) {
+    fun unregisterDeviceListener(listener: DeviceListener) {
         deviceManager.unregisterListener(listener)
     }
 
@@ -122,69 +147,54 @@ object UdpManager {
     }
 
     /**
-     * 组播发送扫描设备消息
-     */
-    fun scanDevices() {
-        val data = TopicManager.buildMessage(UdpConfig.TOPIC_SCAN_DEVICES)
-        repeat(UdpConfig.SCAN_COUNT) { i ->
-            try {
-                client.send(data)
-            } catch (e: Exception) {
-                Log.e(TAG, "scanDevices error round=$i: ${e.message}", e)
-            }
-            if (i < UdpConfig.SCAN_COUNT - 1) Thread.sleep(UdpConfig.SCAN_INTERVAL)
-        }
-    }
-
-    /**
      * 订阅主题
      *
      * @param topic    主题名称
      * @param callback 消息回调
      */
-    fun subscribe(topic: String, callback: UdpTopicCallback) {
+    fun subscribe(topic: String, callback: TopicListener) {
         topicManager.registerListener(topic, callback)
     }
 
     /**
-     * 取消订阅主题，callback 为 null 时清除该主题全部监听器
+     * 取消订阅主题
      *
      * @param topic    主题名称
-     * @param callback 要移除的回调，null 表示清除所有
+     * @param callback 要移除的回调
      */
-    fun unsubscribe(topic: String, callback: UdpTopicCallback? = null) {
+    fun unsubscribe(topic: String, callback: TopicListener? = null) {
         if (callback == null) {
-            topicManager.clearTopicListeners(topic)
+            topicManager.clearTopicListener(topic)
         } else {
             topicManager.unregisterListener(topic, callback)
         }
     }
 
     /**
-     * 发布消息，targetIp 为 null 时组播，否则单播到指定 IP
+     * 发布消息
      *
      * @param topic    主题
      * @param payload  消息内容
-     * @param targetIp 目标 IP，null 表示组播
+     * @param targetIp 目标 IP
      */
     fun publish(topic: String, payload: JSONObject, targetIp: String? = null) {
-        client.send(TopicManager.buildMessage(topic, payload), targetIp)
+        client.send(TopicMessage.toBytes(topic, payload), targetIp)
     }
 
     /**
-     * 仅向订阅了该主题的在线设备发送消息
+     * 发布消息
      *
-     * @param topic          主题
-     * @param payload        消息内容
-     * @param onlySubscribers 是否仅发给订阅者，传 true 时生效
-     * @return 成功发送的设备数，onlySubscribers 为 false 时返回 -1
+     * @param topic           主题
+     * @param payload         消息内容
+     * @param onlySubscribers 是否仅发给订阅者
+     * @return 发送的设备数
      */
     fun publish(topic: String, payload: JSONObject, onlySubscribers: Boolean): Int {
         if (!onlySubscribers) {
-            client.send(TopicManager.buildMessage(topic, payload))
+            client.send(TopicMessage.toBytes(topic, payload))
             return -1
         }
-        val data = TopicManager.buildMessage(topic, payload)
+        val data = TopicMessage.toBytes(topic, payload)
         var count = 0
         for (device in deviceManager.onlineDeviceList) {
             if (UdpConfig.ABILITY_PREFIX_TOPIC + topic in device.abilities) {
@@ -197,15 +207,4 @@ object UdpManager {
 
 }
 
-/**
- * 主题消息回调。
- */
-fun interface UdpTopicCallback {
-    /**
-     * 收到匹配主题的消息
-     *
-     * @param topic   消息主题
-     * @param payload 负载数据
-     */
-    fun onMessageArrived(topic: String, payload: JSONObject?)
-}
+
