@@ -43,8 +43,9 @@ object UdpManager {
                 when (data[0]) {
                     // 心跳消息
                     0x01.toByte() -> {
-                        deviceManager.updateHeartbeatTime(fromIp)
-                        if (!deviceManager.hasDevice(fromIp)) {
+                        if (deviceManager.hasDevice(fromIp)) {
+                            deviceManager.updateHeartbeatTime(fromIp)
+                        } else {
                             val localPayload = LocalDevice.toObject(deviceManager.createLocalDevice())
                             client.send(TopicMessage.toBytes(UdpConfig.TOPIC_CALL, localPayload), fromIp)
                         }
