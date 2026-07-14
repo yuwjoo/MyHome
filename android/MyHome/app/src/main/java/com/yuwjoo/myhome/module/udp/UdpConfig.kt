@@ -4,8 +4,8 @@
  * UDP 通信配置常量
  */
 internal object UdpConfig {
-    const val PORT = 8899 // 组播端口（监听与发送共用）
     const val MULTICAST_ADDR = "224.0.0.100" // 组播地址
+    const val PORT = 8899 // 组播端口
 
     const val HEARTBEAT_INTERVAL = 3_000L // 心跳间隔（毫秒）
     const val HEARTBEAT_OFFLINE_TIMEOUT = 9_000L // 设备离线超时（毫秒）
