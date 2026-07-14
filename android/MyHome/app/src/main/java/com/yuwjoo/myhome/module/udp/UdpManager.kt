@@ -3,6 +3,8 @@
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.util.Log
+import com.yuwjoo.myhome.common.ListenerRegistry
+import com.yuwjoo.myhome.module.udp.listener.ConnectionListener
 import com.yuwjoo.myhome.module.udp.listener.DeviceListener
 import com.yuwjoo.myhome.module.udp.listener.TopicListener
 import com.yuwjoo.myhome.module.udp.model.LocalDevice
@@ -23,6 +25,7 @@ object UdpManager {
     private val topicManager = TopicManager()
     private val deviceManager = DeviceManager()
     private val heartbeatManager = HeartbeatManager(deviceManager, client)
+    private val connectionListeners = ListenerRegistry<Unit, ConnectionListener>()
 
     val deviceList: List<LanDevice> // 全部设备列表
         get() = deviceManager.deviceList
@@ -87,6 +90,7 @@ object UdpManager {
             } else {
                 heartbeatManager.stop()
             }
+            connectionListeners.dispatch(Unit) { it.onConnectionChanged(connected) }
         }
     }
 
@@ -145,6 +149,31 @@ object UdpManager {
      */
     fun clearDeviceListeners() {
         deviceManager.clearAllListener()
+    }
+
+    /**
+     * 注册连接状态监听器
+     *
+     * @param listener 连接状态回调
+     */
+    fun registerConnectionListener(listener: ConnectionListener) {
+        connectionListeners.register(Unit, listener)
+    }
+
+    /**
+     * 取消注册连接状态监听器
+     *
+     * @param listener 已注册的监听器
+     */
+    fun unregisterConnectionListener(listener: ConnectionListener) {
+        connectionListeners.unregister(Unit, listener)
+    }
+
+    /**
+     * 清空所有连接状态监听器
+     */
+    fun clearConnectionListeners() {
+        connectionListeners.clearAll()
     }
 
     /**
