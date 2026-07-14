@@ -91,7 +91,7 @@ object UdpManager {
     }
 
     /**
-     * 连接到组播组并启动消息接收
+     * 连接
      *
      * @param context 用于获取组播锁的上下文，传入 null 则不申请锁
      */
