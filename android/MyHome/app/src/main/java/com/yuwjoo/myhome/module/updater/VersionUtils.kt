@@ -5,17 +5,10 @@ package com.yuwjoo.myhome.module.updater
  */
 object VersionUtils {
 
-    /** 主版本号权重 */
-    private const val MAJOR_WEIGHT = 1_000_000
-
-    /** 次版本号权重 */
-    private const val MINOR_WEIGHT = 1_000
-
-    /** 补丁版本号权重 */
-    private const val PATCH_WEIGHT = 1
-
-    /** 段位权重数组 */
-    private val WEIGHTS = intArrayOf(MAJOR_WEIGHT, MINOR_WEIGHT, PATCH_WEIGHT)
+    private const val MAJOR_WEIGHT = 1_000_000 // 主版本号权重
+    private const val MINOR_WEIGHT = 1_000 // 次版本号权重
+    private const val PATCH_WEIGHT = 1 // 补丁版本号权重
+    private val WEIGHTS = intArrayOf(MAJOR_WEIGHT, MINOR_WEIGHT, PATCH_WEIGHT) // 段位权重数组
 
     /**
      * 获取版本 code

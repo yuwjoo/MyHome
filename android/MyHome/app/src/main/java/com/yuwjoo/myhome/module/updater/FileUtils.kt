@@ -20,8 +20,7 @@ object FileUtils {
 
     private const val TAG = "FileUtils"
 
-    /** OkHttp 客户端实例，复用连接池 */
-    private val httpClient = OkHttpClient.Builder()
+    private val httpClient = OkHttpClient.Builder() // OkHttp 客户端实例，复用连接池
         .followRedirects(true)
         .followSslRedirects(true)
         .build()
