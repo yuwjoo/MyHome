@@ -57,7 +57,7 @@ object WebResourceManager {
 
             val jsonContent = metadataFile.readText()
             val json = JSONObject(jsonContent)
-            json.optString("version", null)
+            json.optString("version", "")
         } catch (e: Exception) {
             Log.e(TAG, "读取本地版本失败: ${e.message}", e)
             null

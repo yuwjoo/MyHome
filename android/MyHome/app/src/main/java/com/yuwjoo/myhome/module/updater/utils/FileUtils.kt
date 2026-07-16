@@ -5,7 +5,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.coroutines.executeAsync
+import okhttp3.Call
+import okhttp3.Response
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -24,6 +25,13 @@ object FileUtils {
         .build()
 
     /**
+     * 在 IO 线程同步执行 OkHttp 请求
+     */
+    private suspend fun Call.executeOnIo(): Response = withContext(Dispatchers.IO) {
+        execute()
+    }
+
+    /**
      * 请求文件内容
      *
      * @param url 远程文件地址
@@ -33,7 +41,7 @@ object FileUtils {
         val request = Request.Builder().url(url).build()
 
         return try {
-            httpClient.newCall(request).executeAsync().use { response ->
+            httpClient.newCall(request).executeOnIo().use { response ->
                 if (!response.isSuccessful) {
                     Log.e(TAG, "请求失败，HTTP ${response.code}")
                     return null
@@ -67,7 +75,7 @@ object FileUtils {
         val request = Request.Builder().url(url).build()
 
         try {
-            httpClient.newCall(request).executeAsync().use { response ->
+            httpClient.newCall(request).executeOnIo().use { response ->
                 if (!response.isSuccessful) {
                     throw java.io.IOException("下载失败，HTTP ${response.code}")
                 }

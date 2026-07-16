@@ -12,3 +12,4 @@
 - 所有项目密钥统一管理（.secret）
 - android网络异常时-webview错误页自定义
 - android webview模块重构
+- Retrofit是对okhttp的封装，支持协程
