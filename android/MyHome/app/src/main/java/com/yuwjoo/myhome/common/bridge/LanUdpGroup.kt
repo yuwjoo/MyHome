@@ -40,21 +40,28 @@ class LanUdpGroup {
      *
      * @param params 包含 action 字段 ("on" / "off") 的 JSON 对象
      */
-    @BridgeMessage("deviceChanged")
-    fun deviceChanged(params: JSONObject, sender: MessageSender) {
+    @BridgeMessage("devices")
+    fun devices(params: JSONObject, sender: MessageSender) {
         val action = params.getString("action")
         when (action) {
             "on" -> {
+                val devices = UdpManager.onlineDeviceList
+                val jsonArray = JSONArray()
+                for (device in devices) {
+                    jsonArray.put(LanDevice.toObject(device))
+                }
+                sender.sendEventMessage(JSONObject().apply {
+                    put("devices", jsonArray)
+                }, isRetained = true)
                 if (deviceListener == null) {
-                    deviceListener = DeviceListener { devices ->
-                        val jsonArray = JSONArray()
-                        for (device in devices) {
-                            jsonArray.put(LanDevice.toObject(device))
+                    deviceListener = DeviceListener { list ->
+                        val arr = JSONArray()
+                        for (d in list) {
+                            arr.put(LanDevice.toObject(d))
                         }
-                        val data = JSONObject().apply {
-                            put("devices", jsonArray)
-                        }
-                        sender.send("deviceChanged", data)
+                        sender.sendEventMessage(JSONObject().apply {
+                            put("devices", arr)
+                        }, isRetained = true)
                     }
                     UdpManager.registerDeviceListener(deviceListener!!)
                 }
@@ -71,11 +78,14 @@ class LanUdpGroup {
      *
      * @param params 包含 action 字段 ("on" / "off") 的 JSON 对象
      */
-    @BridgeMessage("connectionChanged")
-    fun connectionChanged(params: JSONObject, sender: MessageSender) {
+    @BridgeMessage("connection")
+    fun connection(params: JSONObject, sender: MessageSender) {
         val action = params.getString("action")
         when (action) {
             "on" -> {
+                sender.sendEventMessage(JSONObject().apply {
+                    put("connected", UdpManager.isConnected)
+                }, isRetained = true)
                 if (connectionListener == null) {
                     connectionListener = ConnectionListener { connected ->
                         sender.sendEventMessage(

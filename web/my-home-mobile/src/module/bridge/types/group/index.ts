@@ -5,6 +5,7 @@
 import type { BedroomACGroup } from './bedroomACGroup'
 import type { SensorGroup } from './sensorGroup'
 import type { DeviceStatusGroup } from './deviceStatusGroup'
+import type { LanUdpGroup } from './lanUdpGroup'
 
 export interface Groups {
   /**
@@ -21,4 +22,9 @@ export interface Groups {
    * ESP8266 设备状态
    */
   deviceStatus: DeviceStatusGroup
+
+  /**
+   * 局域网 UDP 设备
+   */
+  lanUdp: LanUdpGroup
 }
