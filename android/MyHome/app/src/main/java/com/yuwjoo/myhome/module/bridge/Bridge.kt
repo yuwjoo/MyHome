@@ -5,6 +5,7 @@ import com.yuwjoo.myhome.module.bridge.core.Dispatcher
 import com.yuwjoo.myhome.module.bridge.core.NativeProvider
 import com.yuwjoo.myhome.common.bridge.BedroomACGroup
 import com.yuwjoo.myhome.common.bridge.ESP8266Group
+import com.yuwjoo.myhome.common.bridge.LanUdpGroup
 import com.yuwjoo.myhome.common.bridge.SensorGroup
 
 /**
@@ -22,6 +23,7 @@ object Bridge {
             d.register(BedroomACGroup())
             d.register(SensorGroup())
             d.register(ESP8266Group())
+            d.register(LanUdpGroup())
         }
         val provider = NativeProvider(dispatcher)
 
