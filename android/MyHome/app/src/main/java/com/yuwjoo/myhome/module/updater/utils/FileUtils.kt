@@ -1,17 +1,15 @@
-package com.yuwjoo.myhome.module.updater
+package com.yuwjoo.myhome.module.updater.utils
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.coroutines.executeAsync
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.util.zip.ZipFile
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 /**
  * 文件工具类
@@ -26,80 +24,93 @@ object FileUtils {
         .build()
 
     /**
+     * 请求文件内容
+     *
+     * @param url 远程文件地址
+     * @return 文件文本内容，请求失败返回 null
+     */
+    suspend fun fetch(url: String): String? {
+        val request = Request.Builder().url(url).build()
+
+        return try {
+            httpClient.newCall(request).executeAsync().use { response ->
+                if (!response.isSuccessful) {
+                    Log.e(TAG, "请求失败，HTTP ${response.code}")
+                    return null
+                }
+                val body = response.body?.string()
+                if (body == null) {
+                    Log.e(TAG, "响应体为空")
+                }
+                body
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "请求异常: ${e.message}", e)
+            null
+        }
+    }
+
+    /**
      * 下载文件到指定路径
      *
      * @param url        远程文件下载地址
-     * @param destPath   本地保存路径
+     * @param destFile   本地保存目标文件
      * @param onProgress 下载进度回调（downloaded: 已下载字节数, total: 总字节数）
      */
     suspend fun download(
         url: String,
-        destPath: String,
+        destFile: File,
         onProgress: ((downloaded: Long, total: Long) -> Unit)? = null,
-    ) = withContext(Dispatchers.IO) {
-        val destFile = File(destPath)
+    ) {
         destFile.parentFile?.mkdirs() // 确保父目录存在
-        
+
         val request = Request.Builder().url(url).build()
-        val call = httpClient.newCall(request)
 
-        suspendCancellableCoroutine<Unit> { continuation ->
-            call.enqueue(object : okhttp3.Callback {
-                override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
-                    try {
-                        if (!response.isSuccessful) {
-                            throw java.io.IOException("下载失败，HTTP ${response.code}")
-                        }
-
-                        val body = response.body
-                            ?: throw java.io.IOException("响应体为空")
-                        val totalBytes = body.contentLength()
-
-                        body.byteStream().use { input ->
-                            writeStream(input, destFile, totalBytes, onProgress)
-                        }
-
-                        Log.d(TAG, "下载完成: ${destFile.absolutePath}")
-                        if (continuation.isActive) {
-                            continuation.resume(Unit)
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "下载过程出错: ${e.message}", e)
-                        destFile.delete()
-                        if (continuation.isActive) {
-                            continuation.resumeWithException(e)
-                        }
-                    } finally {
-                        response.close()
-                    }
+        try {
+            httpClient.newCall(request).executeAsync().use { response ->
+                if (!response.isSuccessful) {
+                    throw java.io.IOException("下载失败，HTTP ${response.code}")
                 }
-                
-                override fun onFailure(call: okhttp3.Call, e: java.io.IOException) {
-                    Log.e(TAG, "下载失败: ${e.message}", e)
-                    destFile.delete()
-                    if (continuation.isActive) {
-                        continuation.resumeWithException(e)
-                    }
-                }
-            })
 
-            // 协程取消 → 取消 OkHttp 请求
-            continuation.invokeOnCancellation {
-                call.cancel()
+                val body = response.body
+                    ?: throw java.io.IOException("响应体为空")
+                val totalBytes = body.contentLength()
+
+                body.byteStream().use { input ->
+                    writeStream(input, destFile, totalBytes, onProgress)
+                }
+
+                Log.d(TAG, "下载完成: ${destFile.absolutePath}")
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "下载过程出错: ${e.message}", e)
+            destFile.delete()
+            throw e
+        }
+    }
+
+    /**
+     * 读取文件文本内容
+     *
+     * @param file 目标文件
+     * @return 文件文本内容，读取失败返回 null
+     */
+    fun read(file: File): String? {
+        return try {
+            if (file.exists()) file.readText() else null
+        } catch (e: Exception) {
+            Log.e(TAG, "读取文件失败: ${e.message}", e)
+            null
         }
     }
 
     /**
      * 解压 zip 文件到指定目录
      *
-     * @param zipPath     要解压的 zip 文件路径
-     * @param destDirPath 存放解压文件的目标目录路径
+     * @param zipFile  要解压的 zip 文件
+     * @param destDir  存放解压文件的目标目录
      */
-    suspend fun unzip(zipPath: String, destDirPath: String) = withContext(Dispatchers.IO) {
-        val zipFile = File(zipPath)
-        val destDir = File(destDirPath)
-
+    suspend fun unzip(zipFile: File, destDir: File) = withContext(Dispatchers.IO) {
         Log.d(TAG, "开始解压: ${zipFile.absolutePath} -> ${destDir.absolutePath}")
 
         if (!zipFile.exists()) {

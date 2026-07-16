@@ -2,23 +2,39 @@ package com.yuwjoo.myhome.module.updater
 
 import android.content.Context
 import android.util.Log
+import com.yuwjoo.myhome.module.updater.internal.AppVersionManager
+import com.yuwjoo.myhome.module.updater.internal.VersionManifest
+import com.yuwjoo.myhome.module.updater.internal.WebVersionManager
+import com.yuwjoo.myhome.module.updater.utils.VersionUtils
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
 /**
  * 更新器
  */
-class Updater(private val context: Context) {
+object Updater {
 
-    companion object {
-        private const val TAG = "Updater"
-    }
+    private const val TAG = "Updater"
 
+    private lateinit var context: Context // 应用上下文
+    private lateinit var appManager: AppVersionManager // 应用版本管理
+    private lateinit var webManager: WebVersionManager // Web 版本管理
     private val manifest = VersionManifest() // 版本清单
-    private val appManager = AppVersionManager(context) // 应用版本管理
-    private val webManager = WebVersionManager(context) // Web 版本管理
 
-    // ==================== 检查更新 ====================
+    val currentWebVersion: String get() = webManager.currentVersion
+
+    val currentAppVersion: String get() = appManager.currentVersion
+
+    /**
+     * 初始化
+     *
+     * @param context 上下文
+     */
+    fun init(context: Context) {
+        this.context = context.applicationContext
+        this.appManager = AppVersionManager(context)
+        this.webManager = WebVersionManager(context)
+    }
 
     /**
      * 检查更新
@@ -26,29 +42,36 @@ class Updater(private val context: Context) {
      * @param listener 更新监听器
      */
     suspend fun checkUpdate(listener: UpdateListener? = null) {
-        // 拉取版本清单
-        manifest.fetch()
+        try {
+            manifest.fetch()
 
-        // 检查应用版本
-        if (hasNewAppVersion()) {
-            val latest = getLatestAppVersion() ?: return
-
-            val confirmed = askUserConfirm(listener, latest)
-
-            if (confirmed) {
-                Log.d(TAG, "用户确认，开始应用更新: $latest")
-                appManager.downloadUpdate(latest)
-                return
+            // 检查应用版本
+            if (VersionUtils.compareVersion(manifest.appVersion, appManager.currentVersion) > 0) {
+                val latest = manifest.appVersion
+                if (askUserConfirm(listener, UpdatePlatform.APP, latest)) {
+                    Log.d(TAG, "用户确认，开始应用更新: $latest")
+                    appManager.startUpdate(latest)
+                    listener?.onUpdateComplete(UpdatePlatform.APP)
+                    return
+                } else {
+                    Log.d(TAG, "用户跳过应用更新")
+                }
             }
-            Log.d(TAG, "用户跳过应用更新")
-        }
 
-        // 检查并自动更新 Web
-        if (hasNewWebVersion()) {
-            val latest = getLatestWebVersion() ?: return
-            Log.d(TAG, "Web 有新版本，开始自动更新")
-            webManager.downloadUpdate(latest)
-            listener?.onWebUpdateComplete()
+            // 检查 Web 版本
+            if (VersionUtils.compareVersion(manifest.webVersion, webManager.currentVersion) > 0) {
+                val latest = manifest.webVersion
+                if (askUserConfirm(listener, UpdatePlatform.WEB, latest)) {
+                    Log.d(TAG, "用户确认，开始 Web 更新: $latest")
+                    webManager.startUpdate(latest)
+                    listener?.onUpdateComplete(UpdatePlatform.WEB)
+                } else {
+                    Log.d(TAG, "用户跳过 Web 更新")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "检查更新失败: ${e.message}", e)
+            listener?.onUpdateError(e.message ?: "未知错误")
         }
     }
 
@@ -56,76 +79,24 @@ class Updater(private val context: Context) {
      * 询问用户是否确认更新
      *
      * @param listener 更新监听器
-     * @param version  最新版本号
-     * @return true 表示用户确认
+     * @param platform 更新平台
+     * @param version  新版本号
+     * @return true 表示用户确认，false 表示取消
      */
     private suspend fun askUserConfirm(
         listener: UpdateListener?,
+        platform: UpdatePlatform,
         version: String,
     ): Boolean {
-        if (listener == null) return false
+        if (listener == null) return true
 
         return suspendCancellableCoroutine { cont ->
-            listener.onAppUpdateAvailable(
+            listener.onUpdateAvailable(
+                platform = platform,
                 version = version,
                 onConfirm = { cont.resume(true) },
-                onSkip = { cont.resume(false) },
+                onCancel = { cont.resume(false) },
             )
-            cont.invokeOnCancellation { /* 取消时不做特殊处理 */ }
         }
-    }
-
-    // ==================== Web 版本 ====================
-
-    /**
-     * 获取 Web 最新版本
-     *
-     * @return 最新版本号，获取失败返回 null
-     */
-    fun getLatestWebVersion(): String? = manifest.getLatestWebVersion()
-
-    /**
-     * 获取 Web 当前版本
-     *
-     * @return 当前已安装的版本号
-     */
-    fun getCurrentWebVersion(): String = webManager.currentVersion
-
-    /**
-     * Web 是否存在新版本
-     *
-     * @return true 表示有新版本可用
-     */
-    suspend fun hasNewWebVersion(): Boolean {
-        val latest = getLatestWebVersion() ?: return false
-        val current = getCurrentWebVersion()
-        return current.isEmpty() || VersionUtils.compareVersion(latest, current) > 0
-    }
-
-    // ==================== 应用版本 ====================
-
-    /**
-     * 获取应用最新版本
-     *
-     * @return 最新版本号，获取失败返回 null
-     */
-    fun getLatestAppVersion(): String? = manifest.getLatestAppVersion()
-
-    /**
-     * 获取应用当前版本
-     *
-     * @return 当前应用版本号
-     */
-    fun getCurrentAppVersion(): String = AppVersionManager.getAppVersion()
-
-    /**
-     * 应用是否存在新版本
-     *
-     * @return true 表示有新版本可用
-     */
-    suspend fun hasNewAppVersion(): Boolean {
-        val latest = getLatestAppVersion() ?: return false
-        val current = getCurrentAppVersion()
-        return VersionUtils.compareVersion(latest, current) > 0
     }
 }

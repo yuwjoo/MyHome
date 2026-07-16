@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.updater
+package com.yuwjoo.myhome.module.updater.utils
 
 /**
  * 版本工具类
@@ -17,15 +17,14 @@ object VersionUtils {
      * @return 版本 code
      */
     fun getVersionCode(version: String): Int {
-        require(version.isNotBlank()) { "版本号不能为空" }
+        if (version.isBlank()) return -1
 
         val parts = version.split(".")
-        require(parts.isNotEmpty()) { "版本号格式不正确: $version" }
+        if (parts.isEmpty()) return -1
 
         var code = 0
         for (i in parts.indices) {
-            val num = parts[i].toIntOrNull()
-                ?: throw IllegalArgumentException("版本号段位不是有效数字: '${parts[i]}' (来自 $version)")
+            val num = parts[i].toIntOrNull() ?: return -1
             val weight = if (i < WEIGHTS.size) WEIGHTS[i] else PATCH_WEIGHT
             code += num * weight
         }

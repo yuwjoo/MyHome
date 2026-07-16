@@ -1,25 +1,41 @@
 package com.yuwjoo.myhome.module.updater
 
 /**
+ * 更新平台
+ */
+enum class UpdatePlatform { WEB, APP }
+
+/**
  * 更新监听器
  */
 interface UpdateListener {
 
     /**
-     * 应用版本更新可用
+     * 更新前置拦截
      *
-     * @param version   最新版本号
-     * @param onConfirm 用户确认更新时调用
-     * @param onSkip    用户跳过更新时调用
+     * @param platform  更新平台
+     * @param version   新版本号
+     * @param onConfirm 确认更新
+     * @param onCancel  取消更新
      */
-    fun onAppUpdateAvailable(
+    fun onUpdateAvailable(
+        platform: UpdatePlatform,
         version: String,
         onConfirm: () -> Unit,
-        onSkip: () -> Unit,
+        onCancel: () -> Unit,
     )
 
     /**
-     * Web 更新完成
+     * 更新完成
+     *
+     * @param platform 更新平台
      */
-    fun onWebUpdateComplete()
+    fun onUpdateComplete(platform: UpdatePlatform)
+
+    /**
+     * 更新出错
+     *
+     * @param error 错误信息
+     */
+    fun onUpdateError(error: String) = Unit
 }

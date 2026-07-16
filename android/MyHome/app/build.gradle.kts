@@ -65,6 +65,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.material)
     implementation(libs.okhttp)
+    implementation(libs.okhttp.coroutines)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.paho.mqtt.client)
     testImplementation(libs.junit)
