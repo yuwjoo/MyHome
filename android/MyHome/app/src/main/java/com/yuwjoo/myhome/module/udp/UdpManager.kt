@@ -36,6 +36,7 @@ object UdpManager {
     val isConnected: Boolean // 是否已连接组播
         get() = client.isConnected
 
+    private val networkMonitor = NetworkMonitor() // 网络状态监听
     private var wifiManager: WifiManager? = null // WiFi 管理器
     private var multicastLock: WifiManager.MulticastLock? = null // 组播锁
 
@@ -46,11 +47,16 @@ object UdpManager {
                 when (data[0]) {
                     // 心跳消息
                     0x01.toByte() -> {
+                        Log.d(TAG, "收到心跳" + fromIp)
                         if (deviceManager.hasDevice(fromIp)) {
                             deviceManager.updateHeartbeatTime(fromIp)
                         } else {
-                            val localPayload = LocalDevice.toObject(deviceManager.createLocalDevice())
-                            client.send(TopicMessage.toBytes(UdpConfig.TOPIC_CALL, localPayload), fromIp)
+                            val localPayload =
+                                LocalDevice.toObject(deviceManager.createLocalDevice())
+                            client.send(
+                                TopicMessage.toBytes(UdpConfig.TOPIC_CALL, localPayload),
+                                fromIp
+                            )
                         }
                     }
                     // 离线消息
@@ -69,7 +75,10 @@ object UdpManager {
                     val device = LanDevice.from(fromIp, payload) ?: return@setMessageListener
                     deviceManager.saveDevice(device)
                     val localPayload = LocalDevice.toObject(deviceManager.createLocalDevice())
-                    client.send(TopicMessage.toBytes(UdpConfig.TOPIC_RESPONSE, localPayload), fromIp)
+                    client.send(
+                        TopicMessage.toBytes(UdpConfig.TOPIC_RESPONSE, localPayload),
+                        fromIp
+                    )
                 }
                 // 应答主题
                 UdpConfig.TOPIC_RESPONSE -> {
@@ -77,6 +86,7 @@ object UdpManager {
                     val device = LanDevice.from(fromIp, payload) ?: return@setMessageListener
                     deviceManager.saveDevice(device)
                 }
+
                 else -> {
                     Log.d(TAG, "onMessageArrived: topic=${msg.topic}")
                     topicManager.notifyListener(msg.topic, msg.payload)
@@ -97,16 +107,17 @@ object UdpManager {
     /**
      * 连接
      *
-     * @param context 用于获取组播锁的上下文，传入 null 则不申请锁
+     * @param context 用于监听网络变化
      */
-    fun connect(context: Context? = null) {
-        if (context != null && wifiManager == null) {
-            wifiManager =
-                context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        }
-        multicastLock?.release()
-        multicastLock = wifiManager?.createMulticastLock(MULTICAST_LOCK_TAG)?.apply {
-            acquire()
+    fun connect(context: Context) {
+        // acquireMulticastLock(context)
+        networkMonitor.start(context) { available ->
+            Log.d(TAG, "network available changed: $available")
+            if (available) {
+                client.connect()
+            } else {
+                client.disconnect()
+            }
         }
         client.connect()
     }
@@ -116,14 +127,40 @@ object UdpManager {
      */
     fun disconnect() {
         heartbeatManager.stop()
+        networkMonitor.stop()
+        // releaseMulticastLock()
         try {
             client.send(byteArrayOf(0x02))
         } catch (e: Exception) {
             Log.e(TAG, "send offline failed: ${e.message}", e)
         }
+        client.disconnect()
+    }
+
+    /**
+     * 持有组播锁
+     *
+     * @param context 用于获取 WiFi 服务
+     */
+    private fun acquireMulticastLock(context: Context) {
+        if (wifiManager == null) {
+            wifiManager =
+                context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        }
+        releaseMulticastLock()
+        multicastLock = wifiManager?.createMulticastLock(MULTICAST_LOCK_TAG)?.apply {
+            acquire()
+        }
+        Log.d(TAG, "multicast lock acquired")
+    }
+
+    /**
+     * 释放组播锁
+     */
+    private fun releaseMulticastLock() {
         multicastLock?.release()
         multicastLock = null
-        client.disconnect()
+        Log.d(TAG, "multicast lock released")
     }
 
     /**

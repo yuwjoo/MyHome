@@ -14,7 +14,6 @@ class UdpClient(
     private val multicastAddr: String = UdpConfig.MULTICAST_ADDR, // 组播组地址
     private val port: Int = UdpConfig.PORT, // 端口（监听与发送共用）
     private val bufferSize: Int = 1024, // 接收缓冲区大小（字节）
-    private val reconnectDelayMs: Long = 5_000, // 异常断连后重连延迟（毫秒）
 ) {
 
     companion object {
@@ -22,12 +21,13 @@ class UdpClient(
     }
 
     private var socket: MulticastSocket? = null // 组播 socket
-    private var loopThread: Thread? = null // 消息接收与重连循环线程
+    private var loopThread: Thread? = null // 消息接收线程
     private var messageListener: MessageListener? = null // 消息监听器
     private var connectionListener: ConnectionListener? = null // 连接状态监听器
 
     @Volatile
     private var loopRunning = false // 控制循环线程生命周期
+
     @Volatile
     private var connected = false // 是否已入组
 
@@ -57,7 +57,7 @@ class UdpClient(
         }
         interruptLoop()
         cleanupSocket()
-        if (!joinGroup()) return
+        if (!createSocket()) return
         startLoop()
         connected = true
         connectionListener?.onConnectionChanged(true)
@@ -68,6 +68,7 @@ class UdpClient(
      * 断开连接
      */
     fun disconnect() {
+        if (!connected) return
         Log.d(TAG, "disconnect")
         interruptLoop()
         cleanupSocket()
@@ -97,11 +98,11 @@ class UdpClient(
     }
 
     /**
-     * 加入组播组
+     * 创建 socket 并加入组播组
      *
      * @return 是否成功
      */
-    private fun joinGroup(): Boolean {
+    private fun createSocket(): Boolean {
         socket = try {
             MulticastSocket(port).apply {
                 loopbackMode = true
@@ -116,18 +117,14 @@ class UdpClient(
     }
 
     /**
-     * 启动循环线程
+     * 启动接收线程
      */
     private fun startLoop() {
         val buffer = ByteArray(bufferSize)
         loopRunning = true
         loopThread = Thread({
             while (loopRunning && !Thread.currentThread().isInterrupted) {
-                if (connected) {
-                    receiveMessage(buffer)
-                } else {
-                    tryReconnect()
-                }
+                receiveMessage(buffer)
             }
         }, "udp-loop").apply {
             isDaemon = true
@@ -144,11 +141,8 @@ class UdpClient(
             val p = DatagramPacket(buffer, buffer.size)
             s.receive(p)
             p
-        } catch (_: Exception) {
-            Log.w(TAG, "receive error, connection lost")
-            cleanupSocket()
-            connected = false
-            connectionListener?.onConnectionChanged(false)
+        } catch (e: Exception) {
+            Log.w(TAG, "receive error: ${e.message}")
             return
         }
         messageListener?.onMessage(
@@ -159,26 +153,7 @@ class UdpClient(
     }
 
     /**
-     * 尝试重连
-     *
-     * @return 循环是否继续
-     */
-    private fun tryReconnect() {
-        try {
-            Thread.sleep(reconnectDelayMs)
-        } catch (_: InterruptedException) {
-            loopRunning = false
-            return
-        }
-        if (joinGroup()) {
-            connected = true
-            connectionListener?.onConnectionChanged(true)
-            Log.d(TAG, "reconnected: ${multicastAddr}:${port}")
-        }
-    }
-
-    /**
-     * 中断循环线程
+     * 中断接收线程
      */
     private fun interruptLoop() {
         loopRunning = false
