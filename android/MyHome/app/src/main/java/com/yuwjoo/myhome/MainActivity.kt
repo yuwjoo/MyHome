@@ -15,7 +15,7 @@ import com.yuwjoo.myhome.module.updater.UpdateListener
 import com.yuwjoo.myhome.module.updater.UpdatePlatform
 import com.yuwjoo.myhome.module.updater.Updater
 import com.yuwjoo.myhome.ui.DialogHelper
-import com.yuwjoo.myhome.ui.webview2.WebViewManager
+import com.yuwjoo.myhome.ui.webview.WebViewManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

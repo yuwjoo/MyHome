@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.ui.webview2
+package com.yuwjoo.myhome.ui.webview
 
 import android.net.Uri
 import android.webkit.ValueCallback

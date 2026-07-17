@@ -1,145 +1,72 @@
-﻿package com.yuwjoo.myhome.ui.webview
+package com.yuwjoo.myhome.ui.webview
 
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.net.Uri
-import android.webkit.ValueCallback
-import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
-import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.OnBackPressedCallback
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.lifecycle.LifecycleCoroutineScope
 import com.yuwjoo.myhome.config.AppConfig
 import com.yuwjoo.myhome.module.bridge.Bridge
-import com.yuwjoo.myhome.module.update.WebResourceInitializer
+import com.yuwjoo.myhome.module.updater.Updater
 
 /**
  * WebView 管理器
- *
- * 封装 WebView 的创建、配置、返回键处理及资源初始化等全部逻辑，
- * MainActivity 仅需持有此实例并做容器层布局。
  */
 class WebViewManager(
-    private val activity: Activity,
-    private val lifecycleScope: LifecycleCoroutineScope,
+    private val activity: ComponentActivity, // Activity 实例
 ) {
-    /** 对外暴露的 WebView 实例，供 Activity 设置布局和 insets */
-    val webView: WebView
-
-    /** 返回键回调，供 Activity 注册到 OnBackPressedDispatcher */
-    val backPressCallback: OnBackPressedCallback
-
-    /** 双击退出间隔（毫秒） */
-    private var lastBackTime = 0L
-    private val exitInterval = 2000L
-
-    /** 文件选择器回调，由 WebChromeClient.onShowFileChooser 设置 */
-    private var filePathCallback: ValueCallback<Array<Uri>>? = null
-
-    /** 文件选择器启动器，通过 Activity Result API 弹出系统文件选择器 */
-    private val filePickerLauncher =
-        (activity as ComponentActivity).registerForActivityResult(
-            ActivityResultContracts.GetContent()
-        ) { uri ->
-            filePathCallback?.onReceiveValue(uri?.let { arrayOf(it) })
-            filePathCallback = null
-        }
+    val webView: WebView = createWebView() // WebView 实例
+    private var loadedVersion: String = "" // 已加载的 web 资源版本号
 
     init {
-        webView = createWebView()
-        backPressCallback = createBackPressCallback()
+        // 注册返回键回调
+        activity.onBackPressedDispatcher.addCallback(activity, BackPressHandler(activity, webView))
     }
-
-    // ──────────────────────────────────────────────
-    // WebView 创建与配置
-    // ──────────────────────────────────────────────
-
-    @SuppressLint("SetJavaScriptEnabled")
-    private fun createWebView(): WebView {
-        return WebView(activity).apply {
-            settings.apply {
-                javaScriptEnabled = true
-                domStorageEnabled = true
-                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                cacheMode = WebSettings.LOAD_DEFAULT
-                allowFileAccess = true
-                allowContentAccess = true
-            }
-
-            // Bridge — 注入 NativeProvider 挂载到 window.__bridge:native-provider__
-            Bridge.mount(this)
-
-            // WebChromeClient — 处理文件选择器等 WebView 事件
-            webChromeClient = object : WebChromeClient() {
-                override fun onShowFileChooser(
-                    webView: WebView?,
-                    callback: ValueCallback<Array<Uri>>?,
-                    params: FileChooserParams?
-                ): Boolean {
-                    filePathCallback = callback
-                    filePickerLauncher.launch("*/*")
-                    return true
-                }
-            }
-
-            // 正式环境：拦截 http://local-web 请求，映射到本地文件
-            // 开发环境：直接加载远程 URL，不需要拦截器
-            if (AppConfig.IS_RELEASE) {
-                webViewClient = LocalWebResourceInterceptor(activity)
-            }
-        }
-    }
-
-    // ──────────────────────────────────────────────
-    // 返回键处理
-    // ──────────────────────────────────────────────
-
-    private fun createBackPressCallback(): OnBackPressedCallback {
-        return object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (webView.canGoBack()) {
-                    webView.goBack()
-                } else {
-                    val now = System.currentTimeMillis()
-                    if (now - lastBackTime < exitInterval) {
-                        activity.finish()
-                    } else {
-                        lastBackTime = now
-                        Toast.makeText(activity, "再按一次退出应用", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
-    }
-
-    // ──────────────────────────────────────────────
-    // 资源初始化
-    // ──────────────────────────────────────────────
 
     /**
-     * 启动 Web 资源初始化流程。
+     * 创建并配置 WebView
      *
-     * 在 Activity.onCreate 中调用，绑定到 Activity 的生命周期作用域，
-     * 确保 Activity 销毁时自动取消协程。
+     * @return 配置完成的 WebView 实例
      */
-    fun initializeResources() {
-        WebResourceInitializer.initialize(
-            activity = activity,
-            scope = lifecycleScope,
-            callback = object : WebResourceInitializer.Callback {
-                override fun onResourcesReady() {
-                    webView.loadUrl(AppConfig.webLoadUrl)
-                }
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun createWebView(): WebView {
+        // 开发环境启用 WebView 调试
+        if (AppConfig.IS_DEV) {
+            WebView.setWebContentsDebuggingEnabled(true)
+        }
 
-                override fun onError(message: String) {
-                    Toast.makeText(activity, "资源初始化失败: $message", Toast.LENGTH_LONG).show()
-                    // 延迟退出，确保 Toast 可见
-                    webView.postDelayed({ activity.finish() }, 2000)
-                }
-            },
-        )
+        return WebView(activity).apply {
+            settings.apply {
+                javaScriptEnabled = true // 启用 JavaScript
+                domStorageEnabled = true // 启用 DOM Storage
+                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW // 允许混合内容
+                cacheMode = WebSettings.LOAD_DEFAULT // 默认缓存策略
+                allowFileAccess = true // 允许访问本地文件
+                allowContentAccess = true // 允许 Content Provider 访问
+            }
+
+            webChromeClient = MyWebChromeClient(activity)
+            webViewClient = MyWebViewClient(activity)
+
+            Bridge.mount(this)
+        }
+    }
+
+    /**
+     * 加载 Web 页面
+     *
+     * @param forceRefresh 是否强制刷新，默认 false
+     */
+    fun loadWeb(forceRefresh: Boolean = false) {
+        val localWebVersion = Updater.currentWebVersion
+
+        // 正式环境下，需要判断本地是否已经存在web资源文件
+        if (AppConfig.IS_RELEASE && localWebVersion.isEmpty()) return
+
+        if (!forceRefresh && localWebVersion == loadedVersion) return
+
+        val url = if (AppConfig.IS_RELEASE) WebViewConfig.RELEASE_WEB_URL else WebViewConfig.DEV_WEB_URL
+        webView.loadUrl(url)
+
+        loadedVersion = localWebVersion
     }
 }
