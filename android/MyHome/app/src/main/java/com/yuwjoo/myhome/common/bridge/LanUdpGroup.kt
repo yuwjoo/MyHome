@@ -32,7 +32,7 @@ class LanUdpGroup {
         val data = JSONObject().apply {
             put("devices", jsonArray)
         }
-        sender.send("getDeviceList", data)
+        sender.send("onResult", data)
     }
 
     /**
