@@ -18,8 +18,8 @@ android {
         applicationId = "com.yuwjoo.myhome"
         minSdk = 24
         targetSdk = 36
-        versionCode = 19
-        versionName = "0.0.19"
+        versionCode = 32
+        versionName = "0.0.32"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.webkit)
     implementation(libs.paho.mqtt.client)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)

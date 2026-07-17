@@ -12,13 +12,11 @@ object AppConfig {
 
     // ==================== 环境判断 ====================
 
-    /** 是否为正式发布版本（仅 release buildType 为 true） */
-    val isRelease: Boolean
-        get() = BuildConfig.IS_RELEASE
+    /** 是否为正式发布版本 */
+    const val IS_RELEASE: Boolean = BuildConfig.IS_RELEASE
 
-    /** 是否为开发环境（debug buildType） */
-    val isDebug: Boolean
-        get() = !BuildConfig.IS_RELEASE
+    /** 是否为开发环境 */
+    const val IS_DEV: Boolean = !IS_RELEASE
 
     // ==================== 远程资源地址 ====================
 
@@ -60,7 +58,7 @@ object AppConfig {
      * - 开发环境：返回远程开发服务器地址 [DEV_WEB_URL]
      */
     val webLoadUrl: String
-        get() = if (isDebug) DEV_WEB_URL else LOCAL_WEB_HOST
+        get() = if (IS_DEV) DEV_WEB_URL else LOCAL_WEB_HOST
 
     // ==================== 元数据文件 ====================
 

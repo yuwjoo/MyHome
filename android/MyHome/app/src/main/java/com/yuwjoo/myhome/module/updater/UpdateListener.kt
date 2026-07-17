@@ -26,6 +26,15 @@ interface UpdateListener {
     )
 
     /**
+     * 更新进度
+     *
+     * @param platform   更新平台
+     * @param downloaded 已下载字节数
+     * @param total      总字节数
+     */
+    fun onUpdateProgress(platform: UpdatePlatform, downloaded: Long, total: Long) = Unit
+
+    /**
      * 更新完成
      *
      * @param platform 更新平台

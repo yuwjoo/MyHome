@@ -5,61 +5,58 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
+import androidx.webkit.WebViewAssetLoader
 import com.yuwjoo.myhome.config.AppConfig
 import java.io.File
 import java.io.FileInputStream
 
 /**
  * WebView 客户端
- *
- * 正式环境下拦截 [WebViewConfig.LOCAL_RESOURCE_HOST] 域名的请求，
- * 映射到本地文件系统，实现离线资源加载。
  */
 class MyWebViewClient(
-    private val activity: ComponentActivity,
+    private val activity: ComponentActivity, // Activity 实例
 ) : WebViewClient() {
 
+    private val resourceDir = File(activity.filesDir, WebViewConfig.LOCAL_RESOURCE_HOST) // 本地资源目录
+    private val indexFile = File(resourceDir, "index.html") // SPA 入口文件
+
+    private val assetLoader = WebViewAssetLoader.Builder()
+        .setDomain(WebViewConfig.LOCAL_RESOURCE_HOST)
+        .setHttpAllowed(true)
+        .addPathHandler("/", object : WebViewAssetLoader.PathHandler {
+            private val delegate = WebViewAssetLoader.InternalStoragePathHandler(activity, resourceDir)
+
+            override fun handle(path: String): WebResourceResponse {
+                val resolvedPath = if (path.isEmpty() || path == "/") "/index.html" else path
+                return delegate.handle(resolvedPath)
+            }
+        })
+        .build()
+
+    /**
+     * 拦截资源请求，生产环境将虚拟域名映射到本地文件
+     *
+     * @param view    WebView 实例
+     * @param request 资源请求
+     * @return 本地文件响应，非本地资源返回 super
+     */
     override fun shouldInterceptRequest(
         view: WebView?,
         request: WebResourceRequest,
     ): WebResourceResponse? {
-        val host = request.url.host
+        // 开发环境不拦截
+        if (AppConfig.IS_DEV) return super.shouldInterceptRequest(view, request)
 
-        // 开发环境 或者 非本地资源域名 的请求，不特殊处理
-        if (AppConfig.isDebug || host != WebViewConfig.LOCAL_RESOURCE_HOST) {
+        // 非本地资源域名不拦截
+        if (request.url.host != WebViewConfig.LOCAL_RESOURCE_HOST) {
             return super.shouldInterceptRequest(view, request)
         }
 
-        // 将虚拟域名请求映射到本地文件
-        val path = request.url.path ?: "/"
-        val fileName = if (path == "/" || path.isEmpty()) "index.html" else path.removePrefix("/")
-        val file = File(activity.filesDir, "${WebViewConfig.LOCAL_RESOURCE_HOST}/$fileName")
+        // AssetLoader 处理匹配域名的资源请求
+        val response = assetLoader.shouldInterceptRequest(request.url)
+        if (response != null) return response
 
-        return if (file.exists()) {
-            WebResourceResponse(getMimeType(fileName), "UTF-8", FileInputStream(file))
-        } else {
-            super.shouldInterceptRequest(view, request)
-        }
-    }
-
-    /**
-     * 根据文件扩展名获取 MIME 类型
-     */
-    private fun getMimeType(fileName: String): String {
-        return when {
-            fileName.endsWith(".html") || fileName.endsWith(".htm") -> "text/html"
-            fileName.endsWith(".js") -> "application/javascript"
-            fileName.endsWith(".css") -> "text/css"
-            fileName.endsWith(".json") -> "application/json"
-            fileName.endsWith(".png") -> "image/png"
-            fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") -> "image/jpeg"
-            fileName.endsWith(".gif") -> "image/gif"
-            fileName.endsWith(".svg") -> "image/svg+xml"
-            fileName.endsWith(".woff") -> "font/woff"
-            fileName.endsWith(".woff2") -> "font/woff2"
-            fileName.endsWith(".ttf") -> "font/ttf"
-            fileName.endsWith(".ico") -> "image/x-icon"
-            else -> "application/octet-stream"
-        }
+        // 文件不存在时 fallback 到 index.html（SPA 路由）
+        return WebResourceResponse("text/html", "UTF-8", FileInputStream(indexFile))
     }
 }

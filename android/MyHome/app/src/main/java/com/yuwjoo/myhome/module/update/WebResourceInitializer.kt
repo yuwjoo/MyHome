@@ -54,7 +54,7 @@ object WebResourceInitializer {
      */
     fun initialize(activity: Activity, scope: CoroutineScope, callback: Callback) {
         // 开发环境：跳过所有更新检查，直接通知资源就绪
-        if (AppConfig.isDebug) {
+        if (AppConfig.IS_DEV) {
             Log.d(TAG, "开发环境，跳过所有更新检查")
             callback.onResourcesReady()
             return

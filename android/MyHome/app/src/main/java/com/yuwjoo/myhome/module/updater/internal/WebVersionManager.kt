@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.yuwjoo.myhome.module.updater.UpdaterConfig
 import com.yuwjoo.myhome.module.updater.utils.FileUtils
+import org.json.JSONObject
 import java.io.File
 
 /**
@@ -31,7 +32,13 @@ class WebVersionManager(private val context: Context) {
      */
     private fun readCurrentVersion(): String {
         val versionFile = File(context.filesDir, UpdaterConfig.WEB_VERSION_FILE_PATH)
-        return FileUtils.read(versionFile)?.trim() ?: ""
+        val raw = FileUtils.read(versionFile) ?: return ""
+        return try {
+            JSONObject(raw).optString("version", "")
+        } catch (_: Exception) {
+            Log.w(TAG, "解析版本文件失败，返回空字符串")
+            ""
+        }
     }
 
     /**

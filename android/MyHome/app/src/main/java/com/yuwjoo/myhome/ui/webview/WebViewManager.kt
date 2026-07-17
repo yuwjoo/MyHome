@@ -87,7 +87,7 @@ class WebViewManager(
 
             // 正式环境：拦截 http://local-web 请求，映射到本地文件
             // 开发环境：直接加载远程 URL，不需要拦截器
-            if (AppConfig.isRelease) {
+            if (AppConfig.IS_RELEASE) {
                 webViewClient = LocalWebResourceInterceptor(activity)
             }
         }

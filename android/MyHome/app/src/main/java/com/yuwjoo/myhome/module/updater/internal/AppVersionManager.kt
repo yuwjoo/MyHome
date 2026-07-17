@@ -19,8 +19,6 @@ class AppVersionManager(private val context: Context) {
         private const val TAG = "AppVersionManager"
     }
 
-    private val tempApkFile = File(context.cacheDir, "MyHome.apk") // APK 下载目标文件
-
     var currentVersion: String = BuildConfig.VERSION_NAME // 当前应用版本号
         private set
 
@@ -35,6 +33,8 @@ class AppVersionManager(private val context: Context) {
         onProgress: ((downloaded: Long, total: Long) -> Unit)? = null,
     ) {
         Log.d(TAG, "开始下载更新: $version")
+
+        val tempApkFile = File(context.cacheDir, "MyHome-$version.apk")
 
         FileUtils.download(
             url = UpdaterConfig.APP_DOWNLOAD_URL,

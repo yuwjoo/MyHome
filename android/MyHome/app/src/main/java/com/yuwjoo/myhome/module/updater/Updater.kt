@@ -16,7 +16,6 @@ object Updater {
 
     private const val TAG = "Updater"
 
-    private lateinit var context: Context // 应用上下文
     private lateinit var appManager: AppVersionManager // 应用版本管理
     private lateinit var webManager: WebVersionManager // Web 版本管理
     private val manifest = VersionManifest() // 版本清单
@@ -31,7 +30,6 @@ object Updater {
      * @param context 上下文
      */
     fun init(context: Context) {
-        this.context = context.applicationContext
         this.appManager = AppVersionManager(context)
         this.webManager = WebVersionManager(context)
     }
@@ -50,7 +48,9 @@ object Updater {
                 val latest = manifest.appVersion
                 if (askUserConfirm(listener, UpdatePlatform.APP, latest)) {
                     Log.d(TAG, "用户确认，开始应用更新: $latest")
-                    appManager.startUpdate(latest)
+                    appManager.startUpdate(latest) { d, t ->
+                        listener?.onUpdateProgress(UpdatePlatform.APP, d, t)
+                    }
                     listener?.onUpdateComplete(UpdatePlatform.APP)
                     return
                 } else {
@@ -63,7 +63,9 @@ object Updater {
                 val latest = manifest.webVersion
                 if (askUserConfirm(listener, UpdatePlatform.WEB, latest)) {
                     Log.d(TAG, "用户确认，开始 Web 更新: $latest")
-                    webManager.startUpdate(latest)
+                    webManager.startUpdate(latest) { d, t ->
+                        listener?.onUpdateProgress(UpdatePlatform.WEB, d, t)
+                    }
                     listener?.onUpdateComplete(UpdatePlatform.WEB)
                 } else {
                     Log.d(TAG, "用户跳过 Web 更新")

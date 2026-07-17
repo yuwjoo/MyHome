@@ -11,7 +11,7 @@ import androidx.activity.result.contract.ActivityResultContracts
  * WebView Chrome 客户端
  */
 class MyWebChromeClient(
-    private val activity: ComponentActivity
+    private val activity: ComponentActivity // Activity 实例
 ) : WebChromeClient() {
 
     private var filePathCallback: ValueCallback<Array<Uri>>? = null // 文件选择器回调
@@ -19,13 +19,18 @@ class MyWebChromeClient(
     private val filePickerLauncher =
         activity.registerForActivityResult(
             ActivityResultContracts.GetContent()
-        ) { uri ->
+        ) { uri -> // 文件选择结果处理
             filePathCallback?.onReceiveValue(uri?.let { arrayOf(it) })
             filePathCallback = null
         }
 
     /**
-     * 显示文件选择器
+     * 打开文件选择器
+     *
+     * @param webView  WebView 实例
+     * @param callback 选择结果回调
+     * @param params   文件选择器参数
+     * @return 始终返回 true，表示已接管文件选择
      */
     override fun onShowFileChooser(
         webView: WebView?,
