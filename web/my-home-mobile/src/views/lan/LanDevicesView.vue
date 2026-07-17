@@ -12,7 +12,7 @@
     <PullRefreshIndicator :pulling="pulling" :refreshing="refreshing" :pull-distance="pullDistance" :threshold="threshold" />
 
     <!-- Header -->
-    <PageHeader title="内网设备" :backable="true" @back="router.back()">
+    <PageHeader title="内网设备" :backable="false">
       <template #actions>
         <button
           class="w-9 h-9 flex items-center justify-center rounded-2xl bg-card border border-border shadow-custom"
@@ -108,7 +108,6 @@
  * 职责：组合 useLanDevices，展示当前局域网内设备
  */
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { RefreshCwIcon, RouterIcon } from 'lucide-vue-next'
 import { usePullRefresh } from '@/composables/usePullRefresh'
@@ -117,7 +116,6 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import PullRefreshIndicator from '@/components/PullRefreshIndicator.vue'
 
-const router = useRouter()
 const { devices, connected, loading, refresh } = useLanDevices()
 
 const onlineCount = computed(() => devices.value.filter((d) => d.online).length)
