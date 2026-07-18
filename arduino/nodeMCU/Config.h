@@ -74,7 +74,7 @@ const unsigned long LOOP_DELAY = 10;              // 主循环间隔（毫秒）
 // ──────────────────────────────────
 //  UDP 组播配置
 // ──────────────────────────────────
-const char *const UDP_MULTICAST_ADDR = "224.0.0.100"; // 组播地址
+const char *const UDP_MULTICAST_ADDR = "239.0.0.100"; // 组播地址
 const unsigned int UDP_LISTEN_PORT = 8899;             // 组播监听端口
 const unsigned int UDP_SEND_PORT = 8899;               // 组播发送端口
 const unsigned int UDP_BUFFER_SIZE = 1024;             // 接收缓冲区大小

@@ -4,7 +4,7 @@
  * UDP 通信配置常量
  */
 internal object UdpConfig {
-    const val MULTICAST_ADDR = "224.0.0.100" // 组播地址
+    const val MULTICAST_ADDR = "239.0.0.100" // 组播地址
     const val PORT = 8899 // 组播端口
 
     const val HEARTBEAT_INTERVAL = 1_500L // 心跳间隔（毫秒）
