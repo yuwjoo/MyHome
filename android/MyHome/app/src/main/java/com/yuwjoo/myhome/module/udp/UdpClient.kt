@@ -6,12 +6,14 @@ import com.yuwjoo.myhome.module.udp.listener.MessageListener
 import java.net.DatagramPacket
 import java.net.InetAddress
 import java.net.MulticastSocket
+import java.net.NetworkInterface
 
 /**
  * UDP 客户端
  */
 class UdpClient(
     private val multicastAddr: String = UdpConfig.MULTICAST_ADDR, // 组播组地址
+    private val broadcastAddr: String = "255.255.255.255", // 广播地址
     private val port: Int = UdpConfig.PORT, // 端口（监听与发送共用）
     private val bufferSize: Int = 1024, // 接收缓冲区大小（字节）
 ) {
@@ -28,6 +30,8 @@ class UdpClient(
 
     @Volatile
     private var loopRunning = false // 控制循环线程生命周期
+
+    private val localIps = mutableSetOf<String>() // 本机 IP 集合，用于过滤自收广播
 
     @Volatile
     private var connected = false // 是否已入组
@@ -60,6 +64,7 @@ class UdpClient(
         interruptLoop()
         cleanupSocket()
         if (!createSocket()) return
+        collectLocalIps()
         startLoop()
         connected = true
         connectionListener?.onConnectionChanged(true)
@@ -80,24 +85,54 @@ class UdpClient(
     }
 
     /**
-     * 发送数据
-     *
-     * @param data     消息数据
-     * @param targetIp 目标 IP，为 null 时组播发送
+     * 发送单播数据
      */
-    fun send(data: ByteArray, targetIp: String? = null) {
+    fun sendUnicast(data: ByteArray, targetIp: String) {
         socket?.let { s ->
             if (s.isClosed) {
-                Log.e(TAG, "send: not connected")
+                Log.e(TAG, "sendUnicast: not connected")
                 return
             }
             try {
-                val addr = InetAddress.getByName(targetIp ?: multicastAddr)
-                s.send(DatagramPacket(data, data.size, addr, port))
+                s.send(DatagramPacket(data, data.size, InetAddress.getByName(targetIp), port))
             } catch (e: Exception) {
-                Log.e(TAG, "send error: ${e.message}", e)
+                Log.e(TAG, "sendUnicast error: ${e.message}", e)
             }
-        } ?: Log.e(TAG, "send: not connected")
+        } ?: Log.e(TAG, "sendUnicast: not connected")
+    }
+
+    /**
+     * 发送组播数据
+     */
+    fun sendMulticast(data: ByteArray) {
+        socket?.let { s ->
+            if (s.isClosed) {
+                Log.e(TAG, "sendMulticast: not connected")
+                return
+            }
+            try {
+                s.send(DatagramPacket(data, data.size, InetAddress.getByName(multicastAddr), port))
+            } catch (e: Exception) {
+                Log.e(TAG, "sendMulticast error: ${e.message}", e)
+            }
+        } ?: Log.e(TAG, "sendMulticast: not connected")
+    }
+
+    /**
+     * 发送广播数据
+     */
+    fun sendBroadcast(data: ByteArray) {
+        socket?.let { s ->
+            if (s.isClosed) {
+                Log.e(TAG, "sendBroadcast: not connected")
+                return
+            }
+            try {
+                s.send(DatagramPacket(data, data.size, InetAddress.getByName(broadcastAddr), port))
+            } catch (e: Exception) {
+                Log.e(TAG, "sendBroadcast error: ${e.message}", e)
+            }
+        } ?: Log.e(TAG, "sendBroadcast: not connected")
     }
 
     /**
@@ -108,6 +143,7 @@ class UdpClient(
     private fun createSocket(): Boolean {
         socket = try {
             MulticastSocket(port).apply {
+                broadcast = true
                 loopbackMode = true
                 soTimeout = 0
                 joinGroup(InetAddress.getByName(multicastAddr))
@@ -117,6 +153,25 @@ class UdpClient(
             null
         }
         return socket != null
+    }
+
+    /**
+     * 收集本机活跃网卡 IP，用于过滤自收广播
+     */
+    private fun collectLocalIps() {
+        localIps.clear()
+        try {
+            val nis = NetworkInterface.getNetworkInterfaces()
+            while (nis.hasMoreElements()) {
+                val ni = nis.nextElement()
+                if (!ni.isUp || ni.isLoopback || !ni.supportsMulticast()) continue
+                val addrs = ni.inetAddresses
+                while (addrs.hasMoreElements()) {
+                    localIps.add(addrs.nextElement().hostAddress ?: continue)
+                }
+            }
+        } catch (_: Exception) {
+        }
     }
 
     /**
@@ -148,9 +203,11 @@ class UdpClient(
             Log.w(TAG, "receive error: ${e.message}")
             return
         }
+        val fromIp = packet.address?.hostAddress ?: ""
+        if (fromIp in localIps) return
         messageListener?.onMessage(
             packet.data.copyOf(packet.length),
-            packet.address?.hostAddress ?: "",
+            fromIp,
             packet.port,
         )
     }

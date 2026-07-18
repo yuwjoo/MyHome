@@ -1,4 +1,3 @@
-- android组播锁是否需要
 - nodeMCU udp功能简化，测试esp8266是否有性能问题
 - 空调状态保留消息加messageId，有序递增，mqtt保留全局唯一，每次发送指令时该messageId加一给到硬件，硬件判断messageId是否是本次的messageId+1,是则使用，并且上传状态消息，messageId加1，否则丢弃
 - 定时开关机同时保存 开始时间 和 时长（分钟），这样就可以计算出倒计时或者几点开关，本地定时模块记录该定时任务（任务id,时间，触发的主题），任务id方便取消定时任务
@@ -6,10 +5,9 @@
     - 前台服务声明 `foregroundServiceType` = `mediaPlayback`媒体播放前台服务，可以免除手机锁屏后深度休眠导致网络断开（酷狗就是这样，前提是保证有音频输出，喇叭有声）
     - 似乎还需要持有cpu唤醒锁
 - android无障碍模块（使用外部库）
-- android更新模块代码优化
 - android沉浸式下页面头部和底部安全区域如何实现
 - android悬浮窗（悬浮按钮）模块
 - 所有项目密钥统一管理（.secret）
 - android网络异常时-webview错误页自定义
-- android webview模块重构
 - Retrofit是对okhttp的封装，支持协程
+- 手机热点模式下，只能连接该热点的设备可以相互收到心跳，自己发送的其他设备收不到，它也收不到其他设备的

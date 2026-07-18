@@ -72,7 +72,7 @@ class HeartbeatManager(
     private fun sendHeartbeats() {
         try {
             Log.d("UdpManager", "发送心跳")
-            udpClient.send(byteArrayOf(0x01))
+            udpClient.sendBroadcast(byteArrayOf(0x01))
         } catch (e: Exception) {
             Log.e(TAG, "send heartbeat failed: ${e.message}", e)
         }

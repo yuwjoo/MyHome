@@ -53,7 +53,7 @@ object UdpManager {
                         } else {
                             val localPayload =
                                 LocalDevice.toObject(deviceManager.createLocalDevice())
-                            client.send(
+                            client.sendUnicast(
                                 TopicMessage.toBytes(UdpConfig.TOPIC_CALL, localPayload),
                                 fromIp
                             )
@@ -75,7 +75,7 @@ object UdpManager {
                     val device = LanDevice.from(fromIp, payload) ?: return@setMessageListener
                     deviceManager.saveDevice(device)
                     val localPayload = LocalDevice.toObject(deviceManager.createLocalDevice())
-                    client.send(
+                    client.sendUnicast(
                         TopicMessage.toBytes(UdpConfig.TOPIC_RESPONSE, localPayload),
                         fromIp
                     )
@@ -132,7 +132,7 @@ object UdpManager {
         networkMonitor.stop()
         releaseMulticastLock()
         try {
-            client.send(byteArrayOf(0x02))
+            client.sendBroadcast(byteArrayOf(0x02))
         } catch (e: Exception) {
             Log.e(TAG, "send offline failed: ${e.message}", e)
         }
@@ -249,7 +249,12 @@ object UdpManager {
      * @param targetIp 目标 IP
      */
     fun publish(topic: String, payload: JSONObject, targetIp: String? = null) {
-        client.send(TopicMessage.toBytes(topic, payload), targetIp)
+        val data = TopicMessage.toBytes(topic, payload)
+        if (targetIp != null) {
+            client.sendUnicast(data, targetIp)
+        } else {
+            client.sendBroadcast(data)
+        }
     }
 
     /**
@@ -262,14 +267,14 @@ object UdpManager {
      */
     fun publish(topic: String, payload: JSONObject, onlySubscribers: Boolean): Int {
         if (!onlySubscribers) {
-            client.send(TopicMessage.toBytes(topic, payload))
+            client.sendBroadcast(TopicMessage.toBytes(topic, payload))
             return -1
         }
         val data = TopicMessage.toBytes(topic, payload)
         var count = 0
         for (device in deviceManager.onlineDeviceList) {
             if (UdpConfig.ABILITY_PREFIX_TOPIC + topic in device.abilities) {
-                client.send(data, device.ipAddress)
+                client.sendUnicast(data, device.ipAddress)
                 count++
             }
         }

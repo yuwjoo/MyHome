@@ -57,16 +57,14 @@ class WebViewManager(
      * @param forceRefresh 是否强制刷新，默认 false
      */
     fun loadWeb(forceRefresh: Boolean = false) {
-        val localWebVersion = Updater.currentWebVersion
-
-        // 正式环境下，需要判断本地是否已经存在web资源文件
-        if (AppConfig.IS_RELEASE && localWebVersion.isEmpty()) return
-
-        if (!forceRefresh && localWebVersion == loadedVersion) return
+        if (AppConfig.IS_RELEASE) {
+            val localWebVersion = Updater.currentWebVersion
+            if (!forceRefresh && localWebVersion == loadedVersion) return
+            loadedVersion = localWebVersion
+        }
 
         val url = if (AppConfig.IS_RELEASE) WebViewConfig.RELEASE_WEB_URL else WebViewConfig.DEV_WEB_URL
         webView.loadUrl(url)
 
-        loadedVersion = localWebVersion
     }
 }
