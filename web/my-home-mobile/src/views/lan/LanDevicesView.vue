@@ -12,7 +12,7 @@
     <PullRefreshIndicator :pulling="pulling" :refreshing="refreshing" :pull-distance="pullDistance" :threshold="threshold" />
 
     <!-- Header -->
-    <PageHeader title="内网设备" :backable="false">
+    <PageHeader title="局域网设备" :backable="false">
       <template #actions>
         <button
           class="w-9 h-9 flex items-center justify-center rounded-2xl bg-card border border-border shadow-custom"
@@ -32,7 +32,7 @@
             :class="connected ? 'bg-emerald-400' : 'bg-red-400'"
           />
           <span class="text-xs" :class="connected ? 'text-emerald-500' : 'text-red-400'">
-            {{ connected ? '组播已连接' : '组播未连接' }}
+            {{ connected ? '已连接' : '未连接' }}
           </span>
           <span class="text-xs text-muted-foreground ml-1">
             · {{ onlineCount }} 台在线 / 共 {{ devices.length }} 台
