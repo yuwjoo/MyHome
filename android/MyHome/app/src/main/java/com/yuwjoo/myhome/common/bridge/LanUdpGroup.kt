@@ -24,7 +24,7 @@ class LanUdpGroup {
      */
     @BridgeMessage("getDeviceList")
     fun getDeviceList(params: JSONObject, sender: MessageSender) {
-        val devices = UdpManager.onlineDeviceList
+        val devices = UdpManager.deviceList
         val jsonArray = JSONArray()
         for (device in devices) {
             jsonArray.put(LanDevice.toObject(device))
@@ -45,7 +45,7 @@ class LanUdpGroup {
         val action = params.getString("action")
         when (action) {
             "on" -> {
-                val devices = UdpManager.onlineDeviceList
+                val devices = UdpManager.deviceList
                 val jsonArray = JSONArray()
                 for (device in devices) {
                     jsonArray.put(LanDevice.toObject(device))

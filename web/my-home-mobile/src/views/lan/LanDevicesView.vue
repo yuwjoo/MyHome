@@ -16,14 +16,11 @@
       <template #actions>
         <button
           class="w-9 h-9 flex items-center justify-center rounded-2xl bg-card border border-border shadow-custom"
-          :class="loading ? 'opacity-50' : ''"
-          :disabled="loading"
           @click="handleRefresh"
         >
           <RefreshCwIcon
             :size="16"
             class="text-foreground"
-            :class="loading ? 'animate-spin' : ''"
             :stroke-width="2.5"
           />
         </button>
@@ -47,7 +44,7 @@
     <!-- Device List -->
     <div class="px-5">
       <EmptyState
-        v-if="!loading && devices.length === 0"
+        v-if="devices.length === 0"
         :icon="RouterIcon"
         title="未发现内网设备"
         description="确保手机与设备在同一局域网下"
@@ -116,7 +113,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import PullRefreshIndicator from '@/components/PullRefreshIndicator.vue'
 
-const { devices, connected, loading, refresh } = useLanDevices()
+const { devices, connected, refresh } = useLanDevices()
 
 const onlineCount = computed(() => devices.value.filter((d) => d.online).length)
 
