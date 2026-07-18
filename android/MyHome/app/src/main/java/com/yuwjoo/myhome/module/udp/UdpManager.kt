@@ -113,11 +113,11 @@ object UdpManager {
         networkMonitor.start(context) { available ->
             Log.d(TAG, "network available changed: $available")
             if (available) {
-                client.connect()
                 acquireMulticastLock(context)
+                client.connect()
             } else {
-                client.disconnect()
                 releaseMulticastLock()
+                client.disconnect()
             }
         }
         acquireMulticastLock(context)
@@ -144,6 +144,7 @@ object UdpManager {
      *
      * @param context 用于获取 WiFi 服务
      */
+    @Synchronized
     private fun acquireMulticastLock(context: Context) {
         if (multicastLock != null) return
         if (wifiManager == null) {
@@ -159,6 +160,7 @@ object UdpManager {
     /**
      * 释放组播锁
      */
+    @Synchronized
     private fun releaseMulticastLock() {
         multicastLock?.release()
         multicastLock = null

@@ -20,6 +20,7 @@ class UdpClient(
         private const val TAG = "UdpClient"
     }
 
+    @Volatile
     private var socket: MulticastSocket? = null // 组播 socket
     private var loopThread: Thread? = null // 消息接收线程
     private var messageListener: MessageListener? = null // 消息监听器
@@ -50,6 +51,7 @@ class UdpClient(
     /**
      * 连接
      */
+    @Synchronized
     fun connect() {
         if (connected) {
             Log.d(TAG, "connect: already connected")
@@ -67,6 +69,7 @@ class UdpClient(
     /**
      * 断开连接
      */
+    @Synchronized
     fun disconnect() {
         if (!connected) return
         Log.d(TAG, "disconnect")

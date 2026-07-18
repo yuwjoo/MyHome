@@ -13,10 +13,11 @@ object AppConfig {
     // ==================== 环境判断 ====================
 
     /** 是否为正式发布版本 */
-    const val IS_RELEASE: Boolean = BuildConfig.IS_RELEASE
+    val IS_RELEASE: Boolean
+        get() = BuildConfig.IS_RELEASE
 
     /** 是否为开发环境 */
-    const val IS_DEV: Boolean = !IS_RELEASE
+    val IS_DEV: Boolean = !IS_RELEASE
 
     // ==================== 远程资源地址 ====================
 

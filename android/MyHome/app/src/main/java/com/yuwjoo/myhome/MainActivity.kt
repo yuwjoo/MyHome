@@ -7,7 +7,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.lifecycle.lifecycleScope
 import com.yuwjoo.myhome.config.AppConfig
 import com.yuwjoo.myhome.module.mqtt.MqttManager
 import com.yuwjoo.myhome.module.udp.UdpManager
@@ -16,7 +15,9 @@ import com.yuwjoo.myhome.module.updater.UpdatePlatform
 import com.yuwjoo.myhome.module.updater.Updater
 import com.yuwjoo.myhome.ui.DialogHelper
 import com.yuwjoo.myhome.ui.webview.WebViewManager
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -30,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val webViewManager by lazy { WebViewManager(this) }
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         // 加载web
         webViewManager.loadWeb()
 
-        lifecycleScope.launch(Dispatchers.IO) {
+        scope.launch {
             // 连接mqtt
             launch { MqttManager.connect() }
             // 连接udp
@@ -64,7 +66,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        lifecycleScope.launch(Dispatchers.IO) {
+        scope.launch {
             // 断开 mqtt
             launch { MqttManager.disconnect() }
             // 断开udp
