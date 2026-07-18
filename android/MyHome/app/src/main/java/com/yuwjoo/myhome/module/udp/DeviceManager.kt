@@ -126,6 +126,20 @@ class DeviceManager {
         devices[ipAddress] = device.copy(online = online)
         notifyAllListener()
     }
+
+    /**
+     * 将所有设备标记为离线
+     */
+    fun markAllOffline() {
+        var changed = false
+        for ((ip, device) in devices) {
+            if (device.online) {
+                devices[ip] = device.copy(online = false)
+                changed = true
+            }
+        }
+        if (changed) notifyAllListener()
+    }
 }
 
 

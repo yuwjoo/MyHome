@@ -113,11 +113,14 @@ object UdpManager {
         networkMonitor.start(context) { available ->
             Log.d(TAG, "network available changed: $available")
             if (available) {
+                if(isConnected) return@start
                 acquireMulticastLock(context)
                 client.connect()
             } else {
+                if(!isConnected) return@start
                 releaseMulticastLock()
                 client.disconnect()
+                deviceManager.markAllOffline()
             }
         }
         acquireMulticastLock(context)
