@@ -11,6 +11,7 @@ data class LocalDevice(
     val deviceName: String = UdpConfig.deviceName, // 设备名称
     val online: Boolean = true, // 在线状态
     val abilities: List<String> = UdpConfig.deviceAbilities, // 能力列表（如 "topic:xxx"、"skill:xxx"）
+    val latestSeq: Int = 0, // 最新消息序号
 ) {
     companion object {
         /**
@@ -32,6 +33,7 @@ data class LocalDevice(
                 deviceName = name,
                 online = json.optBoolean("online", true),
                 abilities = abilities,
+                latestSeq = json.optInt("latestSeq", 0),
             )
         }
 
@@ -46,6 +48,7 @@ data class LocalDevice(
             json.put("deviceName", device.deviceName)
             json.put("online", device.online)
             json.put("abilities", JSONArray(device.abilities))
+            json.put("latestSeq", device.latestSeq)
             return json
         }
     }

@@ -140,7 +140,7 @@ class DeviceManager {
         }
         if (changed) notifyAllListener()
     }
-}
+
 
 
 

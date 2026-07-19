@@ -9,13 +9,13 @@ import java.net.MulticastSocket
 import java.net.NetworkInterface
 
 /**
- * UDP 客户端
+ * UDP 客户端（帧解码在接收线程中完成，无效帧直接丢弃）
  */
 class UdpClient(
     private val multicastAddr: String = UdpConfig.MULTICAST_ADDR, // 组播组地址
     private val broadcastAddr: String = "255.255.255.255", // 广播地址
     private val port: Int = UdpConfig.PORT, // 端口（监听与发送共用）
-    private val bufferSize: Int = 1024, // 接收缓冲区大小（字节）
+    private val bufferSize: Int = UdpConfig.BUFFER_SIZE, // 接收缓冲区大小（字节）
 ) {
 
     companion object {
@@ -86,6 +86,9 @@ class UdpClient(
 
     /**
      * 发送单播数据
+     *
+     * @param data     帧字节
+     * @param targetIp 目标 IP
      */
     fun sendUnicast(data: ByteArray, targetIp: String) {
         socket?.let { s ->
@@ -103,6 +106,8 @@ class UdpClient(
 
     /**
      * 发送组播数据
+     *
+     * @param data 帧字节
      */
     fun sendMulticast(data: ByteArray) {
         socket?.let { s ->
@@ -120,6 +125,8 @@ class UdpClient(
 
     /**
      * 发送广播数据
+     *
+     * @param data 帧字节
      */
     fun sendBroadcast(data: ByteArray) {
         socket?.let { s ->
@@ -205,11 +212,9 @@ class UdpClient(
         }
         val fromIp = packet.address?.hostAddress ?: ""
         if (fromIp in localIps) return
-        messageListener?.onMessage(
-            packet.data.copyOf(packet.length),
-            fromIp,
-            packet.port,
-        )
+        val raw = packet.data.copyOf(packet.length)
+        val frame = UdpFrame.decode(raw, 0, raw.size) ?: return // 魔数不匹配则丢弃
+        messageListener?.onMessage(frame, fromIp, packet.port)
     }
 
     /**

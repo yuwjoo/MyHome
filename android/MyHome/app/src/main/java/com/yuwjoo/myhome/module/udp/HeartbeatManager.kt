@@ -67,12 +67,18 @@ class HeartbeatManager(
     }
 
     /**
-     * 发送心跳包
+     * 发送心跳广播包
      */
     private fun sendHeartbeats() {
         try {
-            Log.d("UdpManager", "发送心跳")
-            udpClient.sendBroadcast(byteArrayOf(0x01))
+            Log.d(TAG, "发送心跳")
+            val frame = UdpFrame.encode(
+                type = UdpConfig.Type.HEARTBEAT,
+                seqNum = 0,
+                flags = UdpConfig.Flags.NONE,
+                payload = ByteArray(0),
+            )
+            udpClient.sendBroadcast(frame)
         } catch (e: Exception) {
             Log.e(TAG, "send heartbeat failed: ${e.message}", e)
         }

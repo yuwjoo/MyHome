@@ -12,6 +12,7 @@ data class LanDevice(
     val online: Boolean, // 在线状态
     val abilities: List<String>, // 能力列表（如 "topic:xxx"、"skill:xxx"）
     val lastHeartbeatTime: Long = System.currentTimeMillis(), // 最后一次心跳时间
+    val latestSeq: Int = 0, // 最新消息序号
 ) {
     companion object {
         /**
@@ -34,6 +35,7 @@ data class LanDevice(
                 deviceName = name,
                 online = json.optBoolean("online", true),
                 abilities = abilities,
+                latestSeq = json.optInt("latestSeq", 0),
             )
         }
 
@@ -49,6 +51,7 @@ data class LanDevice(
             json.put("deviceName", device.deviceName)
             json.put("online", device.online)
             json.put("abilities", JSONArray(device.abilities))
+            json.put("latestSeq", device.latestSeq)
             return json
         }
     }
