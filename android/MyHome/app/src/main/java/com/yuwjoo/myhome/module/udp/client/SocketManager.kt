@@ -20,11 +20,11 @@ internal class SocketManager {
     private val localIps = mutableSetOf<String>() // 本机 IP 集合（用于过滤自收报文）
 
     private val multicastAddr: InetAddress by lazy { // 组播地址
-        InetAddress.getByName(UdpConfig.MULTICAST_ADDR)
+        InetAddress.getByName(ClientConfig.MULTICAST_ADDR)
     }
 
     private val broadcastAddr: InetAddress by lazy { // 广播地址
-        InetAddress.getByName(UdpConfig.BROADCAST_ADDR)
+        InetAddress.getByName(ClientConfig.BROADCAST_ADDR)
     }
 
     val isOpen: Boolean get() = socket?.let { !it.isClosed } ?: false // Socket 是否已创建且未关闭
@@ -38,11 +38,11 @@ internal class SocketManager {
         if (isOpen) return true
 
         socket = try {
-            MulticastSocket(UdpConfig.PORT).apply {
-                broadcast = true
-                loopbackMode = true
+            MulticastSocket(ClientConfig.PORT).apply {
+                broadcast = true // 允许发送广播报文
+                loopbackMode = true // 不接收本机自己发出的组播
                 soTimeout = 0 // 阻塞接收
-                reuseAddress = true
+                reuseAddress = true // 允许多个 Socket 绑定同一端口
                 joinGroup(multicastAddr)
             }
         } catch (e: Exception) {
@@ -52,13 +52,15 @@ internal class SocketManager {
 
         if (socket != null) {
             collectLocalIps()
-            Log.i(TAG, "Socket created on port ${UdpConfig.PORT}, joined ${UdpConfig.MULTICAST_ADDR}")
+            Log.i(TAG, "Socket created on port ${ClientConfig.PORT}, joined ${ClientConfig.MULTICAST_ADDR}")
             return true
         }
         return false
     }
 
-    /** 销毁 Socket：离开组播组 + 关闭 */
+    /** 
+     * 销毁 Socket：离开组播组 + 关闭
+     */
     fun destroy() {
         socket?.let { s ->
             try {
@@ -113,7 +115,7 @@ internal class SocketManager {
             return false
         }
         return try {
-            s.send(DatagramPacket(data, data.size, InetAddress.getByName(targetIp), UdpConfig.PORT))
+            s.send(DatagramPacket(data, data.size, InetAddress.getByName(targetIp), ClientConfig.PORT))
             true
         } catch (e: Exception) {
             Log.e(TAG, "sendUnicast to $targetIp error: ${e.message}")
@@ -137,7 +139,7 @@ internal class SocketManager {
             return false
         }
         return try {
-            s.send(DatagramPacket(data, data.size, multicastAddr, UdpConfig.PORT))
+            s.send(DatagramPacket(data, data.size, multicastAddr, ClientConfig.PORT))
             true
         } catch (e: Exception) {
             Log.e(TAG, "sendMulticast error: ${e.message}")
@@ -161,7 +163,7 @@ internal class SocketManager {
             return false
         }
         return try {
-            s.send(DatagramPacket(data, data.size, broadcastAddr, UdpConfig.PORT))
+            s.send(DatagramPacket(data, data.size, broadcastAddr, ClientConfig.PORT))
             true
         } catch (e: Exception) {
             Log.e(TAG, "sendBroadcast error: ${e.message}")

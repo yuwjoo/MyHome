@@ -34,7 +34,7 @@ internal class Receiver(
         if (running.getAndSet(true)) return
         job = scope.launch {
             Log.i(TAG, "Receiver started")
-            val buffer = ByteArray(UdpConfig.BUFFER_SIZE)
+            val buffer = ByteArray(ClientConfig.BUFFER_SIZE)
             while (isActive) {
                 val packet = socketManager.receive(buffer) ?: continue
                 handlePacket(packet, buffer.copyOf(packet.length))
@@ -59,10 +59,7 @@ internal class Receiver(
         // 过滤本机发出的数据
         if (socketManager.isLocalAddress(fromIp)) return
 
-        // 快速预校验
-        if (!PacketValidator.validate(raw)) return
-
-        // 解码
+        // 解码（内含魔数/长度/CRC 校验）
         val frame = FrameCodec.decode(raw) ?: return
 
         // 回调

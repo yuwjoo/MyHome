@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 internal class HeartbeatEngine(
     private val onSendHeartbeat: (() -> Unit)? = null,
     private val onDetectOffline: (() -> Unit)? = null,
-    private val intervalMs: Long = UdpConfig.HEARTBEAT_INTERVAL_MS,
+    private val intervalMs: Long = ClientConfig.HEARTBEAT_INTERVAL_MS,
 ) {
     companion object {
         private const val TAG = "HeartbeatEngine"

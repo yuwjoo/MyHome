@@ -27,6 +27,7 @@ internal class NetworkMonitor {
      * @param callback 网络状态变化回调（WiFi 可用/不可用）
      */
     fun start(context: Context, callback: (available: Boolean) -> Unit) {
+        if (networkCallback != null) return // 已启动，幂等
         this.callback = callback
         connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
