@@ -11,8 +11,10 @@ data class LanDevice(
     val ip: String, // 设备 IP
     val deviceName: String = "", // 设备名称
     val abilities: List<String> = emptyList(), // 设备能力列表
-    val online: Boolean = false, // 是否在线
-    val lastSeenAt: Long = 0L, // 最后在线时间戳
+    var online: Boolean = false // 是否在线（同文件内可写，外部只读）
+        private set,
+    var offlineAt: Long = 0L // 离线时间戳，0 表示当前在线（同文件内可写，外部只读）
+        private set,
     val heartbeatInterval: Long = 0L, // 心跳间隔（ms），0 表示不发送心跳
     val heartbeatTimeout: Long = 0L, // 心跳过期间隔（ms）
 )
@@ -25,6 +27,7 @@ internal class DeviceRegistry {
     private val devices = ConcurrentHashMap<String, LanDevice>() // 设备注册表（线程安全）
 
     var onDeviceChanged: (() -> Unit)? = null // 设备变更通知
+    var onDeviceOffline: ((ip: String) -> Unit)? = null // 设备离线通知（用于中止 ACK 重试）
 
     /**
      * 注册或更新设备
@@ -36,19 +39,17 @@ internal class DeviceRegistry {
         heartbeatInterval: Long = 0L,
         heartbeatTimeout: Long = 0L,
     ): LanDevice {
-        val now = System.currentTimeMillis()
-        val exists = devices[ip]
-
         val device = LanDevice(
             ip = ip,
             deviceName = deviceName,
             abilities = abilities.toList(),
             online = true,
-            lastSeenAt = now,
+            offlineAt = 0L,
             heartbeatInterval = heartbeatInterval,
             heartbeatTimeout = heartbeatTimeout,
         )
 
+        val exists = devices[ip]
         val changed = exists != device
         devices[ip] = device
         if (changed) onDeviceChanged?.invoke()
@@ -61,11 +62,11 @@ internal class DeviceRegistry {
     fun markOnline(ip: String): Boolean {
         val device = devices[ip] ?: return false
         if (!device.online) {
-            devices[ip] = device.copy(online = true, lastSeenAt = System.currentTimeMillis())
+            device.online = true
+            device.offlineAt = 0L
             onDeviceChanged?.invoke()
             return true
         }
-        devices[ip] = device.copy(lastSeenAt = System.currentTimeMillis())
         return false
     }
 
@@ -75,33 +76,13 @@ internal class DeviceRegistry {
     fun markOffline(ip: String): Boolean {
         val device = devices[ip] ?: return false
         if (device.online) {
-            devices[ip] = device.copy(online = false)
+            device.online = false
+            device.offlineAt = System.currentTimeMillis()
             onDeviceChanged?.invoke()
+            onDeviceOffline?.invoke(ip)
             return true
         }
         return false
-    }
-
-    /**
-     * 检测并标记超时离线设备，使用设备自身的 heartbeatTimeout，未设置则回退全局默认
-     */
-    fun detectOffline(): List<String> {
-        val now = System.currentTimeMillis()
-        val offlineIps = mutableListOf<String>()
-
-        devices.forEach { (ip, device) ->
-            if (!device.online) return@forEach
-            val timeout = if (device.heartbeatTimeout > 0) device.heartbeatTimeout else ClientConfig.HEARTBEAT_TIMEOUT_MS
-            if ((now - device.lastSeenAt) > timeout) {
-                devices[ip] = device.copy(online = false)
-                offlineIps.add(ip)
-            }
-        }
-
-        if (offlineIps.isNotEmpty()) {
-            onDeviceChanged?.invoke()
-        }
-        return offlineIps
     }
 
     fun remove(ip: String) {

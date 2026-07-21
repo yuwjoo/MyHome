@@ -1,9 +1,11 @@
 ﻿package com.yuwjoo.myhome.module.udp
 
 import android.content.Context
-import android.net.wifi.WifiManager
 import android.util.Log
 import com.yuwjoo.myhome.common.ListenerRegistry
+import com.yuwjoo.myhome.module.udp.client.ClientConfig
+import com.yuwjoo.myhome.module.udp.client.FrameData
+import com.yuwjoo.myhome.module.udp.client.UdpClient
 import com.yuwjoo.myhome.module.udp.listener.ConnectionListener
 import com.yuwjoo.myhome.module.udp.listener.DeviceListener
 import com.yuwjoo.myhome.module.udp.listener.TopicListener
@@ -12,164 +14,101 @@ import com.yuwjoo.myhome.module.udp.model.TopicMessage
 import org.json.JSONObject
 
 /**
- * UDP 管理器
+ * UDP 管理器 — 单例入口，对接 client.UdpClient
+ *
+ * @FileName UdpManager.kt
+ * @FilePath com/yuwjoo/myhome/module/udp/UdpManager.kt
+ * @Author yuwjoo
+ * @Date 2025-01-01
  */
 object UdpManager {
 
     private const val TAG = "UdpManager"
-    private const val MULTICAST_LOCK_TAG = "MyHome:UdpMulticast"
 
     private val client = UdpClient()
     private val topicManager = TopicManager()
-    private val deviceManager = DeviceManager()
     private val connectionListeners = ListenerRegistry<Unit, ConnectionListener>()
+    private val deviceListeners = ListenerRegistry<Unit, DeviceListener>()
 
-    private val seqTracker = SeqTracker() // 消息序号管理
-    private val ackManager = AckManager(
-        onRetry = { ip, data -> client.sendUnicast(data, ip) },
-        onFailed = { ip, seqNum ->
-            Log.w(TAG, "ack retry exhausted: ip=$ip seq=$seqNum")
-        },
-    )
-    private val dispatcher = MessageDispatcher(client, deviceManager, topicManager, ackManager, seqTracker)
-    private val heartbeatManager = HeartbeatManager(deviceManager, client) // 心跳管理器
+    @Volatile
+    private var _isConnected = false
 
-    val deviceList: List<LanDevice> // 全部设备列表
-        get() = deviceManager.deviceList
+    // ──────────────── 状态访问 ────────────────
 
-    val onlineDeviceList: List<LanDevice> // 在线设备列表
-        get() = deviceManager.onlineDeviceList
+    /** 是否已连接 */
+    val isConnected: Boolean get() = _isConnected
 
-    val isConnected: Boolean // 是否已连接组播
-        get() = client.isConnected
+    /** 设备列表（已转为 model.LanDevice） */
+    val deviceList: List<LanDevice>
+        get() = client.devices.map { it.toModelDevice() }
 
-    private val networkMonitor = NetworkMonitor() // 网络状态监听
-    private var wifiManager: WifiManager? = null // WiFi 管理器
-    private var multicastLock: WifiManager.MulticastLock? = null // 组播锁
+    /** 在线设备列表（已转为 model.LanDevice） */
+    val onlineDeviceList: List<LanDevice>
+        get() = client.onlineDevices.map { it.toModelDevice() }
 
-    init {
-        client.setMessageListener { frame, fromIp, _ ->
-            dispatcher.dispatch(frame, fromIp)
-        }
-
-        client.setConnectionListener { connected ->
-            connectionListeners.dispatch(Unit) { it.onConnectionChanged(connected) }
-        }
-    }
+    // ──────────────── 连接/断开 ────────────────
 
     /**
-     * 连接
+     * 启动 UDP 通信
      *
-     * @param context 用于监听网络变化
+     * @param context Android Context（用于网络监听注册）
      */
     fun connect(context: Context) {
-        networkMonitor.start(context) { available ->
-            Log.d(TAG, "network available changed: $available")
-            if (available) {
-                if (isConnected) return@start
-                acquireMulticastLock(context)
-                client.connect()
-            } else {
-                if (!isConnected) return@start
-                releaseMulticastLock()
-                client.disconnect()
-            }
+        if (_isConnected) return
+        // _isConnected 由 onConnectionChanged 回调在 socket 实际就绪后设置，
+        // 避免在此提前置 true 导致状态与实际连接不一致
+
+        // 设备变更 → 通知所有 DeviceListener
+        client.onDeviceChanged = { _ ->
+            val modelDevices = client.devices.map { it.toModelDevice() }
+            deviceListeners.dispatch(Unit) { it.onDeviceChanged(modelDevices) }
         }
-        acquireMulticastLock(context)
-        client.connect()
-        ackManager.start()
-        heartbeatManager.start()
+
+        // 连接状态变更 → 通知所有 ConnectionListener
+        client.onConnectionChanged = { connected ->
+            _isConnected = connected
+            connectionListeners.dispatch(Unit) { it.onConnectionChanged(connected) }
+        }
+
+        // 收到消息 → 解析 JSON 并分发到主题监听器
+        client.onMessageReceived = { frame, fromIp ->
+            handleIncomingMessage(frame, fromIp)
+        }
+
+        client.connect(context)
     }
 
     /**
-     * 断开连接
+     * 停止 UDP 通信
+     *
+     * @param context Android Context（用于网络监听注销）
      */
-    fun disconnect() {
-        heartbeatManager.stop()
-        networkMonitor.stop()
-        releaseMulticastLock()
-        try {
-            val frame = UdpFrame.encode(
-                type = UdpConfig.Type.OFFLINE,
-                seqNum = 0,
-                flags = UdpConfig.Flags.NONE,
-                payload = ByteArray(0),
-            )
-            client.sendBroadcast(frame)
-        } catch (e: Exception) {
-            Log.e(TAG, "send offline failed: ${e.message}", e)
-        }
-        ackManager.stop()
-        client.disconnect()
+    fun disconnect(context: Context) {
+        client.disconnect(context)
+        _isConnected = false
     }
 
-    /**
-     * 持有组播锁
-     */
-    @Synchronized
-    private fun acquireMulticastLock(context: Context) {
-        if (multicastLock != null) return
-        if (wifiManager == null) {
-            wifiManager =
-                context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        }
-        multicastLock = wifiManager?.createMulticastLock(MULTICAST_LOCK_TAG)?.apply {
-            acquire()
-        }
-        Log.d(TAG, "multicast lock acquired")
-    }
+    // ──────────────── 设备监听 ────────────────
 
-    /**
-     * 释放组播锁
-     */
-    @Synchronized
-    private fun releaseMulticastLock() {
-        multicastLock?.release()
-        multicastLock = null
-        Log.d(TAG, "multicast lock released")
-    }
-
-    /**
-     * 注册设备变更监听器
-     */
     fun registerDeviceListener(listener: DeviceListener) {
-        deviceManager.registerListener(listener)
+        deviceListeners.register(Unit, listener)
     }
 
-    /**
-     * 取消注册设备变更监听器
-     */
     fun unregisterDeviceListener(listener: DeviceListener) {
-        deviceManager.unregisterListener(listener)
+        deviceListeners.unregister(Unit, listener)
     }
 
-    /**
-     * 清空所有设备变更监听器
-     */
-    fun clearDeviceListeners() {
-        deviceManager.clearAllListener()
-    }
+    // ──────────────── 连接状态监听 ────────────────
 
-    /**
-     * 注册连接状态监听器
-     */
     fun registerConnectionListener(listener: ConnectionListener) {
         connectionListeners.register(Unit, listener)
     }
 
-    /**
-     * 取消注册连接状态监听器
-     */
     fun unregisterConnectionListener(listener: ConnectionListener) {
         connectionListeners.unregister(Unit, listener)
     }
 
-    /**
-     * 清空所有连接状态监听器
-     */
-    fun clearConnectionListeners() {
-        connectionListeners.clearAll()
-    }
+    // ──────────────── 主题订阅/发布 ────────────────
 
     /**
      * 订阅主题
@@ -181,83 +120,76 @@ object UdpManager {
     /**
      * 取消订阅主题
      */
-    fun unsubscribe(topic: String, callback: TopicListener? = null) {
-        if (callback == null) {
-            topicManager.clearTopicListener(topic)
-        } else {
-            topicManager.unregisterListener(topic, callback)
-        }
+    fun unsubscribe(topic: String, callback: TopicListener) {
+        topicManager.unregisterListener(topic, callback)
     }
 
     /**
-     * 发布消息
+     * 发布主题消息
      *
-     * @param topic    业务主题
-     * @param payload  消息内容
-     * @param targetIp 目标 IP，null 则广播
-     * @param ordered  是否有序不重复，默认 true
-     * @param needAck  是否需要 Ack 保证送达，默认 true
+     * @param topic           主题名称
+     * @param payload         负载数据
+     * @param targetIp        目标 IP（null = 广播）
+     * @param ordered         是否有序发送（有序 = ACK + 重试）
+     * @param onlySubscribers 为 true 时仅向匹配该主题能力的在线设备发送
      */
-    fun publish(topic: String, payload: JSONObject, targetIp: String? = null, ordered: Boolean = true, needAck: Boolean = true) {
-        if (targetIp != null) {
-            publishUnicast(topic, payload, targetIp, ordered, needAck)
-        } else {
-            val payloadBytes = TopicMessage.toBytes(topic, payload)
-            val frame = UdpFrame.encode(
-                type = UdpConfig.Type.JSON,
-                seqNum = 0,
-                flags = UdpConfig.Flags.NONE,
-                payload = payloadBytes,
-            )
-            client.sendBroadcast(frame)
-        }
-    }
-
-    /**
-     * 发布消息
-     *
-     * @param onlySubscribers 是否仅发给订阅者
-     * @param ordered         是否有序不重复，默认 true
-     * @param needAck         是否需要 Ack 保证送达，默认 true
-     * @return 发送的设备数
-     */
-    fun publish(topic: String, payload: JSONObject, onlySubscribers: Boolean, ordered: Boolean = true, needAck: Boolean = true): Int {
-        if (!onlySubscribers) {
-            publish(topic, payload, ordered = ordered, needAck = needAck)
-            return -1
-        }
-        var count = 0
-        for (device in deviceManager.onlineDeviceList) {
-            if (UdpConfig.ABILITY_PREFIX_TOPIC + topic in device.abilities) {
-                publishUnicast(topic, payload, device.ipAddress, ordered, needAck)
-                count++
+    fun publish(
+        topic: String,
+        payload: JSONObject,
+        targetIp: String? = null,
+        ordered: Boolean = true,
+        onlySubscribers: Boolean = false,
+    ) {
+        val bytes = TopicMessage.toBytes(topic, payload)
+        when {
+            targetIp != null -> {
+                // 单播
+                client.send(ClientConfig.Type.JSON, bytes, targetIp, ordered)
+            }
+            onlySubscribers -> {
+                // 仅向匹配能力的在线设备发送
+                val matched = client.onlineDevices.filter { device ->
+                    device.abilities.any { it == "${ClientConfig.ABILITY_PREFIX_TOPIC}$topic" }
+                }
+                for (device in matched) {
+                    client.send(ClientConfig.Type.JSON, bytes, device.ip, ordered)
+                }
+            }
+            else -> {
+                // 广播（不保证顺序、不 ACK）
+                client.send(ClientConfig.Type.JSON, bytes, null, false)
             }
         }
-        return count
     }
 
+    // ──────────────── 内部消息分发 ────────────────
+
     /**
-     * 单播发送 JSON 消息
-     *
-     * @param topic    业务主题
-     * @param payload  消息内容
-     * @param targetIp 目标 IP
-     * @param ordered  是否有序不重复
-     * @param needAck  是否需要 Ack 保证送达
+     * 解析收到的 JSON 帧并分发给对应主题的监听器
      */
-    private fun publishUnicast(topic: String, payload: JSONObject, targetIp: String, ordered: Boolean, needAck: Boolean) {
-        val seqNum = if (ordered) seqTracker.nextSeq(targetIp) else 0
-        val flags = (if (ordered) UdpConfig.Flags.ORDERED else 0) + (if (needAck) UdpConfig.Flags.ACK_REQUIRED else 0)
-        val payloadBytes = TopicMessage.toBytes(topic, payload)
-        val frame = UdpFrame.encode(
-            type = UdpConfig.Type.JSON,
-            seqNum = seqNum,
-            flags = flags.toByte(),
-            payload = payloadBytes,
-        )
-        client.sendUnicast(frame, targetIp)
-        if (needAck) {
-            ackManager.register(targetIp, seqNum, frame)
+    private fun handleIncomingMessage(frame: FrameData, fromIp: String) {
+        if (frame.type != ClientConfig.Type.JSON) return
+        try {
+            val jsonStr = String(frame.payload, Charsets.UTF_8)
+            val json = JSONObject(jsonStr)
+            val topicMsg = TopicMessage.from(json) ?: return
+            topicManager.notifyListener(topicMsg.topic, topicMsg.payload)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to parse incoming message from $fromIp: ${e.message}")
         }
     }
+
+    // ──────────────── 模型转换 ────────────────
+
+    /**
+     * client.LanDevice → model.LanDevice
+     */
+    private fun com.yuwjoo.myhome.module.udp.client.LanDevice.toModelDevice() = LanDevice(
+        ipAddress = this.ip,
+        deviceName = this.deviceName,
+        online = this.online,
+        abilities = this.abilities,
+        lastHeartbeatTime = this.lastSeenAt,
+        latestSeq = 0,
+    )
 }

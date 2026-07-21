@@ -6,10 +6,11 @@ import android.util.Log
  * 消息路由：按帧类型分发到不同处理器
  */
 internal class MessageRouter(
-    private val socketManager: SocketManager,
+    private val udpSocket: UdpSocket,
     private val deviceRegistry: DeviceRegistry,
     private val ackEngine: AckEngine,
     private val seqManager: SeqManager,
+    private val heartbeatEngine: HeartbeatEngine,
 ) {
     companion object {
         private const val TAG = "MessageRouter"
@@ -34,7 +35,7 @@ internal class MessageRouter(
     }
 
     /**
-     * 处理心跳帧：标记在线，设备处于离线（或无记录）时发起 Call 重新握手
+     * 处理心跳帧：设备离线/未知时发起 Call 握手，已知在线时记录心跳时间
      */
     private fun handleHeartbeat(frame: FrameData, fromIp: String) {
         val existing = deviceRegistry.get(fromIp)
@@ -50,8 +51,13 @@ internal class MessageRouter(
                 flags = ClientConfig.Flags.NONE,
                 payload = payload,
             )
-            socketManager.sendUnicast(callFrame, fromIp)
+            udpSocket.sendUnicast(callFrame, fromIp)
             Log.d(TAG, "Sent CALL to device: $fromIp")
+        } else {
+            // 已知在线设备：记录心跳时间到 HeartbeatEngine，用于离线检测
+            heartbeatEngine.recordHeartbeat(fromIp)
+            // 同时刷新 DeviceRegistry（处理在线→离线→在线的过渡）
+            deviceRegistry.markOnline(fromIp)
         }
     }
 
@@ -60,6 +66,7 @@ internal class MessageRouter(
      */
     private fun handleOffline(frame: FrameData, fromIp: String) {
         deviceRegistry.markOffline(fromIp)
+        // ackEngine.abort 由 deviceRegistry.onDeviceOffline 回调链统一触发
         Log.d(TAG, "Device offline: $fromIp")
     }
 
@@ -87,7 +94,7 @@ internal class MessageRouter(
             flags = ClientConfig.Flags.NONE,
             payload = payload,
         )
-        socketManager.sendUnicast(answerFrame, fromIp)
+        udpSocket.sendUnicast(answerFrame, fromIp)
         Log.d(TAG, "Responded ANSWER to $fromIp, latestSeq=$myLatestSeq")
     }
 
@@ -183,7 +190,7 @@ internal class MessageRouter(
             flags = ClientConfig.Flags.NONE,
             payload = ackPayload,
         )
-        socketManager.sendUnicast(ackFrame, fromIp)
+        udpSocket.sendUnicast(ackFrame, fromIp)
     }
 
     /**

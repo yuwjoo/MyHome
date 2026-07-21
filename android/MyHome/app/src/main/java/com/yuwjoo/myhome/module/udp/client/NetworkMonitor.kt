@@ -6,29 +6,37 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
- * 网络监听：通过 ConnectivityManager.NetworkCallback 监听 WiFi 连接状态
+ * 网络监听：通过 ConnectivityManager.NetworkCallback 监听 WiFi 连接状态，内置防抖
  */
-internal class NetworkMonitor {
+internal class NetworkMonitor(private val callback: (available: Boolean) -> Unit) {
 
     companion object {
         private const val TAG = "NetworkMonitor"
+        private const val DEBOUNCE_MS = 1500L // 防抖间隔（毫秒）
     }
 
-    private var callback: ((available: Boolean) -> Unit)? = null // 网络状态变化回调
     private var connectivityManager: ConnectivityManager? = null // 网络连接管理器
-    private var networkCallback: ConnectivityManager.NetworkCallback? = null // 网络回调实例
+    @Volatile private var networkCallback: ConnectivityManager.NetworkCallback? = null // 网络回调实例
+
+    // 防抖
+    private val scope = CoroutineScope(Dispatchers.Main) // 防抖协程作用域
+    private var debounceJob: Job? = null // 当前防抖 Job
+    private var pendingState: Boolean? = null // 最近一次待通知的状态
 
     /**
      * 启动监听
      *
-     * @param context  应用上下文
-     * @param callback 网络状态变化回调（WiFi 可用/不可用）
+     * @param context 应用上下文
      */
-    fun start(context: Context, callback: (available: Boolean) -> Unit) {
-        if (networkCallback != null) return // 已启动，幂等
-        this.callback = callback
+    fun start(context: Context) {
+        if (networkCallback != null) return
         connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
 
@@ -39,24 +47,23 @@ internal class NetworkMonitor {
         networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 Log.d(TAG, "WiFi available")
-                callback(true)
+                debounceNotify(true)
             }
 
             override fun onLost(network: Network) {
                 Log.d(TAG, "WiFi lost")
-                callback(false)
+                debounceNotify(false)
             }
 
             override fun onCapabilitiesChanged(
                 network: Network,
                 networkCapabilities: NetworkCapabilities,
             ) {
-                // WiFi 信号变化时再次确认可用性
                 val hasWifi = networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
                 val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 Log.d(TAG, "WiFi capabilities changed: wifi=$hasWifi, internet=$hasInternet")
                 if (!hasWifi) {
-                    callback(false)
+                    debounceNotify(false)
                 }
             }
         }
@@ -73,6 +80,10 @@ internal class NetworkMonitor {
      * 停止监听
      */
     fun stop(context: Context) {
+        if (networkCallback == null) return
+        debounceJob?.cancel()
+        debounceJob = null
+
         networkCallback?.let {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             try {
@@ -83,8 +94,22 @@ internal class NetworkMonitor {
         }
         networkCallback = null
         connectivityManager = null
-        callback = null
         Log.i(TAG, "NetworkMonitor stopped")
+    }
+
+    /**
+     * 防抖通知：挂起 [DEBOUNCE_MS] 后若未再收到新变化，则触发回调
+     */
+    private fun debounceNotify(available: Boolean) {
+        pendingState = available
+        debounceJob?.cancel()
+        debounceJob = scope.launch {
+            delay(DEBOUNCE_MS)
+            pendingState?.let { state ->
+                callback(state)
+                Log.d(TAG, "Debounced notify: available=$state")
+            }
+        }
     }
 
     /**

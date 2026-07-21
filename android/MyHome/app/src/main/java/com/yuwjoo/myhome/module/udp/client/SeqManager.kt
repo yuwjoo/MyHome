@@ -61,6 +61,13 @@ internal class SeqManager {
     }
 
     /**
+     * 回退发送序号（用于 ACK 引擎 abort 时将已分配但未完成的序号放回）
+     */
+    fun rollbackSendSeq(hostId: Int) {
+        sendSeqs.computeIfPresent(hostId) { _, seq -> (seq - 1) and 0xFFFF }
+    }
+
+    /**
      * 清理指定主机号
      */
     fun clear(hostId: Int) {

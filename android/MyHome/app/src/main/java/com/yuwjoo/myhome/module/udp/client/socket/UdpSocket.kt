@@ -7,17 +7,20 @@ import java.net.MulticastSocket
 import java.net.NetworkInterface
 
 /**
- * Socket 生命周期管理：组播/单播/广播发送 + 本机 IP 收集用于自收过滤
+ * UDP Socket 管理：创建/销毁 Socket、单播/组播/广播发送、本机 IP 收集，
+ * 内部持有 [SocketReader] 负责协程循环接收并解码。
  */
-internal class SocketManager {
+internal class UdpSocket {
 
     companion object {
-        private const val TAG = "SocketManager"
+        private const val TAG = "UdpSocket"
     }
 
     @Volatile private var socket: MulticastSocket? = null // 组播 socket
 
     private val localIps = mutableSetOf<String>() // 本机 IP 集合（用于过滤自收报文）
+
+    private val reader = SocketReader(this) // 帧读取器
 
     private val multicastAddr: InetAddress by lazy { // 组播地址
         InetAddress.getByName(ClientConfig.MULTICAST_ADDR)
@@ -28,9 +31,15 @@ internal class SocketManager {
     }
 
     val isOpen: Boolean get() = socket?.let { !it.isClosed } ?: false // Socket 是否已创建且未关闭
+    val isReading: Boolean get() = reader.isRunning // 帧读取器是否正在运行
+
+    // 接收消息回调，由外部赋值
+    var onFrameReceived: ((frame: FrameData, fromIp: String) -> Unit)?
+        get() = reader.onFrameReceived
+        set(value) { reader.onFrameReceived = value }
 
     /**
-     * 创建 MulticastSocket 并加入组播组
+     * 创建 MulticastSocket 并加入组播组，成功后自动启动帧读取协程
      *
      * @return 是否创建成功
      */
@@ -52,16 +61,18 @@ internal class SocketManager {
 
         if (socket != null) {
             collectLocalIps()
+            reader.start()
             Log.i(TAG, "Socket created on port ${ClientConfig.PORT}, joined ${ClientConfig.MULTICAST_ADDR}")
             return true
         }
         return false
     }
 
-    /** 
-     * 销毁 Socket：离开组播组 + 关闭
+    /**
+     * 销毁 Socket：停止帧读取 → 离开组播组 → 关闭
      */
     fun destroy() {
+        reader.stop()
         socket?.let { s ->
             try {
                 s.leaveGroup(multicastAddr)

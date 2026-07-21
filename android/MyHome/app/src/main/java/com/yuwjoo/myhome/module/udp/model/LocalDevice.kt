@@ -1,6 +1,6 @@
 package com.yuwjoo.myhome.module.udp.model
 
-import com.yuwjoo.myhome.module.udp.UdpConfig
+import com.yuwjoo.myhome.module.udp.client.ClientConfig
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -8,9 +8,9 @@ import org.json.JSONObject
  * 本机设备信息
  */
 data class LocalDevice(
-    val deviceName: String = UdpConfig.deviceName, // 设备名称
+    val deviceName: String = ClientConfig.DEVICE_NAME, // 设备名称
     val online: Boolean = true, // 在线状态
-    val abilities: List<String> = UdpConfig.deviceAbilities, // 能力列表（如 "topic:xxx"、"skill:xxx"）
+    val abilities: List<String> = ClientConfig.DEVICE_ABILITIES, // 能力列表（如 "topic:xxx"、"skill:xxx"）
     val latestSeq: Int = 0, // 最新消息序号
 ) {
     companion object {

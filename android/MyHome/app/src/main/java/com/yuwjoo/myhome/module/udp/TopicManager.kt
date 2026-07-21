@@ -56,6 +56,7 @@ class TopicManager {
     fun notifyListener(topic: String, payload: JSONObject?) {
         listeners.dispatch(topic) { it.onMessageArrived(topic, payload) }
     }
+}
 
 
 

@@ -5,117 +5,174 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * ACK 确认引擎：管理待确认消息，按重试策略自动重传
+ * ACK 确认引擎：按主机串行发送有序消息，前一条收到 ACK 后才发送下一条
  *
+ * - 无限重试直到 ACK 或设备离线（重试间隔受 [RetryPolicy.maxTimeoutMs] 上限约束）
+ * - 设备离线时清空对应主机的所有待发和正在发送的消息
+ * - 序号策略：成功序号+1，失败（因离线中断）复用序号
+ *
+ * @param udpSocket   UDP Socket（用于单播发送）
  * @param retryPolicy 重试策略
- * @param onRetry     重传回调（targetIp, rawFrame）
- * @param onTimeout   超时回调（hostId, seqNum）
  */
 internal class AckEngine(
+    private val seqManager: SeqManager,
     private val retryPolicy: RetryPolicy = RetryPolicy(),
-    private val onRetry: ((targetIp: String, rawFrame: ByteArray) -> Unit)? = null,
-    private val onTimeout: ((hostId: Int, seqNum: Int) -> Unit)? = null,
+    private val udpSocket: UdpSocket,
 ) {
     companion object {
         private const val TAG = "AckEngine"
+        private const val ACK_POLL_MS = 50L
     }
 
-    private val pending = ConcurrentHashMap<Int, ConcurrentHashMap<Int, AckItem>>() // hostId -> (seqNum -> AckItem)
-    private val frameCache = ConcurrentHashMap<Int, ConcurrentHashMap<Int, ByteArray>>() // hostId -> (seqNum -> rawFrame)
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO) // 协程作用域
+    private val senders = ConcurrentHashMap<Int, HostSender>()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /**
-     * 注册一条需要 ACK 的消息
+     * 将消息加入发送队列，由对应主机的串行协程负责发送
+     *
+     * @param hostId     主机 ID
+     * @param targetIp   目标 IP
+     * @param buildFrame 帧构建函数（由 AckEngine 传入序号后构建完整帧）
+     * @param onSuccess  ACK 确认后回调
+     * @param onFailure  中断（离线/断开）后回调
      */
-    fun register(hostId: Int, seqNum: Int, rawFrame: ByteArray, targetIp: String) {
-        val item = AckItem(seqNum = seqNum, targetIp = targetIp)
-        pending.getOrPut(hostId) { ConcurrentHashMap() }[seqNum] = item
-        frameCache.getOrPut(hostId) { ConcurrentHashMap() }[seqNum] = rawFrame
-
-        val startTime = System.currentTimeMillis()
-        item.job = scope.launch {
-            var retryIndex = 0
-            while (isActive && retryIndex <= retryPolicy.maxRetries) {
-                val timeout = retryPolicy.timeoutFor(retryIndex)
-                val elapsed = System.currentTimeMillis() - startTime
-                val remaining = timeout - elapsed
-                if (remaining > 0) delay(remaining)
-
-                if (!isActive) break
-
-                if (item.confirmed) {
-                    cleanup(hostId, seqNum)
-                    return@launch
-                }
-
-                if (retryIndex < retryPolicy.maxRetries) {
-                    Log.d(TAG, "Retry #$retryIndex for hostId=$hostId seq=$seqNum")
-                    frameCache[hostId]?.get(seqNum)?.let { onRetry?.invoke(item.targetIp, it) }
-                } else {
-                    Log.w(TAG, "Ack timeout: hostId=$hostId seq=$seqNum")
-                    onTimeout?.invoke(hostId, seqNum)
-                    cleanup(hostId, seqNum)
-                }
-                retryIndex++
-            }
-        }
+    fun enqueue(
+        hostId: Int,
+        targetIp: String,
+        buildFrame: (seqNum: Int) -> ByteArray,
+        onSuccess: (() -> Unit)? = null,
+        onFailure: (() -> Unit)? = null,
+    ) {
+        val sender = senders.getOrPut(hostId) { HostSender(hostId) }
+        sender.enqueue(SendTask(targetIp, buildFrame, onSuccess, onFailure))
     }
 
     /**
-     * 收到 ACK，确认消息
+     * 收到远端 ACK 帧，通知对应主机的发送协程
      */
-    fun onAck(hostId: Int, seqNum: Int): Boolean {
-        val item = pending[hostId]?.get(seqNum) ?: return false
-        item.confirmed = true
-        item.job?.cancel()
-        Log.d(TAG, "Ack confirmed: hostId=$hostId seq=$seqNum")
-        cleanup(hostId, seqNum)
-        return true
+    fun onAck(hostId: Int, seqNum: Int) {
+        senders[hostId]?.onAck(seqNum)
     }
 
     /**
-     * 是否有待确认消息
+     * 设备离线：中断当前发送并清空该主机的所有待发消息
      */
-    fun hasPending(): Boolean {
-        return pending.values.any { it.isNotEmpty() }
+    fun abort(hostId: Int) {
+        val sender = senders.remove(hostId)
+        sender?.abort()
+        Log.d(TAG, "Aborted sender for hostId=$hostId")
     }
 
     /**
-     * 停止引擎，取消所有重试
+     * 停止所有发送协程
      */
     fun stop() {
-        pending.values.forEach { map ->
-            map.values.forEach { it.job?.cancel() }
-        }
-        pending.clear()
-        frameCache.clear()
+        senders.values.forEach { it.abort() }
+        senders.clear()
         Log.i(TAG, "AckEngine stopped")
     }
 
-    /**
-     * 清理指定消息的待确认记录与帧缓存，若主机下已无待处理项则一并移除主机条目
-     */
-    private fun cleanup(hostId: Int, seqNum: Int) {
-        pending[hostId]?.remove(seqNum)
-        if (pending[hostId]?.isEmpty() == true) pending.remove(hostId)
-        frameCache[hostId]?.remove(seqNum)
-        if (frameCache[hostId]?.isEmpty() == true) frameCache.remove(hostId)
+    private inner class HostSender(private val hostId: Int) {
+        private val queue = Channel<SendTask>(Channel.UNLIMITED)
+        @Volatile private var job: Job? = null
+        @Volatile private var ackedSeq: Int = -1
+        @Volatile private var stopped = false
+        @Volatile private var currentTask: SendTask? = null
+        private var seqAllocated = false
+
+        fun enqueue(task: SendTask) {
+            if (stopped) return
+            queue.trySend(task)
+            startIfNeeded()
+        }
+
+        fun onAck(seqNum: Int) {
+            ackedSeq = seqNum
+        }
+
+        /**
+         * 中断发送：取消协程 → 回退序号 → 通知当前任务及所有排队任务失败
+         */
+        fun abort() {
+            stopped = true
+            job?.cancel()
+            if (seqAllocated) {
+                seqManager.rollbackSendSeq(hostId)
+                seqAllocated = false
+            }
+            currentTask?.onFailure?.invoke()
+            while (true) {
+                val task = queue.tryReceive().getOrNull() ?: break
+                task.onFailure?.invoke()
+            }
+            queue.close()
+        }
+
+        private fun startIfNeeded() {
+            if (job == null || job?.isActive != true) {
+                job = scope.launch { run() }
+            }
+        }
+
+        /**
+         * 串行消费队列：取出 → 分配序号 → 发送 → 无限等待 ACK → 下一条
+         */
+        private suspend fun run() {
+            for (task in queue) {
+                if (!isActive) break
+
+                ackedSeq = -1
+                currentTask = task
+                val seq = seqManager.nextSendSeq(hostId)
+                seqAllocated = true
+
+                val frame = task.buildFrame(seq)
+                udpSocket.sendUnicast(frame, task.targetIp)
+                Log.d(TAG, "Sent ordered msg: hostId=$hostId seq=$seq")
+
+                var retryIndex = 0
+                while (isActive) {
+                    val timeout = retryPolicy.timeoutFor(retryIndex)
+                    val acked = waitForAck(seq, timeout)
+                    if (acked) {
+                        Log.d(TAG, "Ack confirmed: hostId=$hostId seq=$seq")
+                        task.onSuccess?.invoke()
+                        break
+                    }
+                    if (!isActive) break
+
+                    Log.d(TAG, "Retry #${retryIndex + 1} for hostId=$hostId seq=$seq, timeout=${timeout}ms")
+                    udpSocket.sendUnicast(frame, task.targetIp)
+                    retryIndex++
+                }
+
+                seqAllocated = false
+                currentTask = null
+            }
+        }
+
+        private suspend fun waitForAck(expectedSeq: Int, timeoutMs: Long): Boolean {
+            val deadline = System.currentTimeMillis() + timeoutMs
+            while (System.currentTimeMillis() < deadline) {
+                if (ackedSeq == expectedSeq) return true
+                if (!isActive) return false
+                delay(ACK_POLL_MS)
+            }
+            return false
+        }
     }
 
-    /**
-     * 单条待确认消息记录，追踪 ACK 到达和重试协程
-     */
-    private class AckItem(
-        val seqNum: Int, // 消息序号
-        val targetIp: String, // 目标 IP
-    ) {
-        @Volatile var confirmed = false // 是否已收到 ACK 确认
-        var job: Job? = null // 重试协程 Job
-    }
+    private class SendTask(
+        val targetIp: String,
+        val buildFrame: (seqNum: Int) -> ByteArray,
+        val onSuccess: (() -> Unit)?,
+        val onFailure: (() -> Unit)?,
+    )
 }

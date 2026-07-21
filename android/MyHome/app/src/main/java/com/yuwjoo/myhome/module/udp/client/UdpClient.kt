@@ -11,26 +11,33 @@ class UdpClient {
         private const val TAG = "UdpClient"
     }
 
-    private val socketManager = SocketManager() // Socket 管理器
-    private val receiver = Receiver(socketManager) // 接收器
+    private val udpSocket = UdpSocket() // UDP Socket（含内部 SocketReader）
     private val deviceRegistry = DeviceRegistry() // 设备注册表
     private val seqManager = SeqManager() // 序号管理器
-    private val retryPolicy = RetryPolicy() // 重试策略
     private val ackEngine = AckEngine(
-        retryPolicy = retryPolicy,
-        onRetry = { ip, rawFrame -> socketManager.sendUnicast(rawFrame, ip) },
-    ) // ACK 引擎
-    private val messageRouter = MessageRouter(
-        socketManager = socketManager,
-        deviceRegistry = deviceRegistry,
-        ackEngine = ackEngine,
         seqManager = seqManager,
-    ) // 消息路由器
+        retryPolicy = RetryPolicy(),
+        udpSocket = udpSocket,
+    ) // ACK 引擎
     private val heartbeatEngine = HeartbeatEngine(
-        onSendHeartbeat = { sendHeartbeat() },
-        onDetectOffline = { deviceRegistry.detectOffline() },
+        deviceRegistry,
+        udpSocket,
     ) // 心跳引擎
-    private val networkMonitor = NetworkMonitor() // 网络监听器
+    private val messageRouter = MessageRouter(
+        udpSocket,
+        deviceRegistry,
+        ackEngine,
+        seqManager,
+        heartbeatEngine,
+    ) // 消息路由器
+    private val networkMonitor = NetworkMonitor { available ->
+        if (available) doConnect() else doDisconnect()
+    } // 网络监听器
+
+    init {
+        // 设备离线时中止对应主机的 ACK 重试
+        deviceRegistry.onDeviceOffline = { ip -> ackEngine.abort(ClientConfig.hostId(ip)) }
+    }
 
     @Volatile var isConnected: Boolean = false // 是否已连接
         private set
@@ -39,21 +46,26 @@ class UdpClient {
     var onDeviceChanged: ((devices: List<LanDevice>) -> Unit)? = null // 设备列表变化
     var onMessageReceived: ((frame: FrameData, fromIp: String) -> Unit)? = null // 收到消息（JSON / Raw 帧）
 
+    val devices: List<LanDevice> get() = deviceRegistry.getAll() // 全部设备列表
+    val onlineDevices: List<LanDevice> get() = deviceRegistry.getOnline() // 在线设备列表
+
     /**
      * 连接
      */
+    @Synchronized
     fun connect(context: Context) {
         if (isConnected) return
 
-        networkMonitor.start(context) { available ->
-            if (available) doConnect() else doDisconnect()
-        }
+        networkMonitor.start(context)
     }
 
     /**
      * 断开连接
      */
+    @Synchronized
     fun disconnect(context: Context) {
+        if (!isConnected) return
+        
         networkMonitor.stop(context)
         doDisconnect()
     }
@@ -84,24 +96,20 @@ class UdpClient {
         }
     }
 
-    val devices: List<LanDevice> get() = deviceRegistry.getAll() // 全部设备列表
-    val onlineDevices: List<LanDevice> get() = deviceRegistry.getOnline() // 在线设备列表
-
     /**
      * 执行连接
      */
     @Synchronized
     private fun doConnect() {
         if (isConnected) return
-        if (!socketManager.create()) {
+        if (!udpSocket.create()) {
             Log.e(TAG, "Failed to create socket")
             return
         }
 
-        receiver.onFrameReceived = { frame, fromIp ->
+        udpSocket.onFrameReceived = { frame, fromIp ->
             messageRouter.dispatch(frame, fromIp)
         }
-        receiver.start()
 
         deviceRegistry.onDeviceChanged = {
             onDeviceChanged?.invoke(deviceRegistry.getAll())
@@ -112,7 +120,6 @@ class UdpClient {
         }
 
         heartbeatEngine.start()
-        discoverDevices()
 
         isConnected = true
         onConnectionChanged?.invoke(true)
@@ -128,9 +135,8 @@ class UdpClient {
         sendBroadcast(ClientConfig.Type.OFFLINE, ByteArray(0))
 
         heartbeatEngine.stop()
-        receiver.stop()
         ackEngine.stop()
-        socketManager.destroy()
+        udpSocket.destroy()
         seqManager.reset()
         deviceRegistry.clear()
 
@@ -149,7 +155,7 @@ class UdpClient {
             flags = ClientConfig.Flags.NONE,
             payload = payload,
         )
-        return socketManager.sendBroadcast(frame)
+        return udpSocket.sendBroadcast(frame)
     }
 
     /**
@@ -161,49 +167,22 @@ class UdpClient {
         targetIp: String,
         ordered: Boolean,
     ): Boolean {
-        val hostId = ClientConfig.hostId(targetIp)
-        val seqNum = if (ordered) seqManager.nextSendSeq(hostId) else 0
         val flags = if (ordered) ClientConfig.Flags.ORDERED else ClientConfig.Flags.NONE
 
-        val frame = FrameCodec.encode(
-            type = type,
-            seqNum = seqNum,
-            flags = flags,
-            payload = payload,
-        )
-
-        val sent = socketManager.sendUnicast(frame, targetIp)
-        if (sent && ordered) {
-            ackEngine.register(hostId, seqNum, frame, targetIp)
+        if (ordered) {
+            val hostId = ClientConfig.hostId(targetIp)
+            ackEngine.enqueue(
+                hostId = hostId,
+                targetIp = targetIp,
+                buildFrame = { seqNum ->
+                    FrameCodec.encode(type, seqNum, flags, payload)
+                },
+            )
+            return true
         }
-        return sent
+
+        val frame = FrameCodec.encode(type, 0, flags, payload)
+        return udpSocket.sendUnicast(frame, targetIp)
     }
 
-    /**
-     * 广播心跳帧
-     */
-    private fun sendHeartbeat() {
-        val frame = FrameCodec.encode(
-            type = ClientConfig.Type.HEARTBEAT,
-            seqNum = 0,
-            flags = ClientConfig.Flags.NONE,
-            payload = ByteArray(0),
-        )
-        socketManager.sendBroadcast(frame)
-    }
-
-    /**
-     * 主动广播设备发现
-     */
-    private fun discoverDevices() {
-        val payload = buildLocalDevicePayload()
-        val frame = FrameCodec.encode(
-            type = ClientConfig.Type.CALL,
-            seqNum = 0,
-            flags = ClientConfig.Flags.NONE,
-            payload = payload,
-        )
-        socketManager.sendBroadcast(frame)
-        Log.i(TAG, "Device discovery broadcast sent")
-    }
 }

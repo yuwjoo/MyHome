@@ -15,18 +15,25 @@ var Download = (function () {
 
     $btn.prop('disabled', true).html('<span class="btn-icon">⏳</span> 下载中...');
 
-    fetch(APK_URL)
-      .then(function (response) {
-        if (!response.ok) {
-          throw new Error('下载失败: HTTP ' + response.status);
-        }
-        var contentLength = response.headers.get('Content-Length');
-        if (contentLength) {
-          $('#apkSize').text(formatSize(parseInt(contentLength, 10)));
-        }
-        return response.blob();
-      })
-      .then(function (blob) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', APK_URL, true);
+    xhr.responseType = 'blob';
+
+    xhr.onload = function () {
+      if (xhr.status < 200 || xhr.status >= 300) {
+        console.error('APK 下载失败: HTTP ' + xhr.status);
+        $btn.prop('disabled', false).html(originalText);
+        alert('下载失败，请稍后重试');
+        return;
+      }
+
+      var contentLength = xhr.getResponseHeader('Content-Length');
+      if (contentLength) {
+        $('#apkSize').text(formatSize(parseInt(contentLength, 10)));
+      }
+
+      try {
+        var blob = xhr.response;
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url;
@@ -35,13 +42,21 @@ var Download = (function () {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        $btn.prop('disabled', false).html(originalText);
-      })
-      .catch(function (err) {
-        console.error('APK 下载失败:', err);
-        $btn.prop('disabled', false).html(originalText);
+      } catch (err) {
+        console.error('APK 保存失败:', err);
         alert('下载失败，请稍后重试');
-      });
+      }
+
+      $btn.prop('disabled', false).html(originalText);
+    };
+
+    xhr.onerror = function () {
+      console.error('APK 下载失败: 网络错误');
+      $btn.prop('disabled', false).html(originalText);
+      alert('下载失败，请稍后重试');
+    };
+
+    xhr.send();
   }
 
   /** 格式化文件大小 */
