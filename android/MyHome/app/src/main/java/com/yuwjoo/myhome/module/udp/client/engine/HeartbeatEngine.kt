@@ -1,6 +1,11 @@
-package com.yuwjoo.myhome.module.udp.client
+package com.yuwjoo.myhome.module.udp.client.engine
 
 import android.util.Log
+import com.yuwjoo.myhome.module.udp.client.config.FrameConfig
+import com.yuwjoo.myhome.module.udp.client.config.LocalConfig
+import com.yuwjoo.myhome.module.udp.client.device.DeviceRegistry
+import com.yuwjoo.myhome.module.udp.client.codec.FrameCodec
+import com.yuwjoo.myhome.module.udp.client.transport.UdpSocket
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -12,15 +17,11 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 心跳引擎：定时广播心跳帧并检测离线设备
- *
- * @param deviceRegistry  设备注册表（查询在线设备、标记离线）
- * @param udpSocket       UDP Socket（广播心跳帧）
- * @param intervalMs       心跳间隔（毫秒）
  */
 internal class HeartbeatEngine(
     private val deviceRegistry: DeviceRegistry,
     private val udpSocket: UdpSocket,
-    private val intervalMs: Long = ClientConfig.HEARTBEAT_INTERVAL_MS,
+    private val intervalMs: Long = LocalConfig.HEARTBEAT_INTERVAL_MS,
 ) {
     companion object {
         private const val TAG = "HeartbeatEngine"
@@ -34,6 +35,8 @@ internal class HeartbeatEngine(
 
     /**
      * 记录收到某设备的心跳时间
+     *
+     * @param ip 设备 IP
      */
     fun recordHeartbeat(ip: String) {
         heartbeatTimes[ip] = System.currentTimeMillis()
@@ -74,9 +77,9 @@ internal class HeartbeatEngine(
      */
     private fun sendHeartbeat() {
         val frame = FrameCodec.encode(
-            type = ClientConfig.Type.HEARTBEAT,
+            type = FrameConfig.Type.HEARTBEAT,
             seqNum = 0,
-            flags = ClientConfig.Flags.NONE,
+            flags = FrameConfig.Flags.NONE,
             payload = ByteArray(0),
         )
         udpSocket.sendBroadcast(frame)
@@ -89,7 +92,7 @@ internal class HeartbeatEngine(
         val now = System.currentTimeMillis()
         for (device in deviceRegistry.getOnline()) {
             val lastHb = heartbeatTimes[device.ip] ?: continue
-            val timeout = if (device.heartbeatTimeout > 0) device.heartbeatTimeout else ClientConfig.HEARTBEAT_TIMEOUT_MS
+            val timeout = if (device.heartbeatTimeout > 0) device.heartbeatTimeout else LocalConfig.HEARTBEAT_TIMEOUT_MS
             if ((now - lastHb) > timeout) {
                 deviceRegistry.markOffline(device.ip)
                 Log.d(TAG, "Device offline detected: ${device.ip}")

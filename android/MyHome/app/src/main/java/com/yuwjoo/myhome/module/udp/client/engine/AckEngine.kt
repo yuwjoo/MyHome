@@ -1,6 +1,9 @@
-package com.yuwjoo.myhome.module.udp.client
+package com.yuwjoo.myhome.module.udp.client.engine
 
 import android.util.Log
+import com.yuwjoo.myhome.module.udp.client.model.RetryPolicy
+import com.yuwjoo.myhome.module.udp.client.device.SeqManager
+import com.yuwjoo.myhome.module.udp.client.transport.UdpSocket
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,9 +20,6 @@ import java.util.concurrent.ConcurrentHashMap
  * - 无限重试直到 ACK 或设备离线（重试间隔受 [RetryPolicy.maxTimeoutMs] 上限约束）
  * - 设备离线时清空对应主机的所有待发和正在发送的消息
  * - 序号策略：成功序号+1，失败（因离线中断）复用序号
- *
- * @param udpSocket   UDP Socket（用于单播发送）
- * @param retryPolicy 重试策略
  */
 internal class AckEngine(
     private val seqManager: SeqManager,
@@ -37,11 +37,11 @@ internal class AckEngine(
     /**
      * 将消息加入发送队列，由对应主机的串行协程负责发送
      *
-     * @param hostId     主机 ID
-     * @param targetIp   目标 IP
-     * @param buildFrame 帧构建函数（由 AckEngine 传入序号后构建完整帧）
-     * @param onSuccess  ACK 确认后回调
-     * @param onFailure  中断（离线/断开）后回调
+     * @param hostId 目标主机 ID
+     * @param targetIp 目标 IP
+     * @param buildFrame 根据序号构建帧数据的函数
+     * @param onSuccess 发送成功回调
+     * @param onFailure 发送失败回调
      */
     fun enqueue(
         hostId: Int,
@@ -56,6 +56,9 @@ internal class AckEngine(
 
     /**
      * 收到远端 ACK 帧，通知对应主机的发送协程
+     *
+     * @param hostId 目标主机 ID
+     * @param seqNum 确认的序号
      */
     fun onAck(hostId: Int, seqNum: Int) {
         senders[hostId]?.onAck(seqNum)
@@ -63,6 +66,8 @@ internal class AckEngine(
 
     /**
      * 设备离线：中断当前发送并清空该主机的所有待发消息
+     *
+     * @param hostId 离线主机 ID
      */
     fun abort(hostId: Int) {
         val sender = senders.remove(hostId)

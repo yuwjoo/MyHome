@@ -1,6 +1,9 @@
-package com.yuwjoo.myhome.module.udp.client
+package com.yuwjoo.myhome.module.udp.client.transport
 
 import android.util.Log
+import com.yuwjoo.myhome.module.udp.client.config.NetConfig
+import com.yuwjoo.myhome.module.udp.client.codec.FrameCodec
+import com.yuwjoo.myhome.module.udp.client.model.FrameData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -31,13 +34,13 @@ internal class SocketReader(
     val isRunning: Boolean get() = running.get() // 是否正在运行
 
     /**
-     * 启动读取循环
+     * 启动读取循环，创建协程持续接收 UDP 报文
      */
     fun start() {
         if (running.getAndSet(true)) return
         job = scope.launch {
             Log.i(TAG, "SocketReader started")
-            val buffer = ByteArray(ClientConfig.BUFFER_SIZE)
+            val buffer = ByteArray(NetConfig.BUFFER_SIZE)
             while (isActive) {
                 val packet = udpSocket.receive(buffer) ?: continue
                 handlePacket(packet, buffer.copyOf(packet.length))
@@ -56,6 +59,12 @@ internal class SocketReader(
         Log.i(TAG, "SocketReader stop requested")
     }
 
+    /**
+     * 处理接收到的 UDP 报文：过滤本机地址、解码帧、触发回调
+     *
+     * @param packet 接收到的 UDP 报文
+     * @param raw 原始字节数据
+     */
     private fun handlePacket(packet: DatagramPacket, raw: ByteArray) {
         val fromIp = packet.address?.hostAddress ?: return
 

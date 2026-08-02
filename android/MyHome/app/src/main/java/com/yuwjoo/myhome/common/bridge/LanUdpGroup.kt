@@ -6,7 +6,7 @@ import com.yuwjoo.myhome.module.bridge.core.MessageSender
 import com.yuwjoo.myhome.module.udp.UdpManager
 import com.yuwjoo.myhome.module.udp.listener.ConnectionListener
 import com.yuwjoo.myhome.module.udp.listener.DeviceListener
-import com.yuwjoo.myhome.module.udp.model.LanDevice
+import com.yuwjoo.myhome.module.udp.client.model.LanDevice
 import org.json.JSONArray
 import org.json.JSONObject
 

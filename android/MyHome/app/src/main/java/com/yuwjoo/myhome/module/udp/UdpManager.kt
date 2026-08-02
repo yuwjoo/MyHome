@@ -3,75 +3,57 @@
 import android.content.Context
 import android.util.Log
 import com.yuwjoo.myhome.common.ListenerRegistry
-import com.yuwjoo.myhome.module.udp.client.ClientConfig
-import com.yuwjoo.myhome.module.udp.client.FrameData
+import com.yuwjoo.myhome.module.udp.client.config.FrameConfig
+import com.yuwjoo.myhome.module.udp.client.config.LocalConfig
 import com.yuwjoo.myhome.module.udp.client.UdpClient
+import com.yuwjoo.myhome.module.udp.client.model.FrameData
+import com.yuwjoo.myhome.module.udp.client.model.LanDevice
 import com.yuwjoo.myhome.module.udp.listener.ConnectionListener
 import com.yuwjoo.myhome.module.udp.listener.DeviceListener
 import com.yuwjoo.myhome.module.udp.listener.TopicListener
-import com.yuwjoo.myhome.module.udp.model.LanDevice
 import com.yuwjoo.myhome.module.udp.model.TopicMessage
 import org.json.JSONObject
 
 /**
- * UDP 管理器 — 单例入口，对接 client.UdpClient
- *
- * @FileName UdpManager.kt
- * @FilePath com/yuwjoo/myhome/module/udp/UdpManager.kt
- * @Author yuwjoo
- * @Date 2025-01-01
+ * UDP 管理器
  */
 object UdpManager {
 
     private const val TAG = "UdpManager"
 
-    private val client = UdpClient()
-    private val topicManager = TopicManager()
-    private val connectionListeners = ListenerRegistry<Unit, ConnectionListener>()
-    private val deviceListeners = ListenerRegistry<Unit, DeviceListener>()
+    private val client = UdpClient() // 底层 UDP 客户端
+    private val topicListeners = ListenerRegistry<String, TopicListener>() // 主题消息监听器
+    private val connectionListeners = ListenerRegistry<Unit, ConnectionListener>() // 连接状态监听器
+    private val deviceListeners = ListenerRegistry<Unit, DeviceListener>() // 设备变更监听器
 
     @Volatile
-    private var _isConnected = false
+    var isConnected = false // 当前连接状态
+        private set
 
-    // ──────────────── 状态访问 ────────────────
+    val deviceList: List<LanDevice> // 所有设备列表
+        get() = client.devices
 
-    /** 是否已连接 */
-    val isConnected: Boolean get() = _isConnected
-
-    /** 设备列表（已转为 model.LanDevice） */
-    val deviceList: List<LanDevice>
-        get() = client.devices.map { it.toModelDevice() }
-
-    /** 在线设备列表（已转为 model.LanDevice） */
-    val onlineDeviceList: List<LanDevice>
-        get() = client.onlineDevices.map { it.toModelDevice() }
-
-    // ──────────────── 连接/断开 ────────────────
+    val onlineDeviceList: List<LanDevice> // 在线设备列表
+        get() = client.onlineDevices
 
     /**
      * 启动 UDP 通信
      *
-     * @param context Android Context（用于网络监听注册）
+     * @param context 用于注册网络变化监听的 Context
      */
     fun connect(context: Context) {
-        if (_isConnected) return
-        // _isConnected 由 onConnectionChanged 回调在 socket 实际就绪后设置，
-        // 避免在此提前置 true 导致状态与实际连接不一致
+        if (isConnected) return
 
-        // 设备变更 → 通知所有 DeviceListener
-        client.onDeviceChanged = { _ ->
-            val modelDevices = client.devices.map { it.toModelDevice() }
-            deviceListeners.dispatch(Unit) { it.onDeviceChanged(modelDevices) }
+        client.onDeviceChanged = { _ -> // 设备列表变更 → 转发给上层监听器
+            deviceListeners.dispatch(Unit) { it.onDeviceChanged(client.devices) }
         }
 
-        // 连接状态变更 → 通知所有 ConnectionListener
-        client.onConnectionChanged = { connected ->
-            _isConnected = connected
+        client.onConnectionChanged = { connected -> // 连接状态变更 → 更新标志位并转发
+            isConnected = connected
             connectionListeners.dispatch(Unit) { it.onConnectionChanged(connected) }
         }
 
-        // 收到消息 → 解析 JSON 并分发到主题监听器
-        client.onMessageReceived = { frame, fromIp ->
+        client.onMessageReceived = { frame, fromIp, isJson -> // 收到消息 → JSON 帧交给主题分发
             handleIncomingMessage(frame, fromIp)
         }
 
@@ -80,48 +62,30 @@ object UdpManager {
 
     /**
      * 停止 UDP 通信
-     *
-     * @param context Android Context（用于网络监听注销）
      */
-    fun disconnect(context: Context) {
-        client.disconnect(context)
-        _isConnected = false
+    fun disconnect() {
+        client.disconnect()
+        isConnected = false
     }
-
-    // ──────────────── 设备监听 ────────────────
-
-    fun registerDeviceListener(listener: DeviceListener) {
-        deviceListeners.register(Unit, listener)
-    }
-
-    fun unregisterDeviceListener(listener: DeviceListener) {
-        deviceListeners.unregister(Unit, listener)
-    }
-
-    // ──────────────── 连接状态监听 ────────────────
-
-    fun registerConnectionListener(listener: ConnectionListener) {
-        connectionListeners.register(Unit, listener)
-    }
-
-    fun unregisterConnectionListener(listener: ConnectionListener) {
-        connectionListeners.unregister(Unit, listener)
-    }
-
-    // ──────────────── 主题订阅/发布 ────────────────
 
     /**
      * 订阅主题
+     *
+     * @param topic    主题名称
+     * @param callback 消息到达时的回调
      */
     fun subscribe(topic: String, callback: TopicListener) {
-        topicManager.registerListener(topic, callback)
+        topicListeners.register(topic, callback)
     }
 
     /**
      * 取消订阅主题
+     *
+     * @param topic    主题名称
+     * @param callback 待移除的回调
      */
     fun unsubscribe(topic: String, callback: TopicListener) {
-        topicManager.unregisterListener(topic, callback)
+        topicListeners.unregister(topic, callback)
     }
 
     /**
@@ -129,7 +93,7 @@ object UdpManager {
      *
      * @param topic           主题名称
      * @param payload         负载数据
-     * @param targetIp        目标 IP（null = 广播）
+     * @param targetIp        目标 IP，为 null 时广播
      * @param ordered         是否有序发送（有序 = ACK + 重试）
      * @param onlySubscribers 为 true 时仅向匹配该主题能力的在线设备发送
      */
@@ -143,53 +107,73 @@ object UdpManager {
         val bytes = TopicMessage.toBytes(topic, payload)
         when {
             targetIp != null -> {
-                // 单播
-                client.send(ClientConfig.Type.JSON, bytes, targetIp, ordered)
+                client.send(FrameConfig.Type.JSON, bytes, targetIp, ordered)
             }
             onlySubscribers -> {
-                // 仅向匹配能力的在线设备发送
+                val prefix = "${LocalConfig.ABILITY_PREFIX_TOPIC}$topic"
                 val matched = client.onlineDevices.filter { device ->
-                    device.abilities.any { it == "${ClientConfig.ABILITY_PREFIX_TOPIC}$topic" }
+                    device.abilities.any { it == prefix }
                 }
                 for (device in matched) {
-                    client.send(ClientConfig.Type.JSON, bytes, device.ip, ordered)
+                    client.send(FrameConfig.Type.JSON, bytes, device.ip, ordered)
                 }
             }
             else -> {
-                // 广播（不保证顺序、不 ACK）
-                client.send(ClientConfig.Type.JSON, bytes, null, false)
+                client.send(FrameConfig.Type.JSON, bytes, null, false)
             }
         }
     }
 
-    // ──────────────── 内部消息分发 ────────────────
+    /**
+     * 注册设备列表变更监听
+     *
+     * @param listener 设备变更回调
+     */
+    fun registerDeviceListener(listener: DeviceListener) {
+        deviceListeners.register(Unit, listener)
+    }
+
+    /**
+     * 注销设备列表变更监听
+     *
+     * @param listener 待移除的监听器
+     */
+    fun unregisterDeviceListener(listener: DeviceListener) {
+        deviceListeners.unregister(Unit, listener)
+    }
+
+    /**
+     * 注册连接状态变更监听
+     *
+     * @param listener 连接状态回调
+     */
+    fun registerConnectionListener(listener: ConnectionListener) {
+        connectionListeners.register(Unit, listener)
+    }
+
+    /**
+     * 注销连接状态变更监听
+     *
+     * @param listener 待移除的监听器
+     */
+    fun unregisterConnectionListener(listener: ConnectionListener) {
+        connectionListeners.unregister(Unit, listener)
+    }
 
     /**
      * 解析收到的 JSON 帧并分发给对应主题的监听器
+     *
+     * @param frame  收到的帧数据
+     * @param fromIp 来源 IP
      */
     private fun handleIncomingMessage(frame: FrameData, fromIp: String) {
-        if (frame.type != ClientConfig.Type.JSON) return
+        if (frame.type != FrameConfig.Type.JSON) return
         try {
-            val jsonStr = String(frame.payload, Charsets.UTF_8)
-            val json = JSONObject(jsonStr)
+            val json = JSONObject(String(frame.payload, Charsets.UTF_8))
             val topicMsg = TopicMessage.from(json) ?: return
-            topicManager.notifyListener(topicMsg.topic, topicMsg.payload)
+            topicListeners.dispatch(topicMsg.topic) { it.onMessageArrived(topicMsg.topic, topicMsg.payload) }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to parse incoming message from $fromIp: ${e.message}")
         }
     }
-
-    // ──────────────── 模型转换 ────────────────
-
-    /**
-     * client.LanDevice → model.LanDevice
-     */
-    private fun com.yuwjoo.myhome.module.udp.client.LanDevice.toModelDevice() = LanDevice(
-        ipAddress = this.ip,
-        deviceName = this.deviceName,
-        online = this.online,
-        abilities = this.abilities,
-        lastHeartbeatTime = this.lastSeenAt,
-        latestSeq = 0,
-    )
 }

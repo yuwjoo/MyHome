@@ -1,11 +1,11 @@
-package com.yuwjoo.myhome.module.udp.client
+package com.yuwjoo.myhome.module.udp.client.model
 
 /**
  * ACK 重试策略：不限制重试次数，仅通过最大超时时间防止退避爆炸
  *
- * @param baseTimeoutMs    初始超时（毫秒）
+ * @param baseTimeoutMs     初始超时（毫秒）
  * @param backoffMultiplier 退避倍数
- * @param maxTimeoutMs     最大重试间隔（毫秒），退避上限
+ * @param maxTimeoutMs      最大重试间隔（毫秒），退避上限
  */
 internal data class RetryPolicy(
     val baseTimeoutMs: Long = 150L,
@@ -13,7 +13,10 @@ internal data class RetryPolicy(
     val maxTimeoutMs: Long = 5_000L,
 ) {
     /**
-     * 计算第 [retryIndex] 次（0-based）重试的超时时间，有上限无次数限制
+     * 计算第 retryIndex 次（0-based）重试的超时时间，有上限无次数限制
+     *
+     * @param retryIndex 重试次数索引（从 0 开始）
+     * @return 本次重试的超时时间（毫秒）
      */
     fun timeoutFor(retryIndex: Int): Long {
         var timeout = baseTimeoutMs

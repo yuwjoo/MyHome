@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.udp.client
+package com.yuwjoo.myhome.module.udp.client.transport
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -62,9 +62,7 @@ internal class NetworkMonitor(private val callback: (available: Boolean) -> Unit
                 val hasWifi = networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
                 val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 Log.d(TAG, "WiFi capabilities changed: wifi=$hasWifi, internet=$hasInternet")
-                if (!hasWifi) {
-                    debounceNotify(false)
-                }
+                debounceNotify(hasWifi)
             }
         }
 
@@ -77,17 +75,18 @@ internal class NetworkMonitor(private val callback: (available: Boolean) -> Unit
     }
 
     /**
-     * 停止监听
+     * 停止监听，注销网络回调
+     *
+     * @param context 应用上下文
      */
-    fun stop(context: Context) {
+    fun stop() {
         if (networkCallback == null) return
         debounceJob?.cancel()
         debounceJob = null
 
         networkCallback?.let {
-            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             try {
-                cm?.unregisterNetworkCallback(it)
+                connectivityManager?.unregisterNetworkCallback(it)
             } catch (_: Exception) {
                 // 已注销或无网络权限
             }
@@ -99,6 +98,8 @@ internal class NetworkMonitor(private val callback: (available: Boolean) -> Unit
 
     /**
      * 防抖通知：挂起 [DEBOUNCE_MS] 后若未再收到新变化，则触发回调
+     *
+     * @param available 网络是否可用
      */
     private fun debounceNotify(available: Boolean) {
         pendingState = available
@@ -114,6 +115,9 @@ internal class NetworkMonitor(private val callback: (available: Boolean) -> Unit
 
     /**
      * 检查当前是否有 WiFi 连接
+     *
+     * @param context 应用上下文
+     * @return 是否有 WiFi 连接
      */
     private fun isWifiConnected(context: Context): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false

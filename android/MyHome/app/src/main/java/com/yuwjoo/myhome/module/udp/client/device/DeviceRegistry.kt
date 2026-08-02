@@ -1,23 +1,7 @@
-package com.yuwjoo.myhome.module.udp.client
+package com.yuwjoo.myhome.module.udp.client.device
 
-import org.json.JSONArray
-import org.json.JSONObject
+import com.yuwjoo.myhome.module.udp.client.model.LanDevice
 import java.util.concurrent.ConcurrentHashMap
-
-/**
- * LAN 设备信息
- */
-data class LanDevice(
-    val ip: String, // 设备 IP
-    val deviceName: String = "", // 设备名称
-    val abilities: List<String> = emptyList(), // 设备能力列表
-    var online: Boolean = false // 是否在线（同文件内可写，外部只读）
-        private set,
-    var offlineAt: Long = 0L // 离线时间戳，0 表示当前在线（同文件内可写，外部只读）
-        private set,
-    val heartbeatInterval: Long = 0L, // 心跳间隔（ms），0 表示不发送心跳
-    val heartbeatTimeout: Long = 0L, // 心跳过期间隔（ms）
-)
 
 /**
  * 设备注册表：管理 LAN 中发现的所有设备
@@ -31,6 +15,13 @@ internal class DeviceRegistry {
 
     /**
      * 注册或更新设备
+     *
+     * @param ip 设备 IP
+     * @param deviceName 设备名称
+     * @param abilities 设备能力列表
+     * @param heartbeatInterval 心跳间隔（毫秒）
+     * @param heartbeatTimeout 心跳超时（毫秒）
+     * @return 注册后的设备对象
      */
     fun register(
         ip: String,
@@ -57,7 +48,10 @@ internal class DeviceRegistry {
     }
 
     /**
-     * 标记设备在线（仅更新心跳时间）
+     * 标记设备在线
+     *
+     * @param ip 设备 IP
+     * @return 是否成功标记（设备存在且原为离线时返回 true）
      */
     fun markOnline(ip: String): Boolean {
         val device = devices[ip] ?: return false
@@ -72,6 +66,9 @@ internal class DeviceRegistry {
 
     /**
      * 标记设备离线
+     *
+     * @param ip 设备 IP
+     * @return 是否成功标记（设备存在且原为在线时返回 true）
      */
     fun markOffline(ip: String): Boolean {
         val device = devices[ip] ?: return false
@@ -85,38 +82,51 @@ internal class DeviceRegistry {
         return false
     }
 
+    /**
+     * 移除设备
+     *
+     * @param ip 设备 IP
+     */
     fun remove(ip: String) {
         if (devices.remove(ip) != null) {
             onDeviceChanged?.invoke()
         }
     }
 
+    /**
+     * 获取指定设备
+     *
+     * @param ip 设备 IP
+     * @return 设备对象，不存在返回 null
+     */
     fun get(ip: String): LanDevice? = devices[ip]
 
+    /**
+     * 获取所有设备列表
+     *
+     * @return 所有设备列表
+     */
     fun getAll(): List<LanDevice> = devices.values.toList()
 
+    /**
+     * 获取在线设备列表
+     *
+     * @return 在线设备列表
+     */
     fun getOnline(): List<LanDevice> = devices.values.filter { it.online }
 
+    /**
+     * 获取设备数量
+     *
+     * @return 设备数量
+     */
     fun size(): Int = devices.size
 
+    /**
+     * 清空所有设备
+     */
     fun clear() {
         devices.clear()
         onDeviceChanged?.invoke()
     }
-}
-
-/**
- * 生成本机设备信息的 JSON payload（用于 CALL/ANSWER）
- *
- * @param latestSeq 本机对目标主机记录的最新有序序号
- */
-internal fun buildLocalDevicePayload(latestSeq: Int = 0): ByteArray {
-    val json = JSONObject().apply {
-        put("deviceName", ClientConfig.DEVICE_NAME)
-        put("abilities", JSONArray(ClientConfig.DEVICE_ABILITIES))
-        put("latestSeq", latestSeq)
-        put("heartbeatInterval", ClientConfig.HEARTBEAT_INTERVAL_MS)
-        put("heartbeatTimeout", ClientConfig.HEARTBEAT_TIMEOUT_MS)
-    }
-    return json.toString().toByteArray(Charsets.UTF_8)
 }

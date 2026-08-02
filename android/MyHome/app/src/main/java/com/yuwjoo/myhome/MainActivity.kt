@@ -70,7 +70,7 @@ class MainActivity : AppCompatActivity() {
             // 断开 mqtt
             launch { MqttManager.disconnect() }
             // 断开udp
-            launch { UdpManager.disconnect(this@MainActivity) }
+            launch { UdpManager.disconnect() }
         }
     }
 

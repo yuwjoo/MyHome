@@ -1,6 +1,6 @@
 package com.yuwjoo.myhome.module.udp.listener
 
-import com.yuwjoo.myhome.module.udp.model.LanDevice
+import com.yuwjoo.myhome.module.udp.client.model.LanDevice
 
 /**
  * 设备变更监听器

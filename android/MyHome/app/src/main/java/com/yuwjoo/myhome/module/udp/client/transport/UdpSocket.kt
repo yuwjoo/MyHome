@@ -1,14 +1,15 @@
-package com.yuwjoo.myhome.module.udp.client
+package com.yuwjoo.myhome.module.udp.client.transport
 
 import android.util.Log
+import com.yuwjoo.myhome.module.udp.client.config.NetConfig
+import com.yuwjoo.myhome.module.udp.client.model.FrameData
 import java.net.DatagramPacket
 import java.net.InetAddress
 import java.net.MulticastSocket
 import java.net.NetworkInterface
 
 /**
- * UDP Socket 管理：创建/销毁 Socket、单播/组播/广播发送、本机 IP 收集，
- * 内部持有 [SocketReader] 负责协程循环接收并解码。
+ * UDP Socket 管理：创建/销毁 Socket、单播/组播/广播发送、本机 IP 收集
  */
 internal class UdpSocket {
 
@@ -23,11 +24,11 @@ internal class UdpSocket {
     private val reader = SocketReader(this) // 帧读取器
 
     private val multicastAddr: InetAddress by lazy { // 组播地址
-        InetAddress.getByName(ClientConfig.MULTICAST_ADDR)
+        InetAddress.getByName(NetConfig.MULTICAST_ADDR)
     }
 
     private val broadcastAddr: InetAddress by lazy { // 广播地址
-        InetAddress.getByName(ClientConfig.BROADCAST_ADDR)
+        InetAddress.getByName(NetConfig.BROADCAST_ADDR)
     }
 
     val isOpen: Boolean get() = socket?.let { !it.isClosed } ?: false // Socket 是否已创建且未关闭
@@ -47,7 +48,7 @@ internal class UdpSocket {
         if (isOpen) return true
 
         socket = try {
-            MulticastSocket(ClientConfig.PORT).apply {
+            MulticastSocket(NetConfig.PORT).apply {
                 broadcast = true // 允许发送广播报文
                 loopbackMode = true // 不接收本机自己发出的组播
                 soTimeout = 0 // 阻塞接收
@@ -62,7 +63,7 @@ internal class UdpSocket {
         if (socket != null) {
             collectLocalIps()
             reader.start()
-            Log.i(TAG, "Socket created on port ${ClientConfig.PORT}, joined ${ClientConfig.MULTICAST_ADDR}")
+            Log.i(TAG, "Socket created on port ${NetConfig.PORT}, joined ${NetConfig.MULTICAST_ADDR}")
             return true
         }
         return false
@@ -126,7 +127,7 @@ internal class UdpSocket {
             return false
         }
         return try {
-            s.send(DatagramPacket(data, data.size, InetAddress.getByName(targetIp), ClientConfig.PORT))
+            s.send(DatagramPacket(data, data.size, InetAddress.getByName(targetIp), NetConfig.PORT))
             true
         } catch (e: Exception) {
             Log.e(TAG, "sendUnicast to $targetIp error: ${e.message}")
@@ -150,7 +151,7 @@ internal class UdpSocket {
             return false
         }
         return try {
-            s.send(DatagramPacket(data, data.size, multicastAddr, ClientConfig.PORT))
+            s.send(DatagramPacket(data, data.size, multicastAddr, NetConfig.PORT))
             true
         } catch (e: Exception) {
             Log.e(TAG, "sendMulticast error: ${e.message}")
@@ -174,7 +175,7 @@ internal class UdpSocket {
             return false
         }
         return try {
-            s.send(DatagramPacket(data, data.size, broadcastAddr, ClientConfig.PORT))
+            s.send(DatagramPacket(data, data.size, broadcastAddr, NetConfig.PORT))
             true
         } catch (e: Exception) {
             Log.e(TAG, "sendBroadcast error: ${e.message}")
@@ -186,6 +187,7 @@ internal class UdpSocket {
      * 判断指定 IP 是否为本机地址（用于自收过滤）
      *
      * @param ip IP 地址
+     * @return 是否为本机地址
      */
     fun isLocalAddress(ip: String): Boolean = ip in localIps
 
