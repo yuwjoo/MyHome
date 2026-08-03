@@ -4,15 +4,14 @@ import android.util.Log
 import com.yuwjoo.myhome.module.udp.client.model.RetryPolicy
 import com.yuwjoo.myhome.module.udp.client.device.SeqManager
 import com.yuwjoo.myhome.module.udp.client.transport.UdpSocket
+import com.yuwjoo.myhome.module.udp.client.UdpDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * ACK 确认引擎：按主机串行发送有序消息，前一条收到 ACK 后才发送下一条
@@ -31,8 +30,8 @@ internal class AckEngine(
         private const val ACK_POLL_MS = 50L
     }
 
-    private val senders = ConcurrentHashMap<Int, HostSender>()
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val senders = HashMap<Int, HostSender>()
+    private val scope = CoroutineScope(SupervisorJob() + UdpDispatcher) // 单线程串行调度器
 
     /**
      * 将消息加入发送队列，由对应主机的串行协程负责发送
@@ -86,10 +85,10 @@ internal class AckEngine(
 
     private inner class HostSender(private val hostId: Int) {
         private val queue = Channel<SendTask>(Channel.UNLIMITED)
-        @Volatile private var job: Job? = null
-        @Volatile private var ackedSeq: Int = -1
-        @Volatile private var stopped = false
-        @Volatile private var currentTask: SendTask? = null
+        private var job: Job? = null
+        private var ackedSeq: Int = -1
+        private var stopped = false
+        private var currentTask: SendTask? = null
         private var seqAllocated = false
 
         fun enqueue(task: SendTask) {

@@ -12,6 +12,10 @@ import com.yuwjoo.myhome.module.udp.listener.ConnectionListener
 import com.yuwjoo.myhome.module.udp.listener.DeviceListener
 import com.yuwjoo.myhome.module.udp.listener.TopicListener
 import com.yuwjoo.myhome.module.udp.model.TopicMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 /**
@@ -22,6 +26,7 @@ object UdpManager {
     private const val TAG = "UdpManager"
 
     private val client = UdpClient() // 底层 UDP 客户端
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO) // 协程作用域
     private val topicListeners = ListenerRegistry<String, TopicListener>() // 主题消息监听器
     private val connectionListeners = ListenerRegistry<Unit, ConnectionListener>() // 连接状态监听器
     private val deviceListeners = ListenerRegistry<Unit, DeviceListener>() // 设备变更监听器
@@ -57,14 +62,14 @@ object UdpManager {
             handleIncomingMessage(frame, fromIp)
         }
 
-        client.connect(context)
+        scope.launch { client.connect(context) }
     }
 
     /**
      * 停止 UDP 通信
      */
     fun disconnect() {
-        client.disconnect()
+        scope.launch { client.disconnect() }
         isConnected = false
     }
 
@@ -104,22 +109,24 @@ object UdpManager {
         ordered: Boolean = true,
         onlySubscribers: Boolean = false,
     ) {
-        val bytes = TopicMessage.toBytes(topic, payload)
-        when {
-            targetIp != null -> {
-                client.send(FrameConfig.Type.JSON, bytes, targetIp, ordered)
-            }
-            onlySubscribers -> {
-                val prefix = "${LocalConfig.ABILITY_PREFIX_TOPIC}$topic"
-                val matched = client.onlineDevices.filter { device ->
-                    device.abilities.any { it == prefix }
+        scope.launch {
+            val bytes = TopicMessage.toBytes(topic, payload)
+            when {
+                targetIp != null -> {
+                    client.send(FrameConfig.Type.JSON, bytes, targetIp, ordered)
                 }
-                for (device in matched) {
-                    client.send(FrameConfig.Type.JSON, bytes, device.ip, ordered)
+                onlySubscribers -> {
+                    val prefix = "${LocalConfig.ABILITY_PREFIX_TOPIC}$topic"
+                    val matched = client.onlineDevices.filter { device ->
+                        device.abilities.any { it == prefix }
+                    }
+                    for (device in matched) {
+                        client.send(FrameConfig.Type.JSON, bytes, device.ip, ordered)
+                    }
                 }
-            }
-            else -> {
-                client.send(FrameConfig.Type.JSON, bytes, null, false)
+                else -> {
+                    client.send(FrameConfig.Type.JSON, bytes, null, false)
+                }
             }
         }
     }

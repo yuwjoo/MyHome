@@ -1,14 +1,13 @@
 package com.yuwjoo.myhome.module.udp.client.device
 
 import com.yuwjoo.myhome.module.udp.client.model.LanDevice
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 设备注册表：管理 LAN 中发现的所有设备
  */
 internal class DeviceRegistry {
 
-    private val devices = ConcurrentHashMap<String, LanDevice>() // 设备注册表（线程安全）
+    private val devices = HashMap<String, LanDevice>() // 设备注册表
 
     var onDeviceChanged: (() -> Unit)? = null // 设备变更通知
     var onDeviceOffline: ((ip: String) -> Unit)? = null // 设备离线通知（用于中止 ACK 重试）

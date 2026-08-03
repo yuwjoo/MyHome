@@ -6,14 +6,13 @@ import com.yuwjoo.myhome.module.udp.client.config.LocalConfig
 import com.yuwjoo.myhome.module.udp.client.device.DeviceRegistry
 import com.yuwjoo.myhome.module.udp.client.codec.FrameCodec
 import com.yuwjoo.myhome.module.udp.client.transport.UdpSocket
+import com.yuwjoo.myhome.module.udp.client.UdpDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 心跳引擎：定时广播心跳帧并检测离线设备
@@ -27,11 +26,11 @@ internal class HeartbeatEngine(
         private const val TAG = "HeartbeatEngine"
     }
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO) // 协程作用域
+    private val scope = CoroutineScope(SupervisorJob() + UdpDispatcher) // 单线程串行调度器
     private var job: Job? = null // 心跳协程 Job
 
     /** 各设备最近一次心跳接收时间（ip → timestamp） */
-    private val heartbeatTimes = ConcurrentHashMap<String, Long>()
+    private val heartbeatTimes = HashMap<String, Long>()
 
     /**
      * 记录收到某设备的心跳时间

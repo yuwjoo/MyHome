@@ -20,6 +20,10 @@ import com.yuwjoo.myhome.module.udp.client.router.OfflineHandler
 import com.yuwjoo.myhome.module.udp.client.router.OrderedMsgHandler
 import com.yuwjoo.myhome.module.udp.client.transport.NetworkMonitor
 import com.yuwjoo.myhome.module.udp.client.transport.UdpSocket
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * UDP 客户端
@@ -49,9 +53,10 @@ class UdpClient {
         orderedMsgHandler,
     )
 
+    private val scope = CoroutineScope(SupervisorJob() + UdpDispatcher) // 网络回调转发作用域
     private var networkMonitor: NetworkMonitor? = null // 网络监听器
 
-    @Volatile var isConnected: Boolean = false // 是否已连接
+    var isConnected: Boolean = false // 是否已连接
         private set
 
     var onConnectionChanged: ((Boolean) -> Unit)? = null // 连接状态变化回调
@@ -84,22 +89,23 @@ class UdpClient {
      *
      * @param context 用于注册网络变化监听的 Context
      */
-    @Synchronized
-    fun connect(context: Context) {
-        if (isConnected) return
+    suspend fun connect(context: Context) = withContext(UdpDispatcher) {
+        if (isConnected) return@withContext
         val monitor = NetworkMonitor { available ->
-            if (available) doConnect() else doDisconnect()
+            scope.launch {
+                if (available) doConnect() else doDisconnect()
+            }
         }
         networkMonitor = monitor
+        doConnect()
         monitor.start(context)
     }
 
     /**
      * 断开 UDP 连接，停止网络监听并清理资源
      */
-    @Synchronized
-    fun disconnect() {
-        if (!isConnected) return
+    suspend fun disconnect() = withContext(UdpDispatcher) {
+        if (!isConnected) return@withContext
         networkMonitor?.stop()
         networkMonitor = null
         doDisconnect()
@@ -114,17 +120,17 @@ class UdpClient {
      * @param ordered 是否需要有序发送（ACK 确认）
      * @return 是否发送成功
      */
-    fun send(
+    suspend fun send(
         type: Byte,
         payload: ByteArray,
         targetIp: String? = null,
         ordered: Boolean = true,
-    ): Boolean {
+    ): Boolean = withContext(UdpDispatcher) {
         if (!isConnected) {
             Log.w(TAG, "send: not connected")
-            return false
+            return@withContext false
         }
-        return if (targetIp != null) {
+        if (targetIp != null) {
             sendUnicast(type, payload, targetIp, ordered)
         } else {
             sendBroadcast(type, payload)

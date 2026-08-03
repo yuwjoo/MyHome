@@ -17,7 +17,7 @@ internal class UdpSocket {
         private const val TAG = "UdpSocket"
     }
 
-    @Volatile private var socket: MulticastSocket? = null // 组播 socket
+    private var socket: MulticastSocket? = null // 组播 socket
 
     private val localIps = mutableSetOf<String>() // 本机 IP 集合（用于过滤自收报文）
 

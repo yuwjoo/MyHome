@@ -1,14 +1,14 @@
 package com.yuwjoo.myhome.module.udp.client.device
 
-import java.util.concurrent.ConcurrentHashMap
+
 
 /**
  * 序号管理：按主机号维护对端有序序号，严格递增校验（uint16 回绕）
  */
 internal class SeqManager {
 
-    private val recvSeqs = ConcurrentHashMap<Int, Int>() // hostId -> 本机已从该主机接收的最大有序序号
-    private val sendSeqs = ConcurrentHashMap<Int, Int>() // hostId -> 本机已发给该主机的最大有序序号
+    private val recvSeqs = HashMap<Int, Int>() // hostId -> 本机已从该主机接收的最大有序序号
+    private val sendSeqs = HashMap<Int, Int>() // hostId -> 本机已发给该主机的最大有序序号
 
     /**
      * 获取本机已从指定主机接收的最大序号
@@ -65,7 +65,10 @@ internal class SeqManager {
      * @return 下一个发送序号
      */
     fun nextSendSeq(hostId: Int): Int {
-        return sendSeqs.merge(hostId, 1) { _, seq -> (seq + 1) and 0xFFFF } ?: 1
+        val current = sendSeqs.getOrDefault(hostId, 0)
+        val next = (current + 1) and 0xFFFF
+        sendSeqs[hostId] = next
+        return next
     }
 
     /**
@@ -74,7 +77,8 @@ internal class SeqManager {
      * @param hostId 主机 ID
      */
     fun rollbackSendSeq(hostId: Int) {
-        sendSeqs.computeIfPresent(hostId) { _, seq -> (seq - 1) and 0xFFFF }
+        val current = sendSeqs[hostId] ?: return
+        sendSeqs[hostId] = (current - 1) and 0xFFFF
     }
 
     /**
