@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.udptransport.socket
+package com.yuwjoo.myhome.module.udpcomm.transport
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -18,8 +18,8 @@ internal class NetworkMonitor(
         private const val TAG = "NetworkMonitor"
     }
 
-    private var connectivityManager: ConnectivityManager? = null
-    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    private var connectivityManager: ConnectivityManager? = null // 连接管理器
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null // 网络回调
 
     /**
      * 启动网络监听

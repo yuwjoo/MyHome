@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.udptransport.utils
+package com.yuwjoo.myhome.module.udpcomm.utils
 
 import android.util.Log
 import java.net.InetAddress
