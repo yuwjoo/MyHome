@@ -2,6 +2,8 @@ package com.yuwjoo.myhome.module.udpcomm
 
 import android.content.Context
 import android.util.Log
+import com.yuwjoo.myhome.module.udpcomm.frame.FrameCodec
+import com.yuwjoo.myhome.module.udpcomm.frame.FrameData
 import com.yuwjoo.myhome.module.udpcomm.transport.Transport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,17 +28,21 @@ object UdpComm {
         private set
 
     var onConnectionChanged: ((Boolean) -> Unit)? = null // 连接状态变化回调
-    var onMessageReceived: ((ByteArray, String) -> Unit)? = null // 收到原始消息回调
+    var onFrameReceived: ((FrameData, String) -> Unit)? = null // 收到帧数据回调
 
     init {
+        // 传输器启动状态改变
         transport.onStartChanged = { started ->
             scope.launch {
-                isConnected = started
-                onConnectionChanged?.invoke(started)
+                updateConnectionState(started)
             }
         }
+        // 传输器收到消息
         transport.onMessageReceived = { data, fromIp ->
-            onMessageReceived?.invoke(data, fromIp)
+            scope.launch {
+                val frame = FrameCodec.decode(data) ?: return@launch
+                onFrameReceived?.invoke(frame, fromIp)
+            }
         }
     }
 
@@ -49,8 +55,7 @@ object UdpComm {
         if (isConnected) return@withContext
 
         transport.start(context)
-        isConnected = true
-        onConnectionChanged?.invoke(true)
+        updateConnectionState(true)
         Log.i(TAG, "Connected")
     }
 
@@ -60,8 +65,7 @@ object UdpComm {
     suspend fun disconnect() = withContext(dispatcher) {
         if (!isConnected) return@withContext
         transport.stop()
-        isConnected = false
-        onConnectionChanged?.invoke(false)
+        updateConnectionState(false)
         Log.i(TAG, "Disconnected")
     }
 
@@ -81,6 +85,14 @@ object UdpComm {
                 transport.sendUnicast(data, targetIp)
             } else {
                 transport.sendBroadcast(data)
-            }
         }
+    }
+
+    /**
+     * 更新连接状态并通知外部
+     */
+    private suspend fun updateConnectionState(connected: Boolean) = withContext(dispatcher) {
+        isConnected = connected
+        onConnectionChanged?.invoke(connected)
+    }
 }

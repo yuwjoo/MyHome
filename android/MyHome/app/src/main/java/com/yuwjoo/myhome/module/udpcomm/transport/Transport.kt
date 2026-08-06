@@ -57,6 +57,7 @@ internal class Transport {
     /**
      * 创建 Socket 并启动接收循环
      */
+    @Synchronized
     private fun createSocket() {
         if (udpSocket != null) return
         udpSocket = UdpSocket(
@@ -73,6 +74,7 @@ internal class Transport {
     /**
      * 关闭 Socket
      */
+    @Synchronized
     private fun closeSocket() {
         if (udpSocket == null) return
         udpSocket?.close()
