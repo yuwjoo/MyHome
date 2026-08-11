@@ -24,7 +24,7 @@ import type {
   StrategyId,
   TradingDate,
 } from './common'
-import type { FundProfile, FundFeeRule, FundTradingRule, NavPoint } from './fund'
+import type { FundProfile, FundTradingRule, NavPoint } from './fund'
 import type { CashAccount, Order, Position, PositionLot } from './trade'
 
 // ============================================================
@@ -196,9 +196,7 @@ export interface FundContext {
   profile: FundProfile
   /** 行情窗口（已裁剪未来数据） */
   market: MarketWindow
-  /** 费率规则。用于策略自行预估交易成本 */
-  feeRule: Nullable<FundFeeRule>
-  /** 交易规则。用于策略判断确认延迟、限购等 */
+  /** 交易规则（含费用阶梯与确认/到账规则）。用于策略判断确认延迟、限购，并自行预估交易成本 */
   tradingRule: Nullable<FundTradingRule>
   /** 当前持仓。无持仓时为 null */
   position: Nullable<Position>

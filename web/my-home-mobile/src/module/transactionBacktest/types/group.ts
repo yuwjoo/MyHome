@@ -33,6 +33,13 @@ import type {
 } from './trade'
 
 /**
+ * 分红方式。这是投资者的选择，不属于基金自身的客观属性。
+ */
+export type DividendMethod =
+  | 'cash' // 现金分红：红利转入现金账户
+  | 'reinvest' // 红利再投资：红利自动转为份额
+
+/**
  * 组的时间状态。
  *
  * 【设计说明】把两个时间打包成独立对象而非平铺在 Group 上，
@@ -91,10 +98,10 @@ export interface GroupConfig {
    */
   enableConfirmDelay: boolean
   /**
-   * 分红处理方式。
+   * 分红处理方式。这是投资者的选择，而非基金属性。
    * reinvest：红利自动转份额；cash：红利转入现金账户。
    */
-  dividendMethod: import('./fund').DividendMethod
+  dividendMethod: DividendMethod
   /**
    * 推进步长（自然日）。默认 1，即每次推进一天。
    * 周末与节假日照常经历（时间与真实世界一致），只是当天无净值更新。
