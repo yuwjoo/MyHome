@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.udpcomm.transport
+package com.yuwjoo.myhome.module.peerudp.transport
 
 import android.content.Context
 import android.net.ConnectivityManager

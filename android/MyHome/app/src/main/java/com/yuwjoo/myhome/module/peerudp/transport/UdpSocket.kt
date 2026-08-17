@@ -1,7 +1,7 @@
-package com.yuwjoo.myhome.module.udpcomm.transport
+package com.yuwjoo.myhome.module.peerudp.transport
 
 import android.util.Log
-import com.yuwjoo.myhome.module.udpcomm.utils.NetworkUtils
+import com.yuwjoo.myhome.module.peerudp.utils.NetworkUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

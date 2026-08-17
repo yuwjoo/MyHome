@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.udpcomm.device
+package com.yuwjoo.myhome.module.peerudp.device
 
 import org.json.JSONArray
 import org.json.JSONObject
@@ -11,7 +11,7 @@ object LanDeviceSerializer {
     /**
      * LanDevice 转 JSON 字符串
      */
-    fun toJsonString(device: LanDevice): String = JSONObject().apply {
+    fun toJsonString(device: LanDeviceInfo): String = JSONObject().apply {
         put("ip", device.ip)
         put("deviceName", device.deviceName)
         put("abilities", JSONArray(device.abilities))
@@ -37,8 +37,6 @@ object LanDeviceSerializer {
                 ip = obj.getString("ip"),
                 deviceName = obj.optString("deviceName", ""),
                 abilities = abilities,
-                online = obj.optBoolean("online", false),
-                offlineAt = obj.optLong("offlineAt", 0L),
                 heartbeatInterval = obj.optLong("heartbeatInterval", 0L),
                 heartbeatTimeout = obj.optLong("heartbeatTimeout", 0L),
             )

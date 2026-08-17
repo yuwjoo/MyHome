@@ -1,10 +1,10 @@
-package com.yuwjoo.myhome.module.udpcomm
+package com.yuwjoo.myhome.module.peerudp
 
 import android.content.Context
 import android.util.Log
-import com.yuwjoo.myhome.module.udpcomm.frame.FrameCodec
-import com.yuwjoo.myhome.module.udpcomm.frame.FrameData
-import com.yuwjoo.myhome.module.udpcomm.transport.Transport
+import com.yuwjoo.myhome.module.peerudp.frame.FrameCodec
+import com.yuwjoo.myhome.module.peerudp.frame.FrameData
+import com.yuwjoo.myhome.module.peerudp.transport.Transport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -13,12 +13,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * UDP 通信
+ * P2P UDP 通信
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-object UdpComm {
+object PeerUdp {
 
-    private const val TAG = "UdpComm"
+    private const val TAG = "PeerUdp"
 
     private val transport = Transport() // udp传输器
     private val dispatcher = Dispatchers.IO.limitedParallelism(1) // 单线程串行调度器

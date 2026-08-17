@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.udpcomm.frame
+package com.yuwjoo.myhome.module.peerudp.frame
 
 /**
  * 帧数据

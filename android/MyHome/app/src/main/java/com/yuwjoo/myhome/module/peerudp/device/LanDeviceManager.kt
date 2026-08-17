@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.udpcomm.device
+package com.yuwjoo.myhome.module.peerudp.device
 
 /**
  * 局域网设备管理
@@ -11,10 +11,10 @@ class LanDeviceManager {
         onDeviceOffline = ::handleDeviceOffline,
     )
 
-    val devices: List<LanDevice> get() = deviceMap.values.toList() // 设备列表
-    val onlineDevices: List<LanDevice> get() = deviceMap.values.filter { it.online } // 在线设备列表
+    val devices: List<LanDeviceInfo> get() = deviceMap.values.toList() // 设备列表
+    val onlineDevices: List<LanDeviceInfo> get() = deviceMap.values.filter { it.online } // 在线设备列表
 
-    var onDeviceListChanged: ((List<LanDevice>) -> Unit)? = null // 设备列表改变监听
+    var onDeviceListChanged: ((List<LanDeviceInfo>) -> Unit)? = null // 设备列表改变监听
 
     /**
      * 初始化设备
@@ -63,7 +63,7 @@ class LanDeviceManager {
      * @param ip 设备 IP
      * @return 设备对象，不存在返回 null
      */
-    fun getDevice(ip: String): LanDevice? = deviceMap[ip]
+    fun getDevice(ip: String): LanDeviceInfo? = deviceMap[ip]
 
     /**
      * 清除设备列表
@@ -77,8 +77,8 @@ class LanDeviceManager {
     /**
      * 处理设备离线
      */
-    private fun handleDeviceOffline(device: LanDevice) {
-        device.offline()
+    private fun handleDeviceOffline(device: LanDeviceInfo) {
+        (device as LanDevice).offline()
         onDeviceListChanged?.invoke(devices)
     }
 }

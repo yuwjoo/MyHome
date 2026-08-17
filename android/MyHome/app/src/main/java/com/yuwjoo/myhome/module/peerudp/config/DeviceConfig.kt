@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.udpcomm.config
+package com.yuwjoo.myhome.module.peerudp.config
 
 /**
  * 设备配置

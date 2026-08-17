@@ -1,6 +1,6 @@
-package com.yuwjoo.myhome.module.udpcomm.device
+package com.yuwjoo.myhome.module.peerudp.device
 
-import com.yuwjoo.myhome.module.udpcomm.config.DeviceConfig
+import com.yuwjoo.myhome.module.peerudp.config.DeviceConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -12,8 +12,8 @@ import kotlinx.coroutines.launch
  * 设备存活检测
  */
 class DeviceAliveChecker(
-    private val getOnlineDevices: () -> List<LanDevice>, // 获取在线设备列表
-    private val onDeviceOffline: (LanDevice) -> Unit, // 设备离线回调
+    private val getOnlineDevices: () -> List<LanDeviceInfo>, // 获取在线设备列表
+    private val onDeviceOffline: (LanDeviceInfo) -> Unit, // 设备离线回调
 ) {
     private val scope = CoroutineScope(Dispatchers.IO) // 内部协程作用域
     private var job: Job? = null // 当前检测任务

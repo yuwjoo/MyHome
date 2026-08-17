@@ -1,8 +1,8 @@
-package com.yuwjoo.myhome.module.udpcomm.transport
+package com.yuwjoo.myhome.module.peerudp.transport
 
 import android.content.Context
 import android.util.Log
-import com.yuwjoo.myhome.module.udpcomm.config.SocketConfig
+import com.yuwjoo.myhome.module.peerudp.config.SocketConfig
 import java.net.InetAddress
 
 /**

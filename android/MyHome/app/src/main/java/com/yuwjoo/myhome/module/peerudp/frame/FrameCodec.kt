@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.udpcomm.frame
+package com.yuwjoo.myhome.module.peerudp.frame
 
 import com.yuwjoo.myhome.module.udp.client.config.FrameConfig
 import java.io.ByteArrayInputStream

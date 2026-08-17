@@ -1,6 +1,6 @@
-package com.yuwjoo.myhome.module.udpcomm.device
+package com.yuwjoo.myhome.module.peerudp.device
 
-import com.yuwjoo.myhome.module.udpcomm.config.DeviceConfig
+import com.yuwjoo.myhome.module.peerudp.config.DeviceConfig
 
 /**
  * 局域网设备
@@ -17,21 +17,21 @@ import com.yuwjoo.myhome.module.udpcomm.config.DeviceConfig
  * @property lastHeartbeat        最后心跳时间戳（ms）
  */
 data class LanDevice(
-    val ip: String,
-    val deviceName: String = "",
-    val abilities: List<String> = emptyList(),
-    val heartbeatInterval: Long = 0L,
-    val heartbeatTimeout: Long = 0L,
-) {
-    var online: Boolean = true
+    override val ip: String,
+    override val deviceName: String = "",
+    override val abilities: List<String> = emptyList(),
+    override val heartbeatInterval: Long = 0L,
+    override val heartbeatTimeout: Long = 0L,
+) : LanDeviceInfo {
+    override var online: Boolean = true
         private set
-    var offlineAt: Long = 0L
+    override var offlineAt: Long = 0L
         private set
-    var lastRecvSeq: Int = 0
+    override var lastRecvSeq: Int = 0
         private set
-    var lastSendSeq: Int = 0
+    override var lastSendSeq: Int = 0
         private set
-    var lastHeartbeat: Long = System.currentTimeMillis()
+    override var lastHeartbeat: Long = System.currentTimeMillis()
         private set
 
     /**
@@ -60,12 +60,12 @@ data class LanDevice(
     /**
      * 是否包含topic能力
      */
-    fun hasTopic(topic: String): Boolean = abilities.contains("${DeviceConfig.ABILITY_PREFIX_TOPIC}$topic")
+    override fun hasTopic(topic: String): Boolean = abilities.contains("${DeviceConfig.ABILITY_PREFIX_TOPIC}$topic")
 
     /**
      * 是否包含skill能力
      */
-    fun hasSkill(skill: String): Boolean = abilities.contains("${DeviceConfig.ABILITY_PREFIX_SKILL}$skill")
+    override fun hasSkill(skill: String): Boolean = abilities.contains("${DeviceConfig.ABILITY_PREFIX_SKILL}$skill")
 
     /**
      * 更新最后接收的序号

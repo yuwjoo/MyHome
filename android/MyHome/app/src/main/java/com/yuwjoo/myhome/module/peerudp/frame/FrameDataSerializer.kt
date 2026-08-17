@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.udpcomm.frame
+package com.yuwjoo.myhome.module.peerudp.frame
 
 import android.util.Base64
 import org.json.JSONObject

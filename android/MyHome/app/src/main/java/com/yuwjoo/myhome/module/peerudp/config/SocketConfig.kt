@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.udpcomm.config
+package com.yuwjoo.myhome.module.peerudp.config
 
 /**
  * Socket 层网络配置常量
