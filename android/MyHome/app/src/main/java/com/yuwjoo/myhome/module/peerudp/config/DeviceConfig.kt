@@ -13,4 +13,9 @@ internal object DeviceConfig {
         val DEVICE_NAME: String = "${android.os.Build.MANUFACTURER}-${android.os.Build.MODEL}" // 本机设备名称
         val DEVICE_ABILITIES: List<String> = emptyList() // 本机设备能力列表
     }
+
+    object MessageQueue {
+        const val SEND_TIMEOUT_MS = 2_000L // 发送超时时间（毫秒）
+        const val MAX_SEND_COUNT = 3 // 单条消息最大发送次数（含首次发送）
+    }
 }
