@@ -1,5 +1,6 @@
 package com.yuwjoo.myhome.module.peerudp.device
 
+import com.yuwjoo.myhome.module.peerudp.common.SerialCoroutine
 import com.yuwjoo.myhome.module.peerudp.config.DeviceConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -12,10 +13,9 @@ import kotlinx.coroutines.launch
  * 设备存活检测
  */
 class DeviceAliveChecker(
-    private val getOnlineDevices: () -> List<LanDeviceInfo>, // 获取在线设备列表
-    private val onDeviceOffline: (LanDeviceInfo) -> Unit, // 设备离线回调
+    private val deviceMap: HashMap<String, LanDevice>, // 设备映射表
 ) {
-    private val scope = CoroutineScope(Dispatchers.IO) // 内部协程作用域
+    private val scope = CoroutineScope(Dispatchers.IO) // 存活检测作用域（IO 线程池）
     private var job: Job? = null // 当前检测任务
 
     /**
@@ -44,10 +44,10 @@ class DeviceAliveChecker(
      */
     private fun check() {
         val now = System.currentTimeMillis()
-        for (device in getOnlineDevices()) {
-            val timeout = if (device.heartbeatTimeout > 0) device.heartbeatTimeout else DeviceConfig.Local.HEARTBEAT_TIMEOUT_MS
-            if (now - device.lastHeartbeat > timeout) {
-                onDeviceOffline(device)
+        for (device in deviceMap.values) {
+            if (device.status != DeviceStatus.ONLINE) continue // 只检测在线设备
+            if (now - device.lastHeartbeat > device.heartbeatTimeout) {
+                SerialCoroutine.scope.launch { device.offline() } // 投递到串行协程执行离线
             }
         }
     }

@@ -6,33 +6,42 @@ package com.yuwjoo.myhome.module.peerudp.device
 class LanDeviceManager {
 
     private val deviceMap = HashMap<String, LanDevice>() // 设备映射表
-    private val aliveChecker = DeviceAliveChecker( // 设备存活检测器
-        getOnlineDevices = { onlineDevices },
-        onDeviceOffline = ::handleDeviceOffline,
-    )
+    private var devices: List<LanDevice> = emptyList() // 设备列表
 
-    val devices: List<LanDeviceInfo> get() = deviceMap.values.toList() // 设备列表
-    val onlineDevices: List<LanDeviceInfo> get() = deviceMap.values.filter { it.online } // 在线设备列表
+    val deviceInfoList: List<DeviceInfo> get() = devices // 设备信息列表
+    val onlineDeviceInfoList: List<DeviceInfo> get() = devices.filter { it.status == DeviceStatus.ONLINE } // 在线设备信息列表
 
-    var onDeviceListChanged: ((List<LanDeviceInfo>) -> Unit)? = null // 设备列表改变监听
+    var onDeviceListChanged: ((List<DeviceInfo>) -> Unit)? = null // 设备列表改变监听
+    
+    private val aliveChecker = DeviceAliveChecker(deviceMap) // 设备存活检测器
 
     /**
-     * 初始化设备
+     * 获取指定设备信息
+     *
+     * @param ip 设备 IP
+     * @return 设备信息对象，不存在返回 null
+     */
+    fun getDeviceInfo(ip: String): DeviceInfo? {
+        return deviceMap[ip]
+    }
+
+    /**
+     * 添加设备
      *
      * @param ip                  设备 IP
      * @param deviceName          设备名称
      * @param abilities           设备能力列表
      * @param heartbeatInterval   心跳发送间隔（ms）
      * @param heartbeatTimeout    心跳过期间隔（ms）
-     * @return 记录的设备
+     * @return 设备信息
      */
-    fun initDevice(
+    fun addDevice(
         ip: String,
         deviceName: String = "",
         abilities: List<String> = emptyList(),
         heartbeatInterval: Long = 0L,
         heartbeatTimeout: Long = 0L,
-    ): LanDevice {
+    ): DeviceInfo {
         val device = LanDevice(
             ip = ip,
             deviceName = deviceName,
@@ -40,9 +49,10 @@ class LanDeviceManager {
             heartbeatInterval = heartbeatInterval,
             heartbeatTimeout = heartbeatTimeout,
         )
+        device.onStatusChanged = { onDeviceListChanged?.invoke(devices) } // 状态变化时通知列表
+        deviceMap[ip]?.onStatusChanged = null // 清理被替换的旧设备回调
         deviceMap[ip] = device
-        aliveChecker.start() // 设备列表不为空则启动存活检测（内部有防重复逻辑）
-        onDeviceListChanged?.invoke(deviceMap.values.toList())
+        handleDeviceMapChanged()
         return device
     }
 
@@ -52,33 +62,29 @@ class LanDeviceManager {
      * @param ip 设备 IP
      */
     fun removeDevice(ip: String) {
-        deviceMap.remove(ip)
-        if (deviceMap.isEmpty()) aliveChecker.stop() // 设备列表为空时停止检测
-        onDeviceListChanged?.invoke(deviceMap.values.toList())
+        deviceMap.remove(ip)?.onStatusChanged = null // 清理被移除设备的回调
+        handleDeviceMapChanged()
     }
 
     /**
-     * 获取指定设备
-     *
-     * @param ip 设备 IP
-     * @return 设备对象，不存在返回 null
-     */
-    fun getDevice(ip: String): LanDeviceInfo? = deviceMap[ip]
-
-    /**
-     * 清除设备列表
+     * 清除所有设备
      */
     fun clearDevices() {
+        deviceMap.values.forEach { it.onStatusChanged = null } // 清理所有设备的回调
         deviceMap.clear()
-        aliveChecker.stop() // 清空后停止检测
-        onDeviceListChanged?.invoke(deviceMap.values.toList())
+        handleDeviceMapChanged()
     }
 
     /**
-     * 处理设备离线
+     * 处理设备映射表改变
      */
-    private fun handleDeviceOffline(device: LanDeviceInfo) {
-        (device as LanDevice).offline()
+    private fun handleDeviceMapChanged() {
+        devices = deviceMap.values.toList()
+        if (devices.any { it.heartbeatInterval > 0 }) {
+            aliveChecker.start() // 存在启用心跳的设备，启动存活检测器
+        } else {
+            aliveChecker.stop() // 无启用心跳的设备，停止存活检测器
+        }
         onDeviceListChanged?.invoke(devices)
     }
 }
