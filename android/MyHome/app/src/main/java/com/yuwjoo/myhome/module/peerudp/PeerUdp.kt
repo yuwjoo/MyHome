@@ -3,9 +3,12 @@ package com.yuwjoo.myhome.module.peerudp
 import android.content.Context
 import android.util.Log
 import com.yuwjoo.myhome.module.peerudp.common.SerialCoroutine
+import com.yuwjoo.myhome.module.peerudp.device.LanDeviceManager
+import com.yuwjoo.myhome.module.peerudp.device.SendStatus
 import com.yuwjoo.myhome.module.peerudp.frame.FrameCodec
 import com.yuwjoo.myhome.module.peerudp.frame.FrameData
 import com.yuwjoo.myhome.module.peerudp.transport.Transport
+import com.yuwjoo.myhome.module.udp.client.config.FrameConfig
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -20,6 +23,7 @@ object PeerUdp {
     private val scope = SerialCoroutine.scope // 协程作用域
 
     private val transport = Transport() // udp传输器
+    private val deviceManager = LanDeviceManager() // 设备管理器
 
     var isConnected: Boolean = false // 当前连接状态
         private set
@@ -67,22 +71,42 @@ object PeerUdp {
     }
 
     /**
-     * 发送数据
+     * 发送数据（按帧协议编码后发送）
      *
-     * @param data     待发送字节数组
-     * @param targetIp 目标 IP，为 null 时广播发送
+     * @param payload    待发送负载（帧 Payload，如 JSON 字节）
+     * @param targetIp   目标 IP，为 null 时广播发送（SeqNum 固定为 0，无序）
+     * @param onComplete 发送完成回调（仅单播有序时触发，参数为发送状态，可省略）
      */
-    suspend fun send(data: ByteArray, targetIp: String? = null): Boolean =
+    suspend fun send(
+        payload: ByteArray,
+        targetIp: String? = null,
+        onComplete: (status: SendStatus) -> Unit = {},
+    ): Boolean =
         withContext(dispatcher) {
             if (!isConnected) {
                 Log.w(TAG, "send: not connected")
                 return@withContext false
             }
             if (targetIp != null) {
-                transport.sendUnicast(data, targetIp)
+                // 单播：固定 JSON 有序消息，序号由队列按设备分配，回调中编码完整帧发送
+                deviceManager.enqueueDeviceMessage(
+                    ip = targetIp,
+                    data = payload,
+                    send = { bytes, ip, seq ->
+                        transport.sendUnicast(
+                            FrameCodec.encode(FrameConfig.Type.JSON, seq, FrameConfig.Flags.ORDERED, bytes),
+                            ip,
+                        )
+                    },
+                    onComplete = onComplete,
+                )
+                true
             } else {
-                transport.sendBroadcast(data)
-        }
+                // 广播：固定 JSON 无序消息，SeqNum 固定为 0
+                transport.sendBroadcast(
+                    FrameCodec.encode(FrameConfig.Type.JSON, 0, FrameConfig.Flags.NONE, payload),
+                )
+            }
     }
 
     /**

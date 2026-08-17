@@ -3,28 +3,40 @@ package com.yuwjoo.myhome.module.peerudp.device
 import android.util.Log
 import com.yuwjoo.myhome.module.peerudp.common.SerialCoroutine
 import com.yuwjoo.myhome.module.peerudp.config.DeviceConfig
-import com.yuwjoo.myhome.module.peerudp.transport.Transport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
+ * 消息发送状态
+ */
+enum class SendStatus {
+    SUCCESS, // 发送成功（收到确认）
+    FAILED, // 重试次数用尽或设备不存在，发送失败
+    ABORT, // 消息被中止
+}
+
+/**
  * 设备消息任务
+ *
+ * @param data       待发送数据
+ * @param send       发送回调（发送数据到指定 IP，携带队列分配的序号）
+ * @param onComplete 完成回调（消息处理结束时调用，参数为结果）
  */
 class DeviceMessage(
     val data: ByteArray, // 待发送数据
+    val send: (data: ByteArray, ip: String, seq: Int) -> Unit, // 发送回调（含序号）
+    val onComplete: (status: SendStatus) -> Unit = {}, // 完成回调（可省略）
 ) {
     var seq: Int = 0 // 分配的消息序号
     var sendCount: Int = 0 // 已发送次数
-    var lastSendAt: Long = 0 // 最后发送时间戳（ms）
 }
 
 /**
  * 设备消息队列
  */
 class DeviceMessageQueue(
-    private val transport: Transport, // UDP 传输器
     private val deviceMap: HashMap<String, LanDevice>, // 设备映射表
 ) {
     companion object {
@@ -39,11 +51,18 @@ class DeviceMessageQueue(
     /**
      * 向指定设备加入一条待发送消息
      *
-     * @param ip   目标设备 IP
-     * @param data 待发送数据
+     * @param ip         目标设备 IP
+     * @param data       待发送数据
+     * @param send       发送回调（发送数据到指定 IP，携带队列分配的序号）
+     * @param onComplete 完成回调（消息处理结束时调用，参数为结果，可省略）
      */
-    fun enqueue(ip: String, data: ByteArray) {
-        queues.getOrPut(ip) { ArrayDeque() }.addLast(DeviceMessage(data))
+    fun enqueue(
+        ip: String,
+        data: ByteArray,
+        send: (data: ByteArray, ip: String, seq: Int) -> Unit,
+        onComplete: (status: SendStatus) -> Unit = {},
+    ) {
+        queues.getOrPut(ip) { ArrayDeque() }.addLast(DeviceMessage(data, send, onComplete))
         sendNext(ip)
     }
 
@@ -53,21 +72,23 @@ class DeviceMessageQueue(
      * @param ip  设备 IP
      * @param seq 已送达的消息序号
      */
-    fun confirm(ip: String, seq: Int) {
+    fun ack(ip: String, seq: Int) {
         val task = sending[ip] ?: return
         if (task.seq != seq) return
         sending.remove(ip)
+        device.updateSendSeq(task.seq)
+        task.onComplete(SendStatus.SUCCESS)
         sendNext(ip)
     }
 
     /**
-     * 移除设备的待发送与发送中消息
+     * 中止待发送与发送中消息
      *
      * @param ip 设备 IP
      */
-    fun removeDevice(ip: String) {
-        queues.remove(ip)
-        sending.remove(ip)
+    fun abort(ip: String) {
+        queues.remove(ip)?.forEach { it.onComplete(SendStatus.ABORT) }
+        sending.remove(ip)?.onComplete(SendStatus.ABORT)
     }
 
     /**
@@ -84,14 +105,13 @@ class DeviceMessageQueue(
         val device = deviceMap[ip]
         if (device == null) {
             Log.w(TAG, "sendNext: device $ip not found, drop message")
+            task.onComplete(SendStatus.FAILED)
             return
         }
         task.seq = device.nextSendSeq()
         task.sendCount = 1
-        task.lastSendAt = System.currentTimeMillis()
         sending[ip] = task
-        transport.sendUnicast(task.data, ip)
-        device.updateSendSeq(task.seq)
+        task.send(task.data, ip, task.seq)
         startTimeout(ip, task)
     }
 
@@ -113,18 +133,19 @@ class DeviceMessageQueue(
         if (deviceMap[ip] == null) {
             Log.w(TAG, "handleTimeout: device $ip removed, drop message")
             sending.remove(ip)
+            task.onComplete(SendStatus.FAILED)
             sendNext(ip)
             return
         }
         if (task.sendCount >= DeviceConfig.MessageQueue.MAX_SEND_COUNT) {
             Log.w(TAG, "handleTimeout: drop message to $ip, seq=${task.seq}")
             sending.remove(ip)
+            task.onComplete(SendStatus.FAILED)
             sendNext(ip)
             return
         }
         task.sendCount++
-        task.lastSendAt = System.currentTimeMillis()
-        transport.sendUnicast(task.data, ip)
+        task.send(task.data, ip, task.seq)
         startTimeout(ip, task)
     }
 }

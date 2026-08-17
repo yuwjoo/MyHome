@@ -14,6 +14,7 @@ class LanDeviceManager {
     var onDeviceListChanged: ((List<DeviceInfo>) -> Unit)? = null // 设备列表改变监听
     
     private val aliveChecker = DeviceAliveChecker(deviceMap) // 设备存活检测器
+    private val messageQueue = DeviceMessageQueue(deviceMap) // 设备消息队列
 
     /**
      * 获取指定设备信息
@@ -23,6 +24,33 @@ class LanDeviceManager {
      */
     fun getDeviceInfo(ip: String): DeviceInfo? {
         return deviceMap[ip]
+    }
+
+    /**
+     * 向指定设备发送一条消息（加入消息队列，带重试）
+     *
+     * @param ip         目标设备 IP
+     * @param data       待发送数据
+     * @param send       发送回调（发送数据到指定 IP，携带队列分配的序号）
+     * @param onComplete 完成回调（消息处理结束时调用，参数为结果，可省略）
+     */
+    fun enqueueDeviceMessage(
+        ip: String,
+        data: ByteArray,
+        send: (data: ByteArray, ip: String, seq: Int) -> Unit,
+        onComplete: (status: SendStatus) -> Unit = {},
+    ) {
+        messageQueue.enqueue(ip, data, send, onComplete)
+    }
+
+    /**
+     * 确认设备消息已送达（收到对应序号的消息时调用）
+     *
+     * @param ip  设备 IP
+     * @param seq 已送达的消息序号
+     */
+    fun ackDeviceMessage(ip: String, seq: Int) {
+        messageQueue.ack(ip, seq)
     }
 
     /**
@@ -51,6 +79,7 @@ class LanDeviceManager {
         )
         device.onStatusChanged = { onDeviceListChanged?.invoke(devices) } // 状态变化时通知列表
         deviceMap[ip]?.onStatusChanged = null // 清理被替换的旧设备回调
+        messageQueue.abort(ip) // 清理旧设备的待发送消息
         deviceMap[ip] = device
         handleDeviceMapChanged()
         return device
