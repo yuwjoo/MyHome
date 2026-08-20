@@ -1,7 +1,6 @@
 package com.yuwjoo.myhome.module.peerudp.transport
 
 import android.util.Log
-import com.yuwjoo.myhome.module.peerudp.utils.NetworkUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -11,6 +10,7 @@ import kotlinx.coroutines.launch
 import java.net.DatagramPacket
 import java.net.InetAddress
 import java.net.MulticastSocket
+import java.net.NetworkInterface
 
 /**
  * UDP Socket
@@ -37,7 +37,7 @@ internal class UdpSocket(
     private val multicastInet: InetAddress = InetAddress.getByName(multicastAddress) // 组播组地址
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO) // 接收协程作用域
     private var receiveJob: Job? = null // 接收协程
-    private val localIps: Set<String> = if (filterLocalIp) NetworkUtils.collectLocalIps() else emptySet() // 本机 IP 集合
+    private val localIps: Set<String> = if (filterLocalIp) collectLocalIps() else emptySet() // 本机 IP 集合
 
     val isClosed: Boolean get() = socket.isClosed // 当前是否已关闭
 
@@ -75,6 +75,30 @@ internal class UdpSocket(
         }
 
         Log.i(TAG, "Socket created on port $port, joined $multicastAddress")
+    }
+
+    /**
+     * 收集本机活跃网卡 IP
+     */
+    private fun collectLocalIps(): Set<String> {
+        val ips = mutableSetOf<String>()
+        try {
+            val interfaces = NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val ni = interfaces.nextElement()
+                if (!ni.isUp || ni.isLoopback) continue
+                val addrs = ni.inetAddresses
+                while (addrs.hasMoreElements()) {
+                    val addr: InetAddress = addrs.nextElement()
+                    val ip = addr.hostAddress ?: continue
+                    ips.add(ip)
+                }
+            }
+            Log.d(TAG, "Local IPs: $ips")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to collect local IPs: ${e.message}")
+        }
+        return ips
     }
 
     /**

@@ -1,8 +1,10 @@
 package com.yuwjoo.myhome.module.peerudp.transport
 
-import android.content.Context
 import android.util.Log
 import com.yuwjoo.myhome.module.peerudp.config.SocketConfig
+import com.yuwjoo.myhome.module.peerudp.frame.FrameCodec
+import com.yuwjoo.myhome.module.peerudp.frame.FrameData
+import com.yuwjoo.myhome.module.udp.client.config.FrameConfig
 import java.net.InetAddress
 
 /**
@@ -17,82 +19,96 @@ internal class Transport {
     private val multicastInet: InetAddress by lazy { InetAddress.getByName(SocketConfig.MULTICAST_ADDRESS) } // 组播地址
     private val broadcastInet: InetAddress by lazy { InetAddress.getByName(SocketConfig.BROADCAST_ADDRESS) } // 广播地址
 
-    private val networkMonitor: NetworkMonitor // 网络监听
     private var udpSocket: UdpSocket? = null // 底层 Socket
+    private val listeners = mutableMapOf<Byte, MutableList<(FrameData, String) -> Unit>>() // 帧类型监听表
 
-    val isStart: Boolean get() = udpSocket?.isClosed?.not() ?: false // 当前是否已启动
+    var onOpenChanged: ((Boolean) -> Unit)? = null // 打开状态改变回调
 
-    var onMessageReceived: ((ByteArray, String) -> Unit)? = null // 收到消息回调
-    var onStartChanged: ((Boolean) -> Unit)? = null // 启动状态变化回调（网络断开/恢复时触发）
-
-    init {
-        networkMonitor = NetworkMonitor { available ->
-            if (available) {
-                createSocket()
-            } else {
-                closeSocket()
-            }
-        }
-    }
+    val isOpen: Boolean get() = udpSocket?.isClosed?.not() ?: false // 当前是否已打开
 
     /**
-     * 启动网络监听，网络可用时自动创建 Socket，断开时自动关闭
-     *
-     * @param context 用于注册网络监听的 Context
+     * 打开：创建 Socket 并启动接收循环
      */
-    fun start(context: Context) {
-        networkMonitor.start(context)
-        Log.i(TAG, "Transport started")
-    }
-
-    /**
-     * 停止网络监听并关闭 Socket
-     */
-    fun stop() {
-        networkMonitor.stop()
-        closeSocket()
-        Log.i(TAG, "Transport stopped")
-    }
-
-    /**
-     * 创建 Socket 并启动接收循环
-     */
-    @Synchronized
-    private fun createSocket() {
+    fun open() {
         if (udpSocket != null) return
         udpSocket = UdpSocket(
             port = SocketConfig.PORT,
             multicastAddress = SocketConfig.MULTICAST_ADDRESS,
             bufferSize = SocketConfig.BUFFER_SIZE,
         ) { data, fromIp ->
-            onMessageReceived?.invoke(data, fromIp)
+            onPacket(data, fromIp)
         }
-        onStartChanged?.invoke(true)
         Log.i(TAG, "Socket created on port ${SocketConfig.PORT}")
+        onOpenChanged?.invoke(true)
     }
 
     /**
-     * 关闭 Socket
+     * 关闭：关闭 Socket
      */
-    @Synchronized
-    private fun closeSocket() {
+    fun close() {
         if (udpSocket == null) return
         udpSocket?.close()
         udpSocket = null
-        onStartChanged?.invoke(false)
         Log.i(TAG, "Socket closed")
+        onOpenChanged?.invoke(false)
     }
 
     /**
+     * 发送帧消息
+     *
+     * @param type     帧类型
+     * @param data     帧负载
+     * @param seqNum   消息序号，为 null 表示无序消息，非 null 为有序消息
+     * @param targetIp 目标 IP，为 null 时广播发送，非 null 为单播
+     * @return 是否发送成功
+     */
+    fun sendFrame(type: Byte, data: ByteArray, seqNum: Int?, targetIp: String?): Boolean {
+        val flags = if (seqNum != null) FrameConfig.Flags.ORDERED else FrameConfig.Flags.NONE
+        val frame = FrameCodec.encode(type, seqNum ?: 0, flags, data)
+        return if (targetIp != null) {
+            sendUnicast(frame, targetIp)
+        } else {
+            sendBroadcast(frame)
+        }
+    }
+
+    /**
+     * 注册帧消息监听
+     *
+     * @param type     要监听的帧类型
+     * @param callback 收到该类型帧时的回调（帧数据、来源 IP）
+     */
+    fun registerFrameListener(type: Byte, callback: (FrameData, String) -> Unit) {
+        listeners.getOrPut(type) { mutableListOf() }.add(callback)
+    }
+
+    /**
+     * 取消注册帧消息监听
+     *
+     * @param callback 之前注册的回调
+     */
+    fun unregisterFrameListener(callback: (FrameData, String) -> Unit) {
+        listeners.values.forEach { it.remove(callback) }
+    }
+
+    /**
+     * 收到数据包：解码后按帧类型分发到对应监听回调
+     */
+    private fun onPacket(data: ByteArray, fromIp: String) {
+        val frame = FrameCodec.decode(data) ?: return
+        listeners[frame.type]?.forEach { it(frame, fromIp) }
+    }
+    
+    /**
      * 单播发送到指定 IP
      *
-     * @param data     待发送字节数组
+     * @param frame    编码后的完整帧
      * @param targetIp 目标 IP 地址
      * @return true 发送成功，false 发送失败
      */
-    fun sendUnicast(data: ByteArray, targetIp: String): Boolean {
+    private fun sendUnicast(frame: ByteArray, targetIp: String): Boolean {
         return try {
-            udpSocket?.send(data, InetAddress.getByName(targetIp), SocketConfig.PORT) ?: false
+            udpSocket?.send(frame, InetAddress.getByName(targetIp), SocketConfig.PORT) ?: false
         } catch (e: Exception) {
             Log.e(TAG, "sendUnicast to $targetIp error: ${e.message}")
             false
@@ -102,20 +118,20 @@ internal class Transport {
     /**
      * 组播发送到组播组
      *
-     * @param data 待发送字节数组
-     * @return true 发送成功，false 发送失败
+     * @param frame 编码后的完整帧
+     * @return true 发送成功，false 发送失败（Socket 未打开时返回 false）
      */
-    fun sendMulticast(data: ByteArray): Boolean {
-        return udpSocket?.send(data, multicastInet, SocketConfig.PORT) ?: false
+    private fun sendMulticast(frame: ByteArray): Boolean {
+        return udpSocket?.send(frame, multicastInet, SocketConfig.PORT) ?: false
     }
 
     /**
      * 广播发送到子网
      *
-     * @param data 待发送字节数组
-     * @return true 发送成功，false 发送失败（Socket 未启动时返回 false）
+     * @param frame 编码后的完整帧
+     * @return true 发送成功，false 发送失败（Socket 未打开时返回 false）
      */
-    fun sendBroadcast(data: ByteArray): Boolean {
-        return udpSocket?.send(data, broadcastInet, SocketConfig.PORT) ?: false
+    private fun sendBroadcast(frame: ByteArray): Boolean {
+        return udpSocket?.send(frame, broadcastInet, SocketConfig.PORT) ?: false
     }
 }
