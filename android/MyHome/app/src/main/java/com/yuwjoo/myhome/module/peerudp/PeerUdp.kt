@@ -5,7 +5,6 @@ import android.util.Log
 import com.yuwjoo.myhome.module.peerudp.SerialCoroutine
 import com.yuwjoo.myhome.module.peerudp.device.LanDeviceManager
 import com.yuwjoo.myhome.module.peerudp.device.SendStatus
-import com.yuwjoo.myhome.module.peerudp.frame.FrameData
 import com.yuwjoo.myhome.module.peerudp.topic.TopicListenerManager
 import com.yuwjoo.myhome.module.peerudp.topic.topicMessageToJson
 import com.yuwjoo.myhome.module.peerudp.transport.NetworkMonitor
@@ -24,24 +23,19 @@ object PeerUdp {
 
     private val transport = Transport() // udp传输器
     private val deviceManager = LanDeviceManager(transport) // 设备管理器
-    private val topicListenerManager = TopicListenerManager() // 主题监听管理器
+    private val topicListenerManager = TopicListenerManager(transport) // 主题监听管理器
     private lateinit var networkMonitor: NetworkMonitor // 网络监听器
 
     var isConnected: Boolean = false // 当前连接状态
         private set
 
-    /** 连接状态变化监听器列表 */
-    private val connectionListeners = mutableListOf<(connected: Boolean) -> Unit>()
+    private val connectionListeners = mutableListOf<(connected: Boolean) -> Unit>() // 连接状态变化监听器集合
 
     init {
         // 传输器打开状态改变
         transport.onOpenChanged = { opened ->
             isConnected = opened
             connectionListeners.forEach { it(opened) }
-        }
-        // 收到 JSON 帧 → 交给主题监听管理器分发
-        transport.registerFrameListener(FrameConfig.Type.JSON) { frame, fromIp ->
-            topicListenerManager.dispatchMessage(frame, fromIp)
         }
     }
 
