@@ -2,7 +2,7 @@ package com.yuwjoo.myhome.module.peerudp
 
 import android.content.Context
 import android.util.Log
-import com.yuwjoo.myhome.module.peerudp.common.SerialCoroutine
+import com.yuwjoo.myhome.module.peerudp.SerialCoroutine
 import com.yuwjoo.myhome.module.peerudp.device.LanDeviceManager
 import com.yuwjoo.myhome.module.peerudp.device.SendStatus
 import com.yuwjoo.myhome.module.peerudp.frame.FrameData

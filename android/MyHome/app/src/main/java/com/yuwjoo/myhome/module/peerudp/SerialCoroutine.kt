@@ -1,4 +1,4 @@
-package com.yuwjoo.myhome.module.peerudp.common
+package com.yuwjoo.myhome.module.peerudp
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

@@ -1,7 +1,7 @@
 package com.yuwjoo.myhome.module.peerudp.device
 
 import android.util.Log
-import com.yuwjoo.myhome.module.peerudp.common.SerialCoroutine
+import com.yuwjoo.myhome.module.peerudp.SerialCoroutine
 import com.yuwjoo.myhome.module.peerudp.config.DeviceConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

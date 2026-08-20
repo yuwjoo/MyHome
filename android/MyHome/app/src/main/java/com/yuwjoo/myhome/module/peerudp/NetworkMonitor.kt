@@ -6,7 +6,7 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.util.Log
-import com.yuwjoo.myhome.module.peerudp.common.SerialCoroutine
+import com.yuwjoo.myhome.module.peerudp.SerialCoroutine
 import kotlinx.coroutines.launch
 
 /**
