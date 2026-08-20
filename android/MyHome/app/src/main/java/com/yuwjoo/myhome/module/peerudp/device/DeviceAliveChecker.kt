@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 /**
  * 设备存活检测
  */
-class DeviceAliveChecker(
+internal class DeviceAliveChecker(
     private val deviceMap: HashMap<String, LanDevice>, // 设备映射表
 ) {
     private val scope = CoroutineScope(Dispatchers.IO) // 存活检测作用域（IO 线程池）

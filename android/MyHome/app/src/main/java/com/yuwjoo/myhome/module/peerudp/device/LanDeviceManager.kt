@@ -1,56 +1,62 @@
 package com.yuwjoo.myhome.module.peerudp.device
 
+import com.yuwjoo.myhome.module.peerudp.transport.Transport
+import com.yuwjoo.myhome.module.udp.client.config.FrameConfig
+
 /**
  * 局域网设备管理
  */
-class LanDeviceManager {
+internal class LanDeviceManager(
+    private val transport: Transport, // udp传输器
+) {
 
     private val deviceMap = HashMap<String, LanDevice>() // 设备映射表
     private var devices: List<LanDevice> = emptyList() // 设备列表
 
-    val deviceInfoList: List<DeviceInfo> get() = devices // 设备信息列表
-    val onlineDeviceInfoList: List<DeviceInfo> get() = devices.filter { it.status == DeviceStatus.ONLINE } // 在线设备信息列表
+    val deviceList: List<LanDevice> get() = devices // 设备列表
+    val onlineDeviceList: List<LanDevice> get() = devices.filter { it.status == DeviceStatus.ONLINE } // 在线设备列表
 
-    var onDeviceListChanged: ((List<DeviceInfo>) -> Unit)? = null // 设备列表改变监听
-    
+    var onDeviceListChanged: ((List<LanDevice>) -> Unit)? = null // 设备列表改变监听
+
     private val aliveChecker = DeviceAliveChecker(deviceMap) // 设备存活检测器
-    private val messageQueue = DeviceMessageQueue(deviceMap) // 设备消息队列
+    private val messageQueue = DeviceMessageQueue(transport, deviceMap) // 设备消息队列
+
+    init {
+        // 监听心跳消息：已记录设备则更新心跳，否则主动向该 IP 发起呼叫
+        transport.registerFrameListener(FrameConfig.Type.HEARTBEAT) { _, fromIp ->
+            if (deviceMap.containsKey(fromIp)) {
+                deviceMap[fromIp]?.heartbeat()
+            } else {
+                transport.sendFrame(FrameConfig.Type.CALL, ByteArray(0), null, fromIp)
+            }
+        }
+        // 监听呼叫消息：收到即添加/更新对应设备，并回复应答帧
+        transport.registerFrameListener(FrameConfig.Type.CALL) { _, fromIp ->
+            addDevice(fromIp)
+            transport.sendFrame(FrameConfig.Type.ANSWER, ByteArray(0), null, fromIp)
+        }
+        // 监听应答消息：收到即添加/更新对应设备
+        transport.registerFrameListener(FrameConfig.Type.ANSWER) { _, fromIp ->
+            addDevice(fromIp)
+        }
+        // 监听离线通知：收到即移除对应设备
+        transport.registerFrameListener(FrameConfig.Type.OFFLINE) { _, fromIp ->
+            removeDevice(fromIp)
+        }
+        // 监听确认消息：收到 Ack 帧即视为对应设备送达
+        transport.registerFrameListener(FrameConfig.Type.ACK) { frame, fromIp ->
+            deviceMap[fromIp]?.ackMessage(frame.seqNum)
+        }
+    }
 
     /**
-     * 获取指定设备信息
+     * 获取指定设备
      *
      * @param ip 设备 IP
-     * @return 设备信息对象，不存在返回 null
+     * @return 设备对象，不存在返回 null
      */
-    fun getDeviceInfo(ip: String): DeviceInfo? {
+    fun getDevice(ip: String): LanDevice? {
         return deviceMap[ip]
-    }
-
-    /**
-     * 向指定设备发送一条消息（加入消息队列，带重试）
-     *
-     * @param ip         目标设备 IP
-     * @param data       待发送数据
-     * @param send       发送回调（发送数据到指定 IP，携带队列分配的序号）
-     * @param onComplete 完成回调（消息处理结束时调用，参数为结果，可省略）
-     */
-    fun enqueueDeviceMessage(
-        ip: String,
-        data: ByteArray,
-        send: (data: ByteArray, ip: String, seq: Int) -> Unit,
-        onComplete: (status: SendStatus) -> Unit = {},
-    ) {
-        messageQueue.enqueue(ip, data, send, onComplete)
-    }
-
-    /**
-     * 确认设备消息已送达（收到对应序号的消息时调用）
-     *
-     * @param ip  设备 IP
-     * @param seq 已送达的消息序号
-     */
-    fun ackDeviceMessage(ip: String, seq: Int) {
-        messageQueue.ack(ip, seq)
     }
 
     /**
@@ -76,6 +82,8 @@ class LanDeviceManager {
             abilities = abilities,
             heartbeatInterval = heartbeatInterval,
             heartbeatTimeout = heartbeatTimeout,
+            transport = transport,
+            messageQueue = messageQueue,
         )
         device.onStatusChanged = { onDeviceListChanged?.invoke(devices) } // 状态变化时通知列表
         deviceMap[ip]?.onStatusChanged = null // 清理被替换的旧设备回调

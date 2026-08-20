@@ -20,7 +20,7 @@ object PeerUdp {
     private const val TAG = "PeerUdp"
 
     private val transport = Transport() // udp传输器
-    private val deviceManager = LanDeviceManager() // 设备管理器
+    private val deviceManager = LanDeviceManager(transport) // 设备管理器
     private lateinit var networkMonitor: NetworkMonitor // 网络监听器
 
     var isConnected: Boolean = false // 当前连接状态
@@ -80,12 +80,12 @@ object PeerUdp {
      *
      * @param payload    待发送负载（帧 Payload，如 JSON 字节）
      * @param targetIp   目标 IP，为 null 时广播发送（SeqNum 固定为 0，无序）
-     * @param onComplete 发送完成回调（仅单播有序时触发，参数为发送状态，可省略）
+     * @param onDone 发送完成回调（仅单播有序时触发，参数为发送状态，可省略）
      */
     suspend fun send(
         payload: ByteArray,
         targetIp: String? = null,
-        onComplete: (status: SendStatus) -> Unit = {},
+        onDone: (status: SendStatus) -> Unit = {},
     ): Boolean =
         withContext(SerialCoroutine.dispatcher) {
             if (!isConnected) {
@@ -93,15 +93,13 @@ object PeerUdp {
                 return@withContext false
             }
             if (targetIp != null) {
-                // 单播：固定 JSON 有序消息，序号由队列按设备分配
-                deviceManager.enqueueDeviceMessage(
-                    ip = targetIp,
-                    data = payload,
-                    send = { bytes, ip, seq ->
-                        transport.sendFrame(FrameConfig.Type.JSON, bytes, seq, ip)
-                    },
-                    onComplete = onComplete,
-                )
+                // 单播：通过设备对象发送有序消息（加入消息队列，带重试）
+                val device = deviceManager.getDevice(targetIp)
+                if (device == null) {
+                    Log.w(TAG, "send: device $targetIp not found")
+                    return@withContext false
+                }
+                device.sendMessage(payload, ordered = true, onDone = onDone)
                 true
             } else {
                 // 广播：固定 JSON 无序消息，SeqNum 固定为 0

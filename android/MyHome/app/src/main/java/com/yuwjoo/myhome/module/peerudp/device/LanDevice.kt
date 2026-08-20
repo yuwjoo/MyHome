@@ -1,6 +1,8 @@
 package com.yuwjoo.myhome.module.peerudp.device
 
 import com.yuwjoo.myhome.module.peerudp.config.DeviceConfig
+import com.yuwjoo.myhome.module.peerudp.transport.Transport
+import com.yuwjoo.myhome.module.udp.client.config.FrameConfig
 
 /**
  * 设备状态
@@ -35,7 +37,7 @@ interface DeviceInfo {
 /**
  * 局域网设备
  */
-data class LanDevice(
+internal data class LanDevice(
     override val ip: String, // 设备 IP 地址
     override val deviceName: String = "", // 设备名称
     override val abilities: List<String> = emptyList(), // 设备能力列表（如 "topic:xxx"、"skill:xxx"）
@@ -43,6 +45,8 @@ data class LanDevice(
     val heartbeatTimeout: Long = 0L, // 心跳过期间隔（ms）
     var lastRecvSeq: Int = 0, // 最后接收的序号
     var lastSendSeq: Int = 0, // 最后发送的序号
+    private val transport: Transport, // udp传输器（发送无序消息）
+    private val messageQueue: DeviceMessageQueue, // 设备消息队列（发送有序消息）
 ) : DeviceInfo {
     override var status: DeviceStatus = DeviceStatus.UNKNOWN // 设备状态（在线/离线/未知）
         private set
@@ -133,5 +137,35 @@ data class LanDevice(
      */
     fun nextSendSeq(): Int {
         return (lastSendSeq + 1) and 0xFFFF
+    }
+
+    /**
+     * 发送消息
+     *
+     * @param data       待发送数据
+     * @param ordered    是否有序（true=加入消息队列带重试等待应答；false=直接发送无序消息无应答），默认 true
+     * @param onDone     完成回调（消息处理结束时调用，参数为结果，仅有序消息有效，可省略）
+     * @return 是否发送成功（仅无序消息返回真实结果，有序消息恒为 true）
+     */
+    fun sendMessage(
+        data: ByteArray,
+        ordered: Boolean = true,
+        onDone: (status: SendStatus) -> Unit = {},
+    ): Boolean {
+        return if (ordered) {
+            messageQueue.enqueue(ip, data, onDone)
+            true
+        } else {
+            transport.sendFrame(FrameConfig.Type.JSON, data, null, ip)
+        }
+    }
+
+    /**
+     * 确认消息（收到对应序号的应答时调用，标记消息已送达）
+     *
+     * @param seq 已送达的消息序号
+     */
+    fun ackMessage(seq: Int) {
+        messageQueue.ack(ip, seq)
     }
 }
