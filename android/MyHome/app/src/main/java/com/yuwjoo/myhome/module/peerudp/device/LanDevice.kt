@@ -45,6 +45,7 @@ internal data class LanDevice(
     val heartbeatTimeout: Long = 0L, // 心跳过期间隔（ms）
     var lastRecvSeq: Int = 0, // 最后接收的序号
     var lastSendSeq: Int = 0, // 最后发送的序号
+    var lastPeerRecvSeq: Int = 0, // 对端当前允许接收的有序消息序号（来自对端 Ack 的 RecvSeq）
     private val transport: Transport, // udp传输器（发送无序消息）
     private val messageQueue: DeviceMessageQueue, // 设备消息队列（发送有序消息）
 ) : DeviceInfo {
@@ -163,9 +164,11 @@ internal data class LanDevice(
     /**
      * 确认消息（收到对应序号的应答时调用，标记消息已送达）
      *
-     * @param seq 已送达的消息序号
+     * @param seq       已送达的消息序号（收到的 Ack 负载 AckSeq）
+     * @param recvSeq   对端当前允许接收的有序消息序号（收到的 Ack 负载 RecvSeq）
      */
-    fun ackMessage(seq: Int) {
-        messageQueue.ack(ip, seq)
+    fun ackMessage(seq: Int, recvSeq: Int) {
+        lastPeerRecvSeq = recvSeq and 0xFFFF
+        messageQueue.ack(ip, seq, recvSeq)
     }
 }

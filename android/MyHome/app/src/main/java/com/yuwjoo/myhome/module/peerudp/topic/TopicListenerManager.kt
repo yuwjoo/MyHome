@@ -1,7 +1,9 @@
 package com.yuwjoo.myhome.module.peerudp.topic
 
 import android.util.Log
+import com.yuwjoo.myhome.module.peerudp.device.LanDeviceManager
 import com.yuwjoo.myhome.module.peerudp.frame.FrameData
+import com.yuwjoo.myhome.module.peerudp.frame.FrameCodec
 import com.yuwjoo.myhome.module.peerudp.transport.Transport
 import com.yuwjoo.myhome.module.udp.client.config.FrameConfig
 import org.json.JSONObject
@@ -13,6 +15,7 @@ import org.json.JSONObject
  */
 internal class TopicListenerManager(
     private val transport: Transport, // udp传输器
+    private val deviceManager: LanDeviceManager, // 设备管理器（获取接收方下一个期望接收序号）
 ) {
 
     companion object {
@@ -58,6 +61,14 @@ internal class TopicListenerManager(
      */
     private fun dispatchMessage(frame: FrameData, fromIp: String) {
         if (frame.type != FrameConfig.Type.JSON) return
+        // 有序消息需回复 Ack（文档 §3：Ordered 隐含需回复 Ack）
+        if (frame.isOrdered) {
+            // 先更新接收方已接收序号，再计算当前允许接收的序号填入 Ack 负载
+            deviceManager.getDevice(fromIp)?.updateRecvSeq(frame.seqNum)
+            val recvSeq = deviceManager.getDevice(fromIp)?.nextRecvSeq() ?: 1
+            val ackPayload = FrameCodec.encodeAckPayload(frame.seqNum, recvSeq)
+            transport.sendFrame(FrameConfig.Type.ACK, ackPayload, null, fromIp)
+        }
         try {
             val json = JSONObject(String(frame.payload, Charsets.UTF_8))
             val topicMsg = jsonToTopicMessage(json) ?: return

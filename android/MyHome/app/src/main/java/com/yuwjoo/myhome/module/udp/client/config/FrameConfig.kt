@@ -6,7 +6,7 @@ package com.yuwjoo.myhome.module.udp.client.config
 internal object FrameConfig {
     const val MAGIC = 0x5948 // 魔数 uint16
     const val HEADER_SIZE = 10 // 帧头字节数
-    const val ACK_PAYLOAD_SIZE = 4 // Ack 负载字节数
+    const val ACK_PAYLOAD_SIZE = 4 // Ack 负载字节数（AckSeq + RecvAckSeq，各 uint16 大端）
 
     object Type {
         const val HEARTBEAT = 0x01.toByte() // 设备在线宣告

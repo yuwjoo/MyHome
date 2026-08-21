@@ -23,7 +23,7 @@ object PeerUdp {
 
     private val transport = Transport() // udp传输器
     private val deviceManager = LanDeviceManager(transport) // 设备管理器
-    private val topicListenerManager = TopicListenerManager(transport) // 主题监听管理器
+    private val topicListenerManager = TopicListenerManager(transport, deviceManager) // 主题监听管理器
     private lateinit var networkMonitor: NetworkMonitor // 网络监听器
 
     var isConnected: Boolean = false // 当前连接状态

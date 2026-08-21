@@ -1,5 +1,7 @@
 package com.yuwjoo.myhome.module.peerudp.device
 
+import com.yuwjoo.myhome.module.peerudp.config.DeviceConfig
+import com.yuwjoo.myhome.module.peerudp.frame.FrameCodec
 import com.yuwjoo.myhome.module.peerudp.transport.Transport
 import com.yuwjoo.myhome.module.udp.client.config.FrameConfig
 
@@ -27,27 +29,45 @@ internal class LanDeviceManager(
             if (deviceMap.containsKey(fromIp)) {
                 deviceMap[fromIp]?.heartbeat()
             } else {
-                transport.sendFrame(FrameConfig.Type.CALL, ByteArray(0), null, fromIp)
+                transport.sendFrame(FrameConfig.Type.CALL, localDeviceInfoBytes(), null, fromIp)
             }
         }
-        // 监听呼叫消息：收到即添加/更新对应设备，并回复应答帧
-        transport.registerFrameListener(FrameConfig.Type.CALL) { _, fromIp ->
-            addDevice(fromIp)
-            transport.sendFrame(FrameConfig.Type.ANSWER, ByteArray(0), null, fromIp)
+        // 监听呼叫消息：解析对端设备信息并注册，回复携带本机设备信息的应答帧
+        transport.registerFrameListener(FrameConfig.Type.CALL) { frame, fromIp ->
+            frame.payload.parseDeviceInfo()?.let { addDevice(fromIp, it) }
+            transport.sendFrame(FrameConfig.Type.ANSWER, localDeviceInfoBytes(), null, fromIp)
         }
-        // 监听应答消息：收到即添加/更新对应设备
-        transport.registerFrameListener(FrameConfig.Type.ANSWER) { _, fromIp ->
-            addDevice(fromIp)
+        // 监听应答消息：解析对端设备信息并注册
+        transport.registerFrameListener(FrameConfig.Type.ANSWER) { frame, fromIp ->
+            frame.payload.parseDeviceInfo()?.let { addDevice(fromIp, it) }
         }
         // 监听离线通知：收到即移除对应设备
         transport.registerFrameListener(FrameConfig.Type.OFFLINE) { _, fromIp ->
             removeDevice(fromIp)
         }
-        // 监听确认消息：收到 Ack 帧即视为对应设备送达
+        // 监听确认消息：从负载解析 AckSeq 与 RecvAckSeq，视为对应设备送达
         transport.registerFrameListener(FrameConfig.Type.ACK) { frame, fromIp ->
-            deviceMap[fromIp]?.ackMessage(frame.seqNum)
+            val (seq, recvSeq) = FrameCodec.decodeAckPayload(frame.payload) ?: return@registerFrameListener
+            deviceMap[fromIp]?.ackMessage(seq, recvSeq)
         }
     }
+
+    /**
+     * 本机设备信息（用于 Call / Answer 帧负载）
+     */
+    private fun localDeviceInfo(): DeviceInfoMessage {
+        return DeviceInfoMessage(
+            deviceName = DeviceConfig.Local.DEVICE_NAME,
+            abilities = DeviceConfig.Local.DEVICE_ABILITIES,
+            heartbeatInterval = DeviceConfig.Local.HEARTBEAT_INTERVAL_MS,
+            heartbeatTimeout = DeviceConfig.Local.HEARTBEAT_TIMEOUT_MS,
+        )
+    }
+
+    /**
+     * 本机设备信息序列化为字节数组
+     */
+    private fun localDeviceInfoBytes(): ByteArray = deviceInfoToBytes(localDeviceInfo())
 
     /**
      * 获取指定设备
@@ -76,21 +96,27 @@ internal class LanDeviceManager(
         heartbeatInterval: Long = 0L,
         heartbeatTimeout: Long = 0L,
     ): DeviceInfo {
-        val device = LanDevice(
-            ip = ip,
-            deviceName = deviceName,
-            abilities = abilities,
-            heartbeatInterval = heartbeatInterval,
-            heartbeatTimeout = heartbeatTimeout,
-            transport = transport,
-            messageQueue = messageQueue,
+        return addDevice(
+            ip,
+            DeviceInfoMessage(deviceName, abilities, heartbeatInterval, heartbeatTimeout),
         )
-        device.onStatusChanged = { onDeviceListChanged?.invoke(devices) } // 状态变化时通知列表
-        deviceMap[ip]?.onStatusChanged = null // 清理被替换的旧设备回调
-        messageQueue.abort(ip) // 清理旧设备的待发送消息
-        deviceMap[ip] = device
-        handleDeviceMapChanged()
-        return device
+    }
+
+    /**
+     * 添加/更新设备（从 Call / Answer 携带的设备信息）
+     *
+     * @param ip   设备 IP
+     * @param info 设备信息（来自对端 Call / Answer 帧）
+     * @return 设备信息
+     */
+    fun addDevice(ip: String, info: DeviceInfoMessage): DeviceInfo {
+        return addDevice(
+            ip,
+            info.deviceName,
+            info.abilities,
+            info.heartbeatInterval,
+            info.heartbeatTimeout,
+        )
     }
 
     /**

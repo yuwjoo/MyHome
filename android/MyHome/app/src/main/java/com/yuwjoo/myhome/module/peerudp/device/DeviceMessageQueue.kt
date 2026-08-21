@@ -78,14 +78,23 @@ internal class DeviceMessageQueue(
     /**
      * 确认设备消息已送达（收到对应序号的消息时调用）
      *
-     * @param ip  设备 IP
-     * @param seq 已送达的消息序号
+     * @param ip       设备 IP
+     * @param seq      已送达的消息序号（Ack 负载 AckSeq）
+     * @param recvSeq  对端当前允许接收的有序消息序号（Ack 负载 RecvSeq）
      */
-    fun ack(ip: String, seq: Int) {
+    fun ack(ip: String, seq: Int, recvSeq: Int) {
         val task = sending[ip] ?: return
         if (task.seq != seq) return
+        // 对端允许接收的序号已不等于本消息序号 → 该 AckSeq 消息未被本次确认（两端序号失配）
+        if (recvSeq != seq) {
+            // 用对端期望的序号修正本条消息并重发，避免序号永久不匹配导致发送失败
+            task.seq = recvSeq and 0xFFFF
+            sendFrame(ip, task)
+            startTimeout(ip, task)
+            return
+        }
         sending.remove(ip)
-        device.updateSendSeq(task.seq)
+        deviceMap[ip]?.updateSendSeq(task.seq)
         task.onDone(SendStatus.SUCCESS)
         sendNext(ip)
     }
