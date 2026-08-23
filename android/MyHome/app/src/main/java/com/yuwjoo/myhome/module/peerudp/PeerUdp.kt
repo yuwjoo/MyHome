@@ -3,8 +3,13 @@ package com.yuwjoo.myhome.module.peerudp
 import android.content.Context
 import android.util.Log
 import com.yuwjoo.myhome.module.peerudp.SerialCoroutine
+import com.yuwjoo.myhome.module.peerudp.config.DeviceConfig
 import com.yuwjoo.myhome.module.peerudp.device.LanDeviceManager
 import com.yuwjoo.myhome.module.peerudp.device.SendStatus
+import com.yuwjoo.myhome.module.peerudp.frame.AckPayload
+import com.yuwjoo.myhome.module.peerudp.frame.DeviceInfoPayload
+import com.yuwjoo.myhome.module.peerudp.frame.fromBytes
+import com.yuwjoo.myhome.module.peerudp.frame.toBytes
 import com.yuwjoo.myhome.module.peerudp.topic.TopicListenerManager
 import com.yuwjoo.myhome.module.peerudp.topic.topicMessageToJson
 import com.yuwjoo.myhome.module.peerudp.transport.NetworkMonitor
@@ -36,6 +41,54 @@ object PeerUdp {
         transport.onOpenChanged = { opened ->
             isConnected = opened
             connectionListeners.forEach { it(opened) }
+        }
+
+        // 心跳消息
+        transport.registerFrameListener(FrameConfig.Type.HEARTBEAT) { _, fromIp ->
+            val device = deviceManager.getDevice(fromIp)
+            if (device != null) {
+                device.heartbeat()
+            } else {
+                sendDeviceInfoFrame(FrameConfig.Type.CALL, fromIp)
+            }
+        }
+        // 呼叫消息
+        transport.registerFrameListener(FrameConfig.Type.CALL) { frame, fromIp ->
+            DeviceInfoPayload.fromBytes(frame.payload)?.let { info ->
+            deviceManager.addDevice(
+                fromIp,
+                info.deviceName,
+                info.abilities,
+                info.heartbeatInterval,
+                info.heartbeatTimeout,
+            )
+        }
+            sendDeviceInfoFrame(FrameConfig.Type.ANSWER, fromIp)
+        }
+        // 应答消息
+        transport.registerFrameListener(FrameConfig.Type.ANSWER) { frame, fromIp ->
+            DeviceInfoPayload.fromBytes(frame.payload)?.let { info ->
+            deviceManager.addDevice(
+                fromIp,
+                info.deviceName,
+                info.abilities,
+                info.heartbeatInterval,
+                info.heartbeatTimeout,
+            )
+        }
+        }
+        // 离线消息
+        transport.registerFrameListener(FrameConfig.Type.OFFLINE) { _, fromIp ->
+            deviceManager.removeDevice(fromIp)
+        }
+        // 确认消息
+        transport.registerFrameListener(FrameConfig.Type.ACK) { frame, fromIp ->
+            val (seq, recvSeq) = AckPayload.fromBytes(frame.payload) ?: return@registerFrameListener
+            deviceManager.getDevice(fromIp)?.ackMessage(seq, recvSeq)
+        }
+        // JSON消息
+        transport.registerFrameListener(FrameConfig.Type.JSON) { frame, fromIp ->
+            topicListenerManager.handleJsonFrame(frame, fromIp)
         }
     }
 
@@ -195,5 +248,25 @@ object PeerUdp {
      */
     fun unregisterConnectionListener(callback: (connected: Boolean) -> Unit) {
         connectionListeners.remove(callback)
+    }
+
+    /**
+     * 发送携带本机设备信息的帧（主动呼叫或应答对端）
+     *
+     * @param type     帧类型（CALL / ANSWER）
+     * @param targetIp 目标 IP
+     */
+    private fun sendDeviceInfoFrame(type: Byte, targetIp: String) {
+        transport.sendFrame(
+            type,
+            DeviceInfoPayload(
+                deviceName = DeviceConfig.Local.DEVICE_NAME,
+                abilities = DeviceConfig.Local.DEVICE_ABILITIES,
+                heartbeatInterval = DeviceConfig.Local.HEARTBEAT_INTERVAL_MS,
+                heartbeatTimeout = DeviceConfig.Local.HEARTBEAT_TIMEOUT_MS,
+            ).toBytes(),
+            null,
+            targetIp,
+        )
     }
 }

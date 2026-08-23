@@ -61,12 +61,12 @@ internal object FrameCodec {
      * 编码帧数据为字节数组
      *
      * @param type 帧类型
-     * @param seqNum 序号
+     * @param seqNum 序号（uint16，取值 0-65535，超出会被截断为 16 位，调用方需自行回绕）
      * @param flags 标志位
      * @param payload 帧负载
      * @return 编码后的完整帧字节数组
      */
-    fun encode(type: Byte, seqNum: Int, flags: Byte, payload: ByteArray): ByteArray {
+    fun encode(type: Byte, seqNum: Int, flags: FrameDataFlags, payload: ByteArray): ByteArray {
         val payLen = payload.size
         val totalLen = FrameConfig.HEADER_SIZE + payLen
         val raw = ByteArray(totalLen)
@@ -76,7 +76,7 @@ internal object FrameCodec {
         out.writeShort(FrameConfig.MAGIC)           // Magic   [0-1]
         out.writeByte(type.toInt())                   // Type    [2]
         out.writeShort(seqNum)                        // SeqNum  [3-4]
-        out.writeByte(flags.toInt())                  // Flags   [5]
+        out.writeByte(flags.toByte().toInt())               // Flags   [5]
         out.writeShort(payLen)                        // PayLen  [6-7]
         val headerBytes = headerBuf.toByteArray()     // 前 8 字节（不含 CRC）
 
@@ -99,43 +99,49 @@ internal object FrameCodec {
      * @param data 原始字节数据
      * @param offset 起始偏移
      * @param length 数据长度
-     * @return 解码后的 FrameData，校验失败返回 null
+     * @return 解码后的 FrameData，校验失败或数据非法返回 null
      */
     fun decode(data: ByteArray, offset: Int = 0, length: Int = data.size - offset): FrameData? {
-        if (length < FrameConfig.HEADER_SIZE) return null // 数据过短，连 10 字节帧头都不够
+        return try {
+            if (length < FrameConfig.HEADER_SIZE) null // 数据过短，连 10 字节帧头都不够
+            else {
+                val input = DataInputStream(ByteArrayInputStream(data, offset, length))
 
-        val input = DataInputStream(ByteArrayInputStream(data, offset, length))
+                val magic = input.readUnsignedShort()               // Magic     [0-1]
+                if (magic != FrameConfig.MAGIC) return null          // 魔数不匹配，非本协议报文
 
-        val magic = input.readUnsignedShort()               // Magic     [0-1]
-        if (magic != FrameConfig.MAGIC) return null          // 魔数不匹配，非本协议报文
+                val type = input.readByte()                         // Type      [2]
+                val seqNum = input.readUnsignedShort()              // SeqNum    [3-4]
+                val flags = FrameDataFlags.fromByte(input.readByte())  // Flags  [5]
+                val payLen = input.readUnsignedShort()              // PayLen    [6-7]
+                val expectedCrc = input.readUnsignedShort()         // CRC16     [8-9]
 
-        val type = input.readByte()                         // Type      [2]
-        val seqNum = input.readUnsignedShort()              // SeqNum    [3-4]
-        val flags = input.readByte()                        // Flags     [5]
-        val payLen = input.readUnsignedShort()              // PayLen    [6-7]
-        val expectedCrc = input.readUnsignedShort()         // CRC16     [8-9]
+                if (length < FrameConfig.HEADER_SIZE + payLen) return null // PayLen 声明的长度超出实际数据，数据截断或损坏
 
-        if (length < FrameConfig.HEADER_SIZE + payLen) return null // PayLen 声明的长度超出实际数据，数据截断或损坏
+                val payload = ByteArray(payLen)                       // Payload   [10..]
+                if (payLen > 0) {
+                    input.readFully(payload)
+                }
 
-        val payload = ByteArray(payLen)                       // Payload   [10..]
-        if (payLen > 0) {
-            input.readFully(payload)
+                // CRC 校验范围 = 前 8 字节 + Payload
+                val crcInput = ByteArray(8 + payLen)
+                System.arraycopy(data, offset, crcInput, 0, 8)
+                if (payLen > 0) {
+                    System.arraycopy(data, offset + FrameConfig.HEADER_SIZE, crcInput, 8, payLen)
+                }
+                val computedCrc = crc16(crcInput)
+                if (computedCrc != expectedCrc) null                 // CRC 校验失败，数据传输中发生比特错误或帧被篡改
+                else {
+                    FrameData(
+                        type = type,
+                        seqNum = seqNum,
+                        flags = flags,
+                        payload = payload,
+                    )
+                }
+            }
+        } catch (_: Exception) {
+            null // 任意解析异常（越界、截断、非法参数等）均视为无效帧
         }
-
-        // CRC 校验范围 = 前 8 字节 + Payload
-        val crcInput = ByteArray(8 + payLen)
-        System.arraycopy(data, offset, crcInput, 0, 8)
-        if (payLen > 0) {
-            System.arraycopy(data, offset + FrameConfig.HEADER_SIZE, crcInput, 8, payLen)
-        }
-        val computedCrc = crc16(crcInput)
-        if (computedCrc != expectedCrc) return null           // CRC 校验失败，数据传输中发生比特错误或帧被篡改
-
-        return FrameData(
-            type = type,
-            seqNum = seqNum,
-            flags = flags,
-            payload = payload,
-        )
     }
 }

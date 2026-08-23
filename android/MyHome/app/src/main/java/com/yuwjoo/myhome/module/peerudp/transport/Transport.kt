@@ -4,6 +4,7 @@ import android.util.Log
 import com.yuwjoo.myhome.module.peerudp.config.SocketConfig
 import com.yuwjoo.myhome.module.peerudp.frame.FrameCodec
 import com.yuwjoo.myhome.module.peerudp.frame.FrameData
+import com.yuwjoo.myhome.module.peerudp.frame.FrameDataFlags
 import com.yuwjoo.myhome.module.udp.client.config.FrameConfig
 import java.net.InetAddress
 
@@ -63,7 +64,7 @@ internal class Transport {
      * @return 是否发送成功
      */
     fun sendFrame(type: Byte, data: ByteArray, seqNum: Int?, targetIp: String?): Boolean {
-        val flags = if (seqNum != null) FrameConfig.Flags.ORDERED else FrameConfig.Flags.NONE
+        val flags = FrameDataFlags(isOrdered = seqNum != null) // 单播有序、广播无序
         val frame = FrameCodec.encode(type, seqNum ?: 0, flags, data)
         return if (targetIp != null) {
             sendUnicast(frame, targetIp)

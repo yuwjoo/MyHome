@@ -12,12 +12,12 @@ import org.json.JSONObject
  * @property payload 负载字节
  */
 data class FrameData(
-    val type: Byte,
-    val seqNum: Int,
-    val flags: Byte,
-    val payload: ByteArray,
+    val type: Byte, // 帧类型
+    val seqNum: Int, // 消息序号
+    val flags: FrameDataFlags, // 标志位
+    val payload: ByteArray, // 负载字节
 ) {
-    val isOrdered: Boolean get() = (flags.toInt() and 0x01) != 0 // 是否为有序消息
+    val isOrdered: Boolean get() = flags.isOrdered // 是否为有序消息
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -28,41 +28,41 @@ data class FrameData(
     override fun hashCode(): Int {
         var result = type.toInt()
         result = 31 * result + seqNum
-        result = 31 * result + flags.toInt()
+        result = 31 * result + flags.hashCode()
         result = 31 * result + payload.contentHashCode()
         return result
     }
 }
 
 /**
- * FrameData 转 JSON 字符串，用于序列化
+ * 序列化为 JSON 对象
  *
- * @param data 待序列化的帧数据
- * @return UTF-8 JSON 字符串
+ * @receiver 帧数据
+ * @return 帧数据的 JSON 对象
  */
-fun frameDataToJsonString(data: FrameData): String {
+fun FrameData.toJson(): JSONObject {
     return JSONObject().apply {
-        put("type", data.type.toInt())
-        put("seqNum", data.seqNum)
-        put("flags", data.flags.toInt())
-        put("isOrdered", data.isOrdered)
-        put("payload", Base64.encodeToString(data.payload, Base64.NO_WRAP))
-    }.toString()
+        put("type", type.toInt())
+        put("seqNum", seqNum)
+        put("flags", flags.toByte().toInt())
+        put("isOrdered", isOrdered)
+        put("payload", Base64.encodeToString(payload, Base64.NO_WRAP))
+    }
 }
 
 /**
- * JSON 字符串转 FrameData，反序列化失败时返回 null
+ * 从 JSON 字符串解析帧数据，反序列化失败时返回 null
  *
  * @param json 待解析的 JSON 字符串
- * @return 解析后的 FrameData，失败返回 null
+ * @return 解析后的帧数据，失败返回 null
  */
-fun jsonStringToFrameData(json: String): FrameData? {
+fun FrameData.Companion.fromJsonString(json: String): FrameData? {
     return try {
         val obj = JSONObject(json)
         FrameData(
             type = obj.getInt("type").toByte(),
             seqNum = obj.getInt("seqNum"),
-            flags = obj.getInt("flags").toByte(),
+            flags = FrameDataFlags.fromByte(obj.getInt("flags").toByte()),
             payload = Base64.decode(obj.getString("payload"), Base64.NO_WRAP),
         )
     } catch (_: Exception) {
