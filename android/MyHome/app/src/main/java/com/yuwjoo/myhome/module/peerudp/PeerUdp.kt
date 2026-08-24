@@ -55,31 +55,27 @@ object PeerUdp {
         // 呼叫消息
         transport.registerFrameListener(FrameConfig.Type.CALL) { frame, fromIp ->
             DeviceInfoPayload.fromBytes(frame.payload)?.let { info ->
-            deviceManager.addDevice(
-                fromIp,
-                info.deviceName,
-                info.abilities,
-                info.heartbeatInterval,
-                info.heartbeatTimeout,
-            )
-        }
+                deviceManager.addDevice(
+                    fromIp,
+                    info.deviceName,
+                    info.abilities,
+                    info.heartbeatInterval,
+                    info.heartbeatTimeout,
+                )
+            }
             sendDeviceInfoFrame(FrameConfig.Type.ANSWER, fromIp)
         }
         // 应答消息
         transport.registerFrameListener(FrameConfig.Type.ANSWER) { frame, fromIp ->
             DeviceInfoPayload.fromBytes(frame.payload)?.let { info ->
-            deviceManager.addDevice(
-                fromIp,
-                info.deviceName,
-                info.abilities,
-                info.heartbeatInterval,
-                info.heartbeatTimeout,
-            )
-        }
-        }
-        // 离线消息
-        transport.registerFrameListener(FrameConfig.Type.OFFLINE) { _, fromIp ->
-            deviceManager.removeDevice(fromIp)
+                deviceManager.addDevice(
+                    fromIp,
+                    info.deviceName,
+                    info.abilities,
+                    info.heartbeatInterval,
+                    info.heartbeatTimeout,
+                )
+            }
         }
         // 确认消息
         transport.registerFrameListener(FrameConfig.Type.ACK) { frame, fromIp ->
@@ -89,6 +85,10 @@ object PeerUdp {
         // JSON消息
         transport.registerFrameListener(FrameConfig.Type.JSON) { frame, fromIp ->
             topicListenerManager.handleJsonFrame(frame, fromIp)
+        }
+        // 离线消息
+        transport.registerFrameListener(FrameConfig.Type.OFFLINE) { _, fromIp ->
+            deviceManager.removeDevice(fromIp)
         }
     }
 
@@ -155,7 +155,7 @@ object PeerUdp {
                     Log.w(TAG, "send: device $targetIp not found")
                     return@withContext false
                 }
-                device.sendMessage(payload, ordered = true, onDone = onDone)
+                device.sendOrderedMessage(payload, onDone = onDone)
                 true
             } else {
                 // 广播：固定 JSON 无序消息，SeqNum 固定为 0
@@ -210,7 +210,11 @@ object PeerUdp {
                     onDone(SendStatus.FAILED)
                     return
                 }
-                device.sendMessage(bytes, ordered = ordered, onDone = onDone)
+                if (ordered) {
+                    device.sendOrderedMessage(bytes, onDone = onDone)
+                } else {
+                    device.sendUnorderedMessage(bytes)
+                }
             }
             onlySubscribers -> {
                 val matched = deviceManager.onlineDeviceList.filter { device ->
@@ -220,7 +224,11 @@ object PeerUdp {
                     Log.w(TAG, "publish: no subscribers for topic $topic")
                 }
                 for (device in matched) {
-                    device.sendMessage(bytes, ordered = ordered)
+                    if (ordered) {
+                        device.sendOrderedMessage(bytes)
+                    } else {
+                        device.sendUnorderedMessage(bytes)
+                    }
                 }
                 onDone(SendStatus.SUCCESS)
             }

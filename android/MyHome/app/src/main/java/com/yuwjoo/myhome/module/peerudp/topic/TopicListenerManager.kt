@@ -58,8 +58,8 @@ internal class TopicListenerManager(
         // 有序消息需回复 Ack（文档 §3：Ordered 隐含需回复 Ack）
         if (frame.isOrdered) {
             // 先更新接收方已接收序号，再计算当前允许接收的序号填入 Ack 负载
-            deviceManager.getDevice(fromIp)?.updateRecvSeq(frame.seqNum)
-            val recvSeq = deviceManager.getDevice(fromIp)?.nextRecvSeq() ?: 1
+            deviceManager.getDevice(fromIp)?.let { it.lastRecvSeq = frame.seqNum }
+            val recvSeq = deviceManager.getDevice(fromIp)?.nextRecvSeq ?: 1
             val ackPayload = AckPayload(frame.seqNum, recvSeq).toBytes()
             transport.sendFrame(FrameConfig.Type.ACK, ackPayload, null, fromIp)
         }

@@ -14,21 +14,6 @@ data class AckPayload(
 )
 
 /**
- * 序列化为 4 字节 Ack 负载
- *
- * @receiver Ack 负载数据
- * @return 4 字节 Ack 负载
- */
-fun AckPayload.toBytes(): ByteArray {
-    return byteArrayOf(
-        ((ackSeq shr 8) and 0xFF).toByte(),
-        (ackSeq and 0xFF).toByte(),
-        ((recvSeq shr 8) and 0xFF).toByte(),
-        (recvSeq and 0xFF).toByte(),
-    )
-}
-
-/**
  * 从 Ack 帧负载解析，负载长度不足时返回 null
  *
  * @param payload Ack 帧负载
@@ -41,5 +26,20 @@ fun AckPayload.Companion.fromBytes(payload: ByteArray): AckPayload? {
     return AckPayload(
         ackSeq = ackSeq,
         recvSeq = recvSeq,
+    )
+}
+
+/**
+ * 序列化为 4 字节 Ack 负载
+ *
+ * @receiver Ack 负载数据
+ * @return 4 字节 Ack 负载
+ */
+fun AckPayload.toBytes(): ByteArray {
+    return byteArrayOf(
+        ((ackSeq shr 8) and 0xFF).toByte(),
+        (ackSeq and 0xFF).toByte(),
+        ((recvSeq shr 8) and 0xFF).toByte(),
+        (recvSeq and 0xFF).toByte(),
     )
 }

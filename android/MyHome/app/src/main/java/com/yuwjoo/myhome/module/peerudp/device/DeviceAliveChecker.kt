@@ -45,7 +45,7 @@ internal class DeviceAliveChecker(
     private fun check() {
         val now = System.currentTimeMillis()
         for (device in deviceMap.values) {
-            if (device.status != DeviceStatus.ONLINE) continue // 只检测在线设备
+            if (device.status != LanDeviceStatus.ONLINE) continue // 只检测在线设备
             if (now - device.lastHeartbeat > device.heartbeatTimeout) {
                 SerialCoroutine.scope.launch { device.offline() } // 投递到串行协程执行离线
             }

@@ -1,6 +1,7 @@
 package com.yuwjoo.myhome.module.peerudp.device
 
 import com.yuwjoo.myhome.module.peerudp.transport.Transport
+import com.yuwjoo.myhome.module.udp.client.config.FrameConfig
 
 /**
  * 局域网设备管理（设备数据管理入口，帧处理逻辑由 PeerUdp 监听层实现）
@@ -13,12 +14,32 @@ internal class LanDeviceManager(
     private var devices: List<LanDevice> = emptyList() // 设备列表
 
     val deviceList: List<LanDevice> get() = devices // 设备列表
-    val onlineDeviceList: List<LanDevice> get() = devices.filter { it.status == DeviceStatus.ONLINE } // 在线设备列表
+    val onlineDeviceList: List<LanDevice> get() = devices.filter { it.status == LanDeviceStatus.ONLINE } // 在线设备列表
 
     var onDeviceListChanged: ((List<LanDevice>) -> Unit)? = null // 设备列表改变监听
 
     private val aliveChecker = DeviceAliveChecker(deviceMap) // 设备存活检测器
-    private val messageQueue = DeviceMessageQueue(transport, deviceMap) // 设备消息队列
+    private val messageQueue = DeviceMessageQueue(
+        onSendFrame = { data, seq, ip -> transport.sendFrame(FrameConfig.Type.JSON, data, seq, ip) }, // 发送消息帧
+        deviceMap = deviceMap, // 设备映射表
+    ) // 设备消息队列
+    
+    private val deviceCallbacks = object : LanDeviceCallbacks {
+        override fun onSendOrdered(device: LanDevice, data: ByteArray, onDone: (status: SendStatus) -> Unit) {
+            messageQueue.enqueue(device.ip, data, onDone)
+        }
+
+        override fun onSendUnordered(device: LanDevice, data: ByteArray): Boolean =
+            transport.sendFrame(FrameConfig.Type.JSON, data, null, device.ip)
+
+        override fun onAck(device: LanDevice, seq: Int, recvSeq: Int) {
+            messageQueue.ack(device.ip, seq, recvSeq)
+        }
+
+        override fun onStatusChanged(device: LanDevice) {
+            onDeviceListChanged?.invoke(devices) // 状态变化时同步触发设备列表更新
+        }
+    } // 设备通信回调（所有设备共享）
 
     /**
      * 判断指定设备是否存在
@@ -56,21 +77,16 @@ internal class LanDeviceManager(
         abilities: List<String> = emptyList(),
         heartbeatInterval: Long = 0L,
         heartbeatTimeout: Long = 0L,
-    ): DeviceInfo {
+    ): LanDevice {
         val device = deviceMap[ip] ?: LanDevice(
             ip = ip,
             deviceName = deviceName,
             abilities = abilities,
             heartbeatInterval = heartbeatInterval,
             heartbeatTimeout = heartbeatTimeout,
-            transport = transport,
-            messageQueue = messageQueue,
+            callbacks = deviceCallbacks,
         ).also { newDevice ->
             deviceMap[ip] = newDevice // 保存到设备映射表
-            // 监听设备状态变化，变化时同步触发设备列表更新
-            newDevice.onStatusChanged = {
-                onDeviceListChanged?.invoke(devices)
-            }
         }
         handleDeviceMapChanged() // 添加完成后手动触发设备映射表改变
         return device
@@ -82,7 +98,7 @@ internal class LanDeviceManager(
      * @param ip 设备 IP
      */
     fun removeDevice(ip: String) {
-        deviceMap.remove(ip)?.onStatusChanged = null // 清理被移除设备的回调
+        deviceMap.remove(ip)
         handleDeviceMapChanged()
     }
 
@@ -90,7 +106,6 @@ internal class LanDeviceManager(
      * 清除所有设备
      */
     fun clearDevices() {
-        deviceMap.values.forEach { it.onStatusChanged = null } // 清理所有设备的回调
         deviceMap.clear()
         handleDeviceMapChanged()
     }
@@ -100,7 +115,7 @@ internal class LanDeviceManager(
      */
     private fun handleDeviceMapChanged() {
         devices = deviceMap.values.toList()
-        if (devices.any { it.heartbeatInterval > 0 }) {
+        if (devices.any { it.hasHeartbeat }) {
             aliveChecker.start() // 存在启用心跳的设备，启动存活检测器
         } else {
             aliveChecker.stop() // 无启用心跳的设备，停止存活检测器

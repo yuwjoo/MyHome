@@ -12,16 +12,6 @@ data class FrameDataFlags(
 )
 
 /**
- * 转帧头 Flags 字节
- *
- * @receiver 帧数据标志位
- * @return 帧头 Flags 字节
- */
-fun FrameDataFlags.toByte(): Byte {
-    return if (isOrdered) FrameConfig.Flags.ORDERED else FrameConfig.Flags.NONE
-}
-
-/**
  * 从帧头 Flags 字节解析帧数据标志位
  *
  * @param value 帧头 Flags 字节
@@ -29,4 +19,14 @@ fun FrameDataFlags.toByte(): Byte {
  */
 fun FrameDataFlags.Companion.fromByte(value: Byte): FrameDataFlags {
     return FrameDataFlags(isOrdered = (value.toInt() and 0x01) != 0)
+}
+
+/**
+ * 转帧头 Flags 字节
+ *
+ * @receiver 帧数据标志位
+ * @return 帧头 Flags 字节
+ */
+fun FrameDataFlags.toByte(): Byte {
+    return if (isOrdered) FrameConfig.Flags.ORDERED else FrameConfig.Flags.NONE
 }

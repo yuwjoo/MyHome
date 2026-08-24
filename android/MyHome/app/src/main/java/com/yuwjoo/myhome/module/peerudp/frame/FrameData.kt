@@ -35,22 +35,6 @@ data class FrameData(
 }
 
 /**
- * 序列化为 JSON 对象
- *
- * @receiver 帧数据
- * @return 帧数据的 JSON 对象
- */
-fun FrameData.toJson(): JSONObject {
-    return JSONObject().apply {
-        put("type", type.toInt())
-        put("seqNum", seqNum)
-        put("flags", flags.toByte().toInt())
-        put("isOrdered", isOrdered)
-        put("payload", Base64.encodeToString(payload, Base64.NO_WRAP))
-    }
-}
-
-/**
  * 从 JSON 字符串解析帧数据，反序列化失败时返回 null
  *
  * @param json 待解析的 JSON 字符串
@@ -67,5 +51,21 @@ fun FrameData.Companion.fromJsonString(json: String): FrameData? {
         )
     } catch (_: Exception) {
         null
+    }
+}
+
+/**
+ * 序列化为 JSON 对象
+ *
+ * @receiver 帧数据
+ * @return 帧数据的 JSON 对象
+ */
+fun FrameData.toJson(): JSONObject {
+    return JSONObject().apply {
+        put("type", type.toInt())
+        put("seqNum", seqNum)
+        put("flags", flags.toByte().toInt())
+        put("isOrdered", isOrdered)
+        put("payload", Base64.encodeToString(payload, Base64.NO_WRAP))
     }
 }
