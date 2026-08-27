@@ -24,22 +24,53 @@ internal class LanDeviceManager(
         deviceMap = deviceMap, // 设备映射表
     ) // 设备消息队列
     
+    /**
+     * 设备通信回调（所有设备共享同一实例）
+     *
+     * @see LanDeviceCallbacks
+     */
     private val deviceCallbacks = object : LanDeviceCallbacks {
+        /**
+         * 发送有序消息
+         *
+         * @param device 当前设备对象
+         * @param data   待发送数据
+         * @param onDone 完成回调（消息处理结束时调用，参数为结果）
+         */
         override fun onSendOrdered(device: LanDevice, data: ByteArray, onDone: (status: SendStatus) -> Unit) {
             messageQueue.enqueue(device.ip, data, onDone)
         }
 
+        /**
+         * 发送无序消息
+         *
+         * @param device 当前设备对象
+         * @param data   待发送数据
+         * @return 是否发送成功
+         */
         override fun onSendUnordered(device: LanDevice, data: ByteArray): Boolean =
             transport.sendFrame(FrameConfig.Type.JSON, data, null, device.ip)
 
+        /**
+         * 确认消息（收到对应序号的应答时调用，标记消息已送达）
+         *
+         * @param device  当前设备对象
+         * @param seq     已送达的消息序号（收到的 Ack 负载 AckSeq）
+         * @param recvSeq 对端当前允许接收的有序消息序号（收到的 Ack 负载 RecvSeq）
+         */
         override fun onAck(device: LanDevice, seq: Int, recvSeq: Int) {
             messageQueue.ack(device.ip, seq, recvSeq)
         }
 
+        /**
+         * 设备状态变化回调
+         *
+         * @param device 当前设备对象
+         */
         override fun onStatusChanged(device: LanDevice) {
             onDeviceListChanged?.invoke(devices) // 状态变化时同步触发设备列表更新
         }
-    } // 设备通信回调（所有设备共享）
+    }
 
     /**
      * 判断指定设备是否存在

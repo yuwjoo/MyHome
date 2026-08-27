@@ -1,38 +1,152 @@
-package com.yuwjoo.myhome.module.peerudp.device
-
 import android.util.Log
 import com.yuwjoo.myhome.module.peerudp.SerialCoroutine
 import com.yuwjoo.myhome.module.peerudp.config.DeviceConfig
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 /**
  * 消息发送状态
  */
-enum class SendStatus {
-    SUCCESS, // 发送成功（收到确认）
-    FAILED, // 重试次数用尽或设备不存在，发送失败
-    ABORT, // 消息被中止
+enum class SendStatus { SUCCESS, FAILED, ABORT }
+
+/**
+ * 等待确认结果
+ */
+private enum class WaitResult {
+    SUCCESS, // 已确认送达
+    RETRY, // 序号失配已修正，立即重发
 }
 
 /**
- * 设备消息任务
+ * 任务状态
+ */
+enum class TaskState {
+    WAITING, // 等待中（已入队，尚未开始发送）
+    FLYING, // 飞行中（已发送，等待确认）
+    SUCCESS, // 成功（已确认送达）
+    FAILED, // 失败（重试达到上限或设备不存在）
+    ABORTED, // 中止（被停止/中止）
+}
+
+/**
+ * 设备消息任务：自持发送协程的单条消息
  *
- * @param data       待发送数据
- * @param onDone 完成回调（消息处理结束时调用，参数为结果）
+ * @param data      待发送数据
+ * @param onDone    完成回调（消息处理结束时调用，参数为结果）
+ * @param sendFrame 发送消息帧回调（data、seq）
  */
 class DeviceMessageTask(
     val data: ByteArray, // 待发送数据
     val onDone: (status: SendStatus) -> Unit = {}, // 完成回调
+    private val sendFrame: (data: ByteArray, seq: Int) -> Unit = {}, // 发送帧回调
 ) {
+    companion object {
+        private const val TAG = "DeviceMessageTask"
+    }
+
     var seq: Int = 0 // 分配的消息序号
     var sendCount: Int = 0 // 已发送次数
+    var state: TaskState = TaskState.WAITING // 任务状态
+    private var waitAck: CompletableDeferred<WaitResult>? = null // 等待确认信号（由 ack 完成唤醒发送协程）
+
+    private var job: Job? = null // 发送协程
+
+    /**
+     * 运行：通过协程发送该消息，等待确认；超时按指数退避重发，达到最大重试次数后以 FAILED 结束
+     *
+     * @param seq      消息序号
+     * @param maxRetry 最大重试次数，-1 表示不限制（默认）
+     */
+    fun run(seq: Int, maxRetry: Int = -1) {
+        if (state == TaskState.WAITING || state == TaskState.FLYING) return // 已在运行，忽略重复启动
+        this.seq = seq
+        sendCount = 1
+        state = TaskState.WAITING
+        job = SerialCoroutine.scope.launch {
+            try {
+                var curSeq = seq
+                while (isActive) {
+                    state = TaskState.FLYING // 发送后进入飞行中，等待确认
+                    sendFrame(data, curSeq)
+                    val deferred = CompletableDeferred<WaitResult>()
+                    waitAck = deferred
+                    val result = try {
+                        withTimeout(
+                            DeviceConfig.MessageQueue.SEND_TIMEOUT_MS + DeviceConfig.MessageQueue.backoffDelay(sendCount)
+                        ) {
+                            deferred.await()
+                        }
+                    } catch (e: TimeoutCancellationException) {
+                        null // 等待确认超时
+                    }
+                    waitAck = null
+                    when (result) {
+                        WaitResult.SUCCESS -> {
+                            state = TaskState.SUCCESS
+                            onDone(SendStatus.SUCCESS)
+                            return@launch
+                        }
+                        WaitResult.RETRY -> curSeq = this@DeviceMessageTask.seq // 序号已修正，立即重发
+                        null -> {
+                            sendCount++
+                            if (maxRetry >= 0 && sendCount > maxRetry) {
+                                Log.d(TAG, "run: reach maxRetry=$maxRetry, abort seq=$seq")
+                                state = TaskState.FAILED
+                                onDone(SendStatus.FAILED)
+                                return@launch
+                            }
+                            Log.d(TAG, "run: timeout retry seq=$seq, sendCount=$sendCount")
+                        }
+                    }
+                }
+            } catch (e: CancellationException) {
+                state = TaskState.ABORTED // 协程被取消（stop/abort）
+                onDone(SendStatus.ABORT)
+                throw e
+            }
+        }
+    }
+
+    /**
+     * 停止发送：取消当前发送协程（协程取消后状态置为中止并回调 ABORT）
+     */
+    fun stop() {
+        job?.cancel()
+    }
+
+    /**
+     * 确认消息送达（收到对应序号的应答时调用，唤醒发送协程）
+     *
+     * @param recvSeq 对端当前允许接收的有序消息序号（收到的 Ack 负载 RecvSeq）
+     */
+    internal fun ack(recvSeq: Int) {
+        if (recvSeq != this.seq) {
+            this.seq = recvSeq and 0xFFFF // 两端序号失配，修正后立即重发
+            waitAck?.complete(WaitResult.RETRY)
+        } else {
+            waitAck?.complete(WaitResult.SUCCESS)
+        }
+    }
+
+    /**
+     * 中止：立即将状态置为中止并停止发送（协程取消后回调 ABORT）
+     */
+    fun abort() {
+        state = TaskState.ABORTED
+        stop()
+    }
 }
 
 /**
- * 设备消息队列
+ * 设备消息队列：每台设备一条 FIFO 队列，消息由 DeviceMessageTask 自持协程发送
+ *
+ * - 同设备同一时刻仅一条消息在发送（消息结束后自动发送下一条）
+ * - 发送时永远取最早入队的那条数据，队首即当前正在发送的任务
+ * - 超时按指数退避无限重发，可通过 maxRetry 限制重试次数
  */
 internal class DeviceMessageQueue(
     private val onSendFrame: (data: ByteArray, seq: Int, ip: String) -> Unit, // 发送消息帧回调
@@ -42,126 +156,94 @@ internal class DeviceMessageQueue(
         private const val TAG = "DeviceMessageQueue"
     }
 
-    private val queues = HashMap<String, ArrayDeque<DeviceMessageTask>>() // 各设备待发送队列
-    private val sending = HashMap<String, DeviceMessageTask>() // 各设备发送中（等待确认/超时重发）的任务
-
-    private val timeoutScope = CoroutineScope(Dispatchers.IO) // 超时定时作用域（IO 线程池，delay 不阻塞串行线程）
+    private val queues = HashMap<String, ArrayDeque<DeviceMessageTask>>() // 设备消息队列集合（FIFO，先进先出，队首即当前正在发送的任务）
 
     /**
-     * 向指定设备加入一条待发送消息
+     * 向指定设备加入一条待发送消息（先进先出，排在队尾），并启动发送（若当前无消息在发送）
      *
-     * @param ip         目标设备 IP
-     * @param data       待发送数据
+     * @param ip     设备 IP
+     * @param data   待发送数据
      * @param onDone 完成回调（消息处理结束时调用，参数为结果，可省略）
      */
-    fun enqueue(
-        ip: String,
-        data: ByteArray,
-        onDone: (status: SendStatus) -> Unit = {},
-    ) {
-        queues.getOrPut(ip) { ArrayDeque() }.addLast(DeviceMessageTask(data, onDone))
-        sendNext(ip)
+    fun enqueue(ip: String, data: ByteArray, onDone: (status: SendStatus) -> Unit = {}) {
+        val queue = queues.getOrPut(ip) { ArrayDeque() }
+        lateinit var task: DeviceMessageTask
+        task = DeviceMessageTask(
+            data = data,
+            onDone = { status ->
+                if (status == SendStatus.SUCCESS) deviceMap[ip]?.lastSendSeq = task.seq // 送达后更新设备已确认序号
+                if (queue.peekFirst() === task) queue.removeFirst() // 任务结束移出队列
+                if (queue.isNotEmpty()) startNext(ip, queue) else queues.remove(ip) // 驱动下一条或清理空队列
+                onDone(status) // 通知调用方
+            },
+            sendFrame = { d, seq -> onSendFrame(d, seq, ip) },
+        )
+        queue.addLast(task)
+        startNext(ip, queue)
     }
 
     /**
-     * 中止待发送与发送中消息
+     * 清空指定设备的待发送任务（回调以 ABORT 结果结束；同时停止发送）
      *
      * @param ip 设备 IP
      */
-    fun abort(ip: String) {
-        queues.remove(ip)?.forEach { it.onDone(SendStatus.ABORT) }
-        sending.remove(ip)?.onDone(SendStatus.ABORT)
+    fun clearTask(ip: String) {
+        val queue = queues.remove(ip) ?: return
+        queue.forEach { task ->
+            if (task.state == TaskState.WAITING || task.state == TaskState.FLYING) task.abort() // 在跑任务由协程取消后回调 ABORT
+            else {
+                task.state = TaskState.ABORTED // 未运行任务直接置为中止并回调 ABORT
+                task.onDone(SendStatus.ABORT)
+            }
+        }
     }
 
     /**
-     * 确认设备消息已送达（收到对应序号的消息时调用）
+     * 启动指定设备的消息发送（队首任务未在运行则启动；设备无任务时无操作）
      *
-     * @param ip       设备 IP
-     * @param seq      已送达的消息序号（Ack 负载 AckSeq）
-     * @param recvSeq  对端当前允许接收的有序消息序号（Ack 负载 RecvSeq）
+     * @param ip 设备 IP
+     */
+    fun startJob(ip: String) {
+        val queue = queues[ip] ?: return
+        startNext(ip, queue)
+    }
+
+    /**
+     * 停止指定设备的消息发送（取消正在发送的任务，回调 ABORT 后自动发送下一条）
+     *
+     * @param ip 设备 IP
+     */
+    fun stopJob(ip: String) {
+        queues[ip]?.peekFirst()?.stop() // 停止正在发送的任务（协程取消后回调 ABORT）
+    }
+
+    /**
+     * 确认设备消息已送达（收到对应序号的应答时调用，标记消息已送达）
+     *
+     * @param ip     设备 IP
+     * @param seq    已送达的消息序号（收到的 Ack 负载 AckSeq）
+     * @param recvSeq 对端当前允许接收的有序消息序号（收到的 Ack 负载 RecvSeq）
      */
     fun ack(ip: String, seq: Int, recvSeq: Int) {
-        val task = sending[ip] ?: return
-        if (task.seq != seq) return
-        // 对端允许接收的序号已不等于本消息序号 → 该 AckSeq 消息未被本次确认（两端序号失配）
-        if (recvSeq != seq) {
-            // 用对端期望的序号修正本条消息并重发，避免序号永久不匹配导致发送失败
-            task.seq = recvSeq and 0xFFFF
-            sendFrame(ip, task)
-            startTimeout(ip, task)
-            return
-        }
-        sending.remove(ip)
-        deviceMap[ip]?.let { it.lastSendSeq = task.seq }
-        task.onDone(SendStatus.SUCCESS)
-        sendNext(ip)
+        queues[ip]?.peekFirst()?.ack(recvSeq) // 队列头部即当前正在发送的任务
     }
 
     /**
-     * 发送设备队首的下一条消息（串行协程中执行）
+     * 启动队首任务发送（队首已在运行或无任务时无操作）
+     *
+     * @param ip    设备 IP
+     * @param queue 设备队列
      */
-    private fun sendNext(ip: String) {
-        if (sending[ip] != null) return // 有发送中任务，等待确认或超时
-        val queue = queues[ip] ?: return
-        val task = queue.removeFirstOrNull()
-        if (task == null) {
-            queues.remove(ip) // 队列已空，清理空队列
-            return
-        }
+    private fun startNext(ip: String, queue: ArrayDeque<DeviceMessageTask>) {
+        val task = queue.peekFirst() ?: return
+        if (task.state == TaskState.WAITING || task.state == TaskState.FLYING) return // 已在运行
         val device = deviceMap[ip]
         if (device == null) {
-            Log.w(TAG, "sendNext: device $ip not found, drop message")
+            Log.w(TAG, "startNext: device $ip not found, drop message")
+            queue.removeFirst()
             task.onDone(SendStatus.FAILED)
             return
         }
-        task.seq = device.nextSendSeq
-        task.sendCount = 1
-        sending[ip] = task
-        sendFrame(ip, task)
-        startTimeout(ip, task)
-    }
-
-    /**
-     * 发送消息帧（固定 JSON 有序消息，序号由队列分配）
-     *
-     * @param ip   目标设备 IP
-     * @param task 消息任务（携带数据与序号）
-     */
-    private fun sendFrame(ip: String, task: DeviceMessageTask) {
-        onSendFrame(task.data, task.seq, ip)
-    }
-
-    /**
-     * 启动消息发送超时定时（IO 线程池挂起等待，不阻塞串行线程）
-     */
-    private fun startTimeout(ip: String, task: DeviceMessageTask) {
-        timeoutScope.launch {
-            delay(DeviceConfig.MessageQueue.SEND_TIMEOUT_MS)
-            SerialCoroutine.scope.launch { handleTimeout(ip, task) }
-        }
-    }
-
-    /**
-     * 处理发送超时：重发或丢弃（串行协程中执行）
-     */
-    private fun handleTimeout(ip: String, task: DeviceMessageTask) {
-        if (sending[ip] !== task) return // 任务已被确认或替换，忽略过期定时
-        if (deviceMap[ip] == null) {
-            Log.w(TAG, "handleTimeout: device $ip removed, drop message")
-            sending.remove(ip)
-            task.onDone(SendStatus.FAILED)
-            sendNext(ip)
-            return
-        }
-        if (task.sendCount >= DeviceConfig.MessageQueue.MAX_SEND_COUNT) {
-            Log.w(TAG, "handleTimeout: drop message to $ip, seq=${task.seq}")
-            sending.remove(ip)
-            task.onDone(SendStatus.FAILED)
-            sendNext(ip)
-            return
-        }
-        task.sendCount++
-        sendFrame(ip, task)
-        startTimeout(ip, task)
+        task.run(device.nextSendSeq) // 启动任务发送协程
     }
 }
