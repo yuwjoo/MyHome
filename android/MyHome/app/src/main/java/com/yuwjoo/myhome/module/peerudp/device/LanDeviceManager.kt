@@ -19,7 +19,7 @@ internal class LanDeviceManager(
     var onDeviceListChanged: ((List<LanDevice>) -> Unit)? = null // 设备列表改变监听
 
     private val aliveChecker = DeviceAliveChecker(deviceMap) // 设备存活检测器
-    private val messageQueue = DeviceMessageQueue(
+    private val messageCenter = DeviceMessageCenter(
         onSendFrame = { data, seq, ip -> transport.sendFrame(FrameConfig.Type.JSON, data, seq, ip) }, // 发送消息帧
         deviceMap = deviceMap, // 设备映射表
     ) // 设备消息队列
@@ -38,7 +38,7 @@ internal class LanDeviceManager(
          * @param onDone 完成回调（消息处理结束时调用，参数为结果）
          */
         override fun onSendOrdered(device: LanDevice, data: ByteArray, onDone: (status: SendStatus) -> Unit) {
-            messageQueue.enqueue(device.ip, data, onDone)
+            messageCenter.enqueue(device.ip, data, onDone)
         }
 
         /**
@@ -59,7 +59,7 @@ internal class LanDeviceManager(
          * @param recvSeq 对端当前允许接收的有序消息序号（收到的 Ack 负载 RecvSeq）
          */
         override fun onAck(device: LanDevice, seq: Int, recvSeq: Int) {
-            messageQueue.ack(device.ip, seq, recvSeq)
+            messageCenter.ack(device.ip, seq, recvSeq)
         }
 
         /**
@@ -81,7 +81,7 @@ internal class LanDeviceManager(
     fun containsDevice(ip: String): Boolean {
         return deviceMap.containsKey(ip)
     }
-
+ 
     /**
      * 获取指定设备
      *

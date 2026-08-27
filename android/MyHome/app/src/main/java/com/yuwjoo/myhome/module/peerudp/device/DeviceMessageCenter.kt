@@ -1,9 +1,11 @@
 import android.util.Log
-import com.yuwjoo.myhome.module.peerudp.SerialCoroutine
 import com.yuwjoo.myhome.module.peerudp.config.DeviceConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
@@ -41,72 +43,69 @@ enum class TaskState {
  */
 class DeviceMessageTask(
     val data: ByteArray, // 待发送数据
-    val onDone: (status: SendStatus) -> Unit = {}, // 完成回调
+    private val onDone: (status: SendStatus) -> Unit = {}, // 完成回调
     private val sendFrame: (data: ByteArray, seq: Int) -> Unit = {}, // 发送帧回调
 ) {
     companion object {
         private const val TAG = "DeviceMessageTask"
+
+        private val sendScope = CoroutineScope(Dispatchers.IO) // 发送协程作用域
     }
 
-    var seq: Int = 0 // 分配的消息序号
-    var sendCount: Int = 0 // 已发送次数
     var state: TaskState = TaskState.WAITING // 任务状态
-    private var waitAck: CompletableDeferred<WaitResult>? = null // 等待确认信号（由 ack 完成唤醒发送协程）
+        private set
 
+    var seq: Int = 0 // 分配的消息序号
+        private set
+    
     private var job: Job? = null // 发送协程
+    
+    private var waitAck: CompletableDeferred<WaitResult>? = null // 等待确认信号
 
     /**
-     * 运行：通过协程发送该消息，等待确认；超时按指数退避重发，达到最大重试次数后以 FAILED 结束
+     * 运行：状态不为等待中则不允许运行；置为飞行中后启动 IO 调度器协程发送消息并等待确认，
+     * 超时未确认则循环重试，重试次数用完仍未确认时回调失败；收到确认时回调成功
      *
-     * @param seq      消息序号
+     * @param sendSeq   发送消息序号
      * @param maxRetry 最大重试次数，-1 表示不限制（默认）
      */
-    fun run(seq: Int, maxRetry: Int = -1) {
-        if (state == TaskState.WAITING || state == TaskState.FLYING) return // 已在运行，忽略重复启动
-        this.seq = seq
-        sendCount = 1
-        state = TaskState.WAITING
-        job = SerialCoroutine.scope.launch {
-            try {
-                var curSeq = seq
-                while (isActive) {
-                    state = TaskState.FLYING // 发送后进入飞行中，等待确认
-                    sendFrame(data, curSeq)
-                    val deferred = CompletableDeferred<WaitResult>()
-                    waitAck = deferred
-                    val result = try {
-                        withTimeout(
-                            DeviceConfig.MessageQueue.SEND_TIMEOUT_MS + DeviceConfig.MessageQueue.backoffDelay(sendCount)
-                        ) {
-                            deferred.await()
-                        }
-                    } catch (e: TimeoutCancellationException) {
-                        null // 等待确认超时
+    fun run(sendSeq: Int, maxRetry: Int = -1) {
+        if (state != TaskState.WAITING) return // 状态不为等待中，不允许运行
+        state = TaskState.FLYING // 运行时将状态改为飞行中
+        seq = sendSeq
+        waitAck = CompletableDeferred<WaitResult>()
+        job = sendScope.launch {
+            var sendCount = 0 // 已发送次数
+            while (isActive) {
+                sendCount++
+                sendFrame(data, seq) // 发送消息
+                val result = try {
+                    withTimeout(
+                        DeviceConfig.MessageQueue.SEND_TIMEOUT_MS + DeviceConfig.MessageQueue.backoffDelay(sendCount)
+                    ) {
+                        waitAck.await() // 等待 waitAck 状态改变（收到确认）
                     }
-                    waitAck = null
-                    when (result) {
-                        WaitResult.SUCCESS -> {
-                            state = TaskState.SUCCESS
-                            onDone(SendStatus.SUCCESS)
+                } catch (e: TimeoutCancellationException) {
+                    null // 等待确认超时
+                }
+                when (result) {
+                    WaitResult.SUCCESS -> {
+                        state = TaskState.SUCCESS // 收到确认，状态改为成功
+                        onDone(SendStatus.SUCCESS)
+                        return@launch
+                    }
+                    WaitResult.RETRY -> Unit // 序号已被 ack 修正，立即重发
+                    null -> {
+                        sendCount++
+                        if (maxRetry >= 0 && sendCount > maxRetry) {
+                            Log.d(TAG, "run: reach maxRetry=$maxRetry, abort seq=$seq")
+                            state = TaskState.FAILED // 重试次数用完仍未确认，状态改为失败
+                            onDone(SendStatus.FAILED)
                             return@launch
                         }
-                        WaitResult.RETRY -> curSeq = this@DeviceMessageTask.seq // 序号已修正，立即重发
-                        null -> {
-                            sendCount++
-                            if (maxRetry >= 0 && sendCount > maxRetry) {
-                                Log.d(TAG, "run: reach maxRetry=$maxRetry, abort seq=$seq")
-                                state = TaskState.FAILED
-                                onDone(SendStatus.FAILED)
-                                return@launch
-                            }
-                            Log.d(TAG, "run: timeout retry seq=$seq, sendCount=$sendCount")
-                        }
+                        Log.d(TAG, "run: timeout retry seq=$seq, sendCount=$sendCount")
                     }
                 }
-            } catch (e: CancellationException) {
-                state = TaskState.ABORTED // 协程被取消（stop/abort）
-                onDone(SendStatus.ABORT)
-                throw e
             }
         }
     }
@@ -116,6 +115,15 @@ class DeviceMessageTask(
      */
     fun stop() {
         job?.cancel()
+    }
+
+    /**
+     * 以指定结果结束任务（外部用于设备不存在等异常场景直接回调完成）
+     *
+     * @param status 发送结果
+     */
+    fun finish(status: SendStatus) {
+        onDone(status)
     }
 
     /**
@@ -142,18 +150,18 @@ class DeviceMessageTask(
 }
 
 /**
- * 设备消息队列：每台设备一条 FIFO 队列，消息由 DeviceMessageTask 自持协程发送
+ * 设备消息中心：每台设备一条 FIFO 队列，消息由 DeviceMessageTask 自持协程发送
  *
  * - 同设备同一时刻仅一条消息在发送（消息结束后自动发送下一条）
  * - 发送时永远取最早入队的那条数据，队首即当前正在发送的任务
  * - 超时按指数退避无限重发，可通过 maxRetry 限制重试次数
  */
-internal class DeviceMessageQueue(
+internal class DeviceMessageCenter(
     private val onSendFrame: (data: ByteArray, seq: Int, ip: String) -> Unit, // 发送消息帧回调
     private val deviceMap: HashMap<String, LanDevice>, // 设备映射表
 ) {
     companion object {
-        private const val TAG = "DeviceMessageQueue"
+        private const val TAG = "DeviceMessageCenter"
     }
 
     private val queues = HashMap<String, ArrayDeque<DeviceMessageTask>>() // 设备消息队列集合（FIFO，先进先出，队首即当前正在发送的任务）
@@ -192,8 +200,8 @@ internal class DeviceMessageQueue(
         queue.forEach { task ->
             if (task.state == TaskState.WAITING || task.state == TaskState.FLYING) task.abort() // 在跑任务由协程取消后回调 ABORT
             else {
-                task.state = TaskState.ABORTED // 未运行任务直接置为中止并回调 ABORT
-                task.onDone(SendStatus.ABORT)
+                task.abort() // 未运行任务直接置为中止
+                task.finish(SendStatus.ABORT) // 回调 ABORT
             }
         }
     }
@@ -241,7 +249,7 @@ internal class DeviceMessageQueue(
         if (device == null) {
             Log.w(TAG, "startNext: device $ip not found, drop message")
             queue.removeFirst()
-            task.onDone(SendStatus.FAILED)
+            task.finish(SendStatus.FAILED)
             return
         }
         task.run(device.nextSendSeq) // 启动任务发送协程
