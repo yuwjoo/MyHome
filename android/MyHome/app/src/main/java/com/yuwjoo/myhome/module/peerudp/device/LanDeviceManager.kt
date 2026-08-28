@@ -37,7 +37,7 @@ internal class LanDeviceManager(
          * @param data   待发送数据
          * @param onDone 完成回调（消息处理结束时调用，参数为结果）
          */
-        override fun onSendOrdered(device: LanDevice, data: ByteArray, onDone: (status: SendStatus) -> Unit) {
+        override fun onSendOrdered(device: LanDevice, data: ByteArray, onDone: (status: SendResult) -> Unit) {
             messageCenter.enqueue(device.ip, data, onDone)
         }
 
@@ -59,7 +59,11 @@ internal class LanDeviceManager(
          * @param recvSeq 对端当前允许接收的有序消息序号（收到的 Ack 负载 RecvSeq）
          */
         override fun onAck(device: LanDevice, seq: Int, recvSeq: Int) {
-            messageCenter.ack(device.ip, seq, recvSeq)
+            val acked = messageCenter.ack(device.ip, seq, recvSeq)
+            if (!acked) { // 序号失配：任务已停止，由外界修正序号并重新发送
+                device.lastSendSeq = recvSeq - 1 // 使 nextSendSeq 等于对端期望的序号
+                messageCenter.startJob(device.ip) // 重新启动发送
+            }
         }
 
         /**

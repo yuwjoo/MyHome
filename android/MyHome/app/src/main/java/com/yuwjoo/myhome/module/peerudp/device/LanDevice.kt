@@ -22,7 +22,7 @@ interface LanDeviceCallbacks {
      * @param data   待发送数据
      * @param onDone 完成回调（消息处理结束时调用，参数为结果）
      */
-    fun onSendOrdered(device: LanDevice, data: ByteArray, onDone: (status: SendStatus) -> Unit)
+    fun onSendOrdered(device: LanDevice, data: ByteArray, onDone: (status: SendResult) -> Unit)
 
     /**
      * 发送无序消息
@@ -122,7 +122,7 @@ internal class LanDevice(
      */
     fun sendOrderedMessage(
         data: ByteArray,
-        onDone: (status: SendStatus) -> Unit = {},
+        onDone: (status: SendResult) -> Unit = {},
     ) {
         callbacks.onSendOrdered(this, data, onDone)
     }

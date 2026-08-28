@@ -5,7 +5,7 @@ import android.util.Log
 import com.yuwjoo.myhome.module.peerudp.SerialCoroutine
 import com.yuwjoo.myhome.module.peerudp.config.DeviceConfig
 import com.yuwjoo.myhome.module.peerudp.device.LanDeviceManager
-import com.yuwjoo.myhome.module.peerudp.device.SendStatus
+import com.yuwjoo.myhome.module.peerudp.device.SendResult
 import com.yuwjoo.myhome.module.peerudp.frame.AckPayload
 import com.yuwjoo.myhome.module.peerudp.frame.DeviceInfoPayload
 import com.yuwjoo.myhome.module.peerudp.frame.fromBytes
@@ -141,7 +141,7 @@ object PeerUdp {
     suspend fun send(
         payload: ByteArray,
         targetIp: String? = null,
-        onDone: (status: SendStatus) -> Unit = {},
+        onDone: (status: SendResult) -> Unit = {},
     ): Boolean =
         withContext(SerialCoroutine.dispatcher) {
             if (!isConnected) {
@@ -199,7 +199,7 @@ object PeerUdp {
         targetIp: String? = null,
         ordered: Boolean = true,
         onlySubscribers: Boolean = false,
-        onDone: (status: SendStatus) -> Unit = {},
+        onDone: (status: SendResult) -> Unit = {},
     ) {
         val bytes = topicMessageToJson(topic, payload).toString().toByteArray(Charsets.UTF_8)
         when {
@@ -207,7 +207,7 @@ object PeerUdp {
                 val device = deviceManager.getDevice(targetIp)
                 if (device == null) {
                     Log.w(TAG, "publish: device $targetIp not found")
-                    onDone(SendStatus.FAILED)
+                    onDone(SendResult.FAILED)
                     return
                 }
                 if (ordered) {
@@ -230,12 +230,12 @@ object PeerUdp {
                         device.sendUnorderedMessage(bytes)
                     }
                 }
-                onDone(SendStatus.SUCCESS)
+                onDone(SendResult.SUCCESS)
             }
             else -> {
                 // 广播：无序消息，SeqNum 固定为 0
                 transport.sendFrame(FrameConfig.Type.JSON, bytes, null, null)
-                onDone(SendStatus.SUCCESS)
+                onDone(SendResult.SUCCESS)
             }
         }
     }
