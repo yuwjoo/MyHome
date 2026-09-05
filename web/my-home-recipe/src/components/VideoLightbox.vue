@@ -10,11 +10,12 @@
  * src 为可播放直链（本地 blob URL 或云端签名地址），
  * 每次打开前由调用方就绪；关闭时组件自毁播放器实例。
  */
-import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, toRef, watch } from 'vue'
 import Plyr from 'plyr'
 import 'plyr/dist/plyr.css'
 
 import AppIcon from '@/components/AppIcon.vue'
+import { useBackClose } from '@/composables/useBackClose'
 
 const props = withDefaults(
   defineProps<{
@@ -32,6 +33,9 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
 }>()
+
+// 系统返回/浏览器后退先关闭播放器（不直接离开页面）
+useBackClose(toRef(props, 'open'), () => emit('update:open', false))
 
 /** Plyr 挂载区域（视频元素由 DOM API 创建，避免与 Vue 渲染冲突） */
 const host = ref<HTMLDivElement | null>(null)

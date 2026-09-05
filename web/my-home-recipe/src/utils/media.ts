@@ -118,29 +118,48 @@ export async function generateVideoThumb(file: Blob): Promise<{
 } | null> {
   const url = URL.createObjectURL(file)
   const video = document.createElement('video')
-  video.preload = 'metadata'
   video.muted = true
   video.playsInline = true
+  video.preload = 'auto'
+  // 部分 WebView/移动浏览器要求视频元素在文档内才开始真正解码加载，
+  // 放到屏幕外隐藏节点以兼容这类环境。
+  video.style.cssText =
+    'position:fixed;left:-10000px;top:-10000px;width:2px;height:2px;opacity:0;pointer-events:none;'
   video.src = url
+  document.body.appendChild(video)
 
   try {
     await once(video, 'loadedmetadata')
-    const duration = Number.isFinite(video.duration) ? video.duration : 0
+    // 确保至少已有可绘制的当前帧
+    if (video.readyState < 2) await once(video, 'loadeddata')
+    const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0
     const width = video.videoWidth
     const height = video.videoHeight
 
     if (!width || !height) return null
 
-    // 跳到某一帧后再截取
+    // 跳到「中间偏前」的一帧再截取，画面更有代表性。
+    // 个别编码 seek 支持差，失败后回退首帧附近，尽量保证有封面。
     const target = duration > 1 ? Math.min(0.6, duration * 0.4) : 0.01
-    video.currentTime = target
-    await once(video, 'seeked')
+    try {
+      video.currentTime = target
+      await once(video, 'seeked')
+    } catch {
+      try {
+        video.currentTime = 0.01
+        await once(video, 'seeked')
+      } catch {
+        // 保持当前（首帧）画面
+      }
+    }
+    if (video.readyState < 2) await once(video, 'loadeddata')
 
     const { w, h } = scaleToFit(width, height, THUMB_MAX_SIDE)
     return { thumbnail: drawCanvas(video, w, h), width, height, duration }
   } catch {
     return null
   } finally {
+    if (video.parentNode) video.parentNode.removeChild(video)
     URL.revokeObjectURL(url)
     // 释放视频资源
     video.removeAttribute('src')

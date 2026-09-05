@@ -76,10 +76,10 @@ object AppConfig {
 
     /**
      * 开发环境页面地址。
-     * - Android 模拟器访问宿主机：10.0.2.2
-     * - 真机调试：改为电脑在局域网中的 IP
+     * - Android 模拟器访问宿主机回环：10.0.2.2
+     * - 真机调试：改为电脑在局域网中的 IP（需与开发服务器同网段）
      */
-    const val DEV_WEB_URL = "http://10.0.2.2:5173"
+    const val DEV_WEB_URL = "http://192.168.31.74:5173"
 
     /** 按两次返回键退出应用的间隔（毫秒） */
     const val EXIT_INTERVAL_MS = 2000L
