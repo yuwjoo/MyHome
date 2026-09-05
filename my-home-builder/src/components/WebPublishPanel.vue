@@ -4,8 +4,8 @@
       <div class="panel-header">
         <div class="panel-identity">
           <span class="panel-dot" style="background: #409EFF" />
-          <span class="panel-platform">Web 移动端</span>
-          <span class="panel-name">my-home-mobile</span>
+          <span class="panel-platform">{{ project.platformLabel }}</span>
+          <span class="panel-name">{{ project.name }}</span>
         </div>
       </div>
     </template>
@@ -77,9 +77,11 @@ import VersionInput from '@/components/VersionInput.vue';
 import BuildProgress from '@/components/BuildProgress.vue';
 
 import { useWebPublish } from '@/composables/useWebPublish';
-import type { PublishTask } from '@/types/useWebPublish';
+import type { ProjectConfig, PublishTask } from '@/types/useWebPublish';
 
 const props = defineProps<{
+  /** 要发布的 Web 项目配置 */
+  project: ProjectConfig;
   currentVersion: string;
 }>();
 
@@ -108,7 +110,7 @@ watch(
 const handlePublish = async () => {
   try {
     await ElMessageBox.confirm(
-      `确认发布 Web 移动端 - my-home-mobile，版本号: ${version.value}`,
+      `确认发布 ${props.project.platformLabel} - ${props.project.name}，版本号: ${version.value}`,
       '确认发布',
       {
         confirmButtonText: '确认发布',
@@ -122,7 +124,7 @@ const handlePublish = async () => {
 
   const task: PublishTask = {
     id: `publish_web_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    projectId: 'web-myhome',
+    projectId: props.project.id,
     version: version.value,
     status: 'publishing',
     progress: 0,

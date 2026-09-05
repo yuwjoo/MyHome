@@ -76,4 +76,14 @@ export class OssController {
   ): Promise<string> {
     return this.ossService.getPublicFileDownloadUrl(query);
   }
+
+  @ApiOperation({
+    summary: '获取公共文件播放url（视频内联播放直链）',
+  })
+  @Get('getPublicFilePlayUrl')
+  async getPublicFilePlayUrl(
+    @Query() query: GetFileDownloadUrlDto,
+  ): Promise<string> {
+    return this.ossService.getPublicFilePlayUrl(query);
+  }
 }

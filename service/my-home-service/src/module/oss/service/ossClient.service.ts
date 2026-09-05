@@ -147,13 +147,18 @@ export class OssClientService {
     const expire =
       options.expire ?? this.aliyunConfig.oss.downloadSignExpireSecond; // 签名url过期时间
     const httpCacheExpire = options.httpCacheExpire ?? 30 * 24 * 60 * 60; // http缓存过期时间
+    // attachment 用于下载；inline 用于 <video>/<img> 内联播放（attachment 会阻止媒体元素渲染）
+    const disposition = options.disposition ?? 'attachment';
+    const contentDisposition =
+      disposition === 'inline'
+        ? 'inline'
+        : `attachment; filename=${encodeURIComponent(options.filename)}`;
     const generateQueries = (
-      filename: string,
       httpCacheExpire: number,
     ): Record<string, any> => {
       return {
         'response-cache-control': `private, max-age=${httpCacheExpire}`,
-        'response-content-disposition': `attachment; filename=${encodeURIComponent(filename)}`,
+        'response-content-disposition': contentDisposition,
       };
     };
 
@@ -164,7 +169,7 @@ export class OssClientService {
         headers: {},
         queries: {
           ...options.extraQueries,
-          ...generateQueries(options.filename, httpCacheExpire),
+          ...generateQueries(httpCacheExpire),
         },
       },
       options.object,

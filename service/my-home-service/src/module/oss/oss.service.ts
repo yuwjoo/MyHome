@@ -157,6 +157,11 @@ export class OssService {
     }
 
     const ossObject = ossObjectRef.ossObject;
+    // 图片按宽度缩放；视频通过OSS媒体处理截帧生成封面（t_1000=取第1秒帧）
+    const isVideo = ossObject.fileMime?.startsWith('video/');
+    const process = isVideo
+      ? `video/snapshot,t_1000,f_jpg,w_${getFileThumbnailDto.imageWidth},m_fast`
+      : `image/resize,w_${getFileThumbnailDto.imageWidth}`;
 
     // 检查缓存
     const isNotModified = req.headers['if-none-match'] === ossObject.fileEtag;
@@ -169,25 +174,25 @@ export class OssService {
       .status(HttpStatus.OK)
       .header('ETag', `${ossObject.fileEtag}`)
       .header('Cache-Control', `private, max-age=${24 * 60 * 60}`)
-      .header('Content-Type', ossObject.fileMime);
+      .header('Content-Type', isVideo ? 'image/jpeg' : ossObject.fileMime);
 
     const ossClient = await this.ossClientService.getOssClient();
     const streamRes = await ossClient.getStream(ossObject.objectKey, {
-      process: `image/resize,w_${getFileThumbnailDto.imageWidth}`,
+      process,
     });
     streamRes.stream.pipe(res);
   }
 
   /**
-   * 获取公共文件下载url
-   * @param downloadFileDto 获取文件下载url dto
-   * @return 下载url
+   * 获取可公开访问的 oss 引用（校验存在性 + public + 已使用）
+   * @param {string} ossObjectRefId oss object引用id
+   * @return {OssObjectRefEntity} oss 引用数据
    */
-  async getPublicFileDownloadUrl(
-    getFileDownloadUrlDto: GetFileDownloadUrlDto,
-  ): Promise<string> {
+  private async getPublicOssObjectRef(
+    ossObjectRefId: string,
+  ): Promise<OssObjectRefEntity> {
     const ossObjectRef = await this.ossObjectDao.getObjectRefById(
-      getFileDownloadUrlDto.ossObjectRefId,
+      ossObjectRefId,
     );
     if (!ossObjectRef) {
       throw new BadRequestException('文件不存在');
@@ -195,12 +200,45 @@ export class OssService {
     if (ossObjectRef.refType !== 'public' || !ossObjectRef.isUsed) {
       throw new BadRequestException('无权访问');
     }
+    return ossObjectRef;
+  }
 
+  /**
+   * 获取公共文件下载url（attachment，触发下载）
+   * @param downloadFileDto 获取文件下载url dto
+   * @return 下载url
+   */
+  async getPublicFileDownloadUrl(
+    getFileDownloadUrlDto: GetFileDownloadUrlDto,
+  ): Promise<string> {
+    const ossObjectRef = await this.getPublicOssObjectRef(
+      getFileDownloadUrlDto.ossObjectRefId,
+    );
     const ossObject = ossObjectRef.ossObject;
 
     return this.ossClientService.signDownloadUrl({
       object: ossObject.objectKey,
       filename: ossObject.objectKey,
+    });
+  }
+
+  /**
+   * 获取公共文件播放url（inline，供 <video> 内联播放，不触发下载）
+   * @param getFileDownloadUrlDto 获取文件下载url dto
+   * @return 可播放直链
+   */
+  async getPublicFilePlayUrl(
+    getFileDownloadUrlDto: GetFileDownloadUrlDto,
+  ): Promise<string> {
+    const ossObjectRef = await this.getPublicOssObjectRef(
+      getFileDownloadUrlDto.ossObjectRefId,
+    );
+    const ossObject = ossObjectRef.ossObject;
+
+    return this.ossClientService.signDownloadUrl({
+      object: ossObject.objectKey,
+      filename: ossObject.objectKey,
+      disposition: 'inline',
     });
   }
 }

@@ -10,6 +10,7 @@ import { WeatherModule } from './module/weather/weather.module';
 import { HttpAuthGuard } from './common/guards/httpAuth.guard';
 import { OssModule } from './module/oss/oss.module';
 import { MomentsModule } from './module/moments/moments.module';
+import { RecipeModule } from './module/recipe/recipe.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { MomentsModule } from './module/moments/moments.module';
     CloudDiskModule,
     OssModule,
     MomentsModule,
+    RecipeModule,
   ],
   providers: [
     {

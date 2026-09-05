@@ -98,9 +98,7 @@ export class CloudDiskController {
     summary: '生成分享链接',
   })
   @Post('createShareLink')
-  createShareLink(
-    @Body() body: CreateShareLinkDto,
-  ): Promise<string> {
+  createShareLink(@Body() body: CreateShareLinkDto): Promise<string> {
     return this.cloudDiskService.createShareLink(body);
   }
 

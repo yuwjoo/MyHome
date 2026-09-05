@@ -1,0 +1,52 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e38]:
+    - generic [ref=e39]:
+      - generic [aria-hidden]:
+        - generic: 下拉刷新
+      - generic [ref=e40]:
+        - banner [ref=e41]:
+          - generic [ref=e42]:
+            - heading "我的菜谱 5 道" [level=1] [ref=e43]:
+              - text: 我的菜谱
+              - generic [ref=e44]: 5 道
+            - generic "yuwjoo" [ref=e45]:
+              - generic [ref=e46]: 杨辉33
+              - button "退出" [ref=e47] [cursor=pointer]
+          - button "搜索菜谱" [ref=e48] [cursor=pointer]:
+            - generic [ref=e51]: 搜索菜谱名或备注…
+        - generic [ref=e52]:
+          - button "暂无影像 234234 42 分钟前" [ref=e53] [cursor=pointer]:
+            - generic [ref=e54]: 暂无影像
+            - generic [ref=e59]:
+              - heading "234234" [level=3] [ref=e60]
+              - generic [ref=e61]: 42 分钟前
+          - button "呵呵 今天 20:12 1 张照片 · 2 段视频" [ref=e65] [cursor=pointer]:
+            - generic [ref=e67]:
+              - heading "呵呵" [level=3] [ref=e68]
+              - generic [ref=e69]:
+                - generic [ref=e70]: 今天 20:12
+                - generic [ref=e73]: 1 张照片 · 2 段视频
+          - button "暂无影像 滚滚滚 今天 19:44" [ref=e75] [cursor=pointer]:
+            - generic [ref=e76]: 暂无影像
+            - generic [ref=e81]:
+              - heading "滚滚滚" [level=3] [ref=e82]
+              - generic [ref=e83]: 今天 19:44
+          - button "番茄炒蛋 家家户户 今天 19:40 2 张照片" [ref=e87] [cursor=pointer]:
+            - generic [ref=e89]:
+              - heading "番茄炒蛋" [level=3] [ref=e90]
+              - paragraph [ref=e91]: 家家户户
+              - generic [ref=e92]:
+                - generic [ref=e93]: 今天 19:40
+                - generic [ref=e96]: 2 张照片
+          - button "测试菜谱 3243 今天 19:34 2 张照片" [ref=e98] [cursor=pointer]:
+            - generic [ref=e100]:
+              - heading "测试菜谱" [level=3] [ref=e101]
+              - paragraph [ref=e102]: "3243"
+              - generic [ref=e103]:
+                - generic [ref=e104]: 今天 19:34
+                - generic [ref=e107]: 2 张照片
+    - button "新建菜谱" [ref=e109] [cursor=pointer]
+  - generic [ref=e26]:
+    - generic "Toggle devtools panel" [ref=e27] [cursor=pointer]
+    - generic "Toggle Component Inspector" [ref=e33] [cursor=pointer]
+  - generic: 欢迎回来

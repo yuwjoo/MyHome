@@ -14,10 +14,14 @@ export const releaseConfig = {
   ossAssets: {
     /** 版本清单 */
     manifest: `${ossRoot}/versionManifest.json`,
-    /** Android APK */
+    /** Android 智能家居 App APK */
     android: `${ossRoot}/android/MyHome.zip`,
+    /** Android 菜谱 App APK */
+    androidRecipe: `${ossRoot}/android/MyHomeRecipe.apk`,
     /** Web 打包文件 */
     web: `${ossRoot}/web/my-home-mobile.zip`,
+    /** 菜谱 Web 打包文件 */
+    recipeWeb: `${ossRoot}/web/my-home-recipe.zip`,
     /** 加密凭证文件（私有权限） */
     secret: `${ossRoot}/.secret.zip`,
   },
@@ -26,7 +30,7 @@ export const releaseConfig = {
   localAssets: {
     /** 版本清单 */
     manifest: path.resolve(projectRoot, "versionManifest.json"),
-    /** Android 项目 */
+    /** Android 智能家居项目 */
     android: {
       /** 项目目录 */
       projectDir: path.resolve(projectRoot, "android/MyHome"),
@@ -38,8 +42,22 @@ export const releaseConfig = {
       /** Android Studio 自带 JDK（JBR）路径 */
       jdkHome: "D:\\InstallSoftware\\Android\\Android Studio\\jbr",
     },
+    /** Android 菜谱项目 */
+    androidRecipe: {
+      /** 项目目录 */
+      projectDir: path.resolve(projectRoot, "android/MyHomeRecipe"),
+      /** APK 文件路径 */
+      apkPath: path.resolve(
+        projectRoot,
+        "android/MyHomeRecipe/app/build/outputs/apk/release/app-release.apk",
+      ),
+      /** Android Studio 自带 JDK（JBR）路径 */
+      jdkHome: "D:\\InstallSoftware\\Android\\Android Studio\\jbr",
+    },
     /** Web 打包文件 */
     web: path.resolve(projectRoot, "web/my-home-mobile/dist"),
+    /** 菜谱 Web 打包文件 */
+    recipeWeb: path.resolve(projectRoot, "web/my-home-recipe/dist"),
     /** 凭证目录 */
     secret: path.resolve(projectRoot, ".secret"),
   },

@@ -4,8 +4,19 @@
  */
 import { ElMessage } from 'element-plus';
 import type { PublishTask } from '@/types/usePublishTask';
+import type { WebGroup } from '@/module/bridge/types/group/WebGroup';
+import { getProjectById } from '@/config/projects';
 import { bridge } from '@/module/bridge';
 import { usePublishTask } from '@/composables/usePublishTask';
+
+/**
+ * Web 项目发布消息名映射
+ * projectId → 主进程 webGroup 中的消息名，需与 main/common/bridge/webGroup.ts 保持一致
+ */
+const publishMessageMap: Record<string, keyof WebGroup> = {
+  'web-myhome': 'publishMyHomeMobile',
+  'web-myhome-recipe': 'publishMyHomeRecipe',
+};
 
 /**
  * Web 项目发布流程 Hook
@@ -25,11 +36,15 @@ export function useWebPublish() {
    * 启动 Web 发布任务
    */
   function startPublish(task: PublishTask): Promise<void> {
+    const messageName = publishMessageMap[task.projectId] ?? 'publishMyHomeMobile';
+
+    const projectName = getProjectById(task.projectId)?.name ?? task.projectId;
+
     return wrapPublish(task, () =>
       new Promise<void>((resolve) => {
-        addLog('info', `🚀 开始发布 Web 移动端 - ${task.version}`);
+        addLog('info', `🚀 开始发布 ${projectName} - v${task.version}`);
 
-        bridge.send('web', 'publishMyHomeMobile', { version: task.version }, {
+        bridge.send('web', messageName, { version: task.version }, {
           onProgress: (data) => {
             addLog('info', `📋 ${data.step}${data.version ? `: ${data.version}` : ''}`);
             if (data.step === '更新版本号') task.progress = 15;

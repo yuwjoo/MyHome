@@ -1,31 +1,22 @@
 /**
- * useAndroidPublish - Android 项目构建发布 Hook
+ * useAndroidPublish - Android 项目发布 Hook
  * 通过 bridge 模块调用主进程发布流程
  */
 import { ElMessage } from 'element-plus';
 import type { PublishTask } from '@/types/usePublishTask';
+import type { AndroidGroup } from '@/module/bridge/types/group/AndroidGroup';
+import { getProjectById } from '@/config/projects';
 import { bridge } from '@/module/bridge';
 import { usePublishTask } from '@/composables/usePublishTask';
 
 /**
- * 版本号字符串解析为三段数字
+ * Android 项目发布消息名映射
+ * projectId → 主进程 androidGroup 中的消息名，需与 main/common/bridge/androidGroup.ts 保持一致
  */
-function parseVersion(version: string): { major: number; minor: number; patch: number } {
-  const parts = version.split('.').map(Number);
-  return {
-    major: !isNaN(parts[0]) ? parts[0] : 0,
-    minor: !isNaN(parts[1]) ? parts[1] : 0,
-    patch: !isNaN(parts[2]) ? parts[2] : 0,
-  };
-}
-
-/**
- * 语义化版本号转为 Android versionCode
- */
-function versionToCode(version: string): number {
-  const { major, minor, patch } = parseVersion(version);
-  return major * 10000 + minor * 100 + patch;
-}
+const publishMessageMap: Record<string, keyof AndroidGroup> = {
+  'android-myhome': 'publishMyHome',
+  'android-myhome-recipe': 'publishMyHomeRecipe',
+};
 
 /**
  * Android 项目发布流程 Hook
@@ -45,13 +36,15 @@ export function useAndroidPublish() {
    * 启动 Android 发布任务
    */
   function startPublish(task: PublishTask): Promise<void> {
-    const versionCode = versionToCode(task.version);
+    const messageName = publishMessageMap[task.projectId] ?? 'publishMyHome';
+
+    const projectName = getProjectById(task.projectId)?.name ?? task.projectId;
 
     return wrapPublish(task, () =>
       new Promise<void>((resolve) => {
-        addLog('info', `🚀 开始发布 Android MyHome - v${task.version} (code: ${versionCode})`);
+        addLog('info', `🚀 开始发布 Android ${projectName} - v${task.version}`);
 
-        bridge.send('android', 'publishMyHome', { version: task.version, versionCode }, {
+        bridge.send('android', messageName, { version: task.version }, {
           onProgress: (data) => {
             const info = data.versionCode !== undefined
               ? `${data.step}: versionName=${data.version} versionCode=${data.versionCode}`
@@ -72,7 +65,7 @@ export function useAndroidPublish() {
           onSuccess: (data) => {
             task.progress = 100;
             setStatus('success');
-            addLog('info', `🎉 Android MyHome 发布成功，地址: ${data.url}`);
+            addLog('info', `🎉 Android ${projectName} 发布成功，地址: ${data.url}`);
             ElMessage.success('Android 项目发布成功');
             resolve();
           },

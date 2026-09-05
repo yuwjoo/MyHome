@@ -190,23 +190,41 @@ export class OssObjectDao {
     }
 
     await runInTransaction(async () => {
+      // 删除前记录每个引用归属的 object，用于删除后同步递减引用计数
+      const targetRefs = await this.ossObjectRefRepo.find({
+        select: ['refId', 'ossObjectId'],
+        where: {
+          refId: In(refIds),
+        },
+      });
+
       await this.ossObjectRefRepo.delete({
         refId: In(refIds),
       });
 
-      // 减少object引用数
-      await this.ossObjectRepo.query(
-        `UPDATE oss_object
-       SET refCount = refCount - (
-         SELECT COUNT(*) FROM oss_object_ref
-         WHERE oss_object_id = oss_object.objectId AND ref_id IN (?)
-       ),
-       lastRefUpdatedAt = CURRENT_TIMESTAMP
-       WHERE objectId IN (
-         SELECT DISTINCT oss_object_id FROM oss_object_ref WHERE ref_id IN (?)
-       )`,
-        [refIds, refIds],
-      );
+      // 按 object 聚合本次被删除的引用数
+      const deletedCountByObject = new Map<number, number>();
+      for (const ref of targetRefs) {
+        const objectId = Number(ref.ossObjectId);
+        if (Number.isNaN(objectId)) {
+          continue;
+        }
+        deletedCountByObject.set(
+          objectId,
+          (deletedCountByObject.get(objectId) ?? 0) + 1,
+        );
+      }
+
+      // 递减对应 oss_object 的引用计数（避免多引用归属同一 object 时漏减）
+      for (const [objectId, deletedCount] of deletedCountByObject) {
+        await this.ossObjectRepo.update(
+          { objectId },
+          {
+            refCount: () => `GREATEST(refCount - ${deletedCount}, 0)`,
+            lastRefUpdatedAt: () => 'CURRENT_TIMESTAMP',
+          },
+        );
+      }
     });
   }
 }

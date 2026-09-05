@@ -44,16 +44,26 @@
     </div>
 
     <div class="tab-content">
-      <AndroidPublishPanel
-        v-show="activeTab === 'android'"
-        :current-version="getVersion('android', 'MyHome')"
-        @version-updated="(v) => updateVersion('android', 'MyHome', v)"
-      />
-      <WebPublishPanel
-        v-show="activeTab === 'web'"
-        :current-version="getVersion('web', 'my-home-mobile')"
-        @version-updated="(v) => updateVersion('web', 'my-home-mobile', v)"
-      />
+      <div v-show="activeTab === 'android'" class="project-list">
+        <!-- Android 平台下可发布多个项目（MyHome / MyHomeRecipe），按配置列表渲染 -->
+        <AndroidPublishPanel
+          v-for="proj in androidProjects"
+          :key="proj.id"
+          :project="proj"
+          :current-version="getVersion(proj.platform, proj.name)"
+          @version-updated="(v) => updateVersion(proj.platform, proj.name, v)"
+        />
+      </div>
+      <div v-show="activeTab === 'web'" class="project-list">
+        <!-- Web 平台下可发布多个项目（my-home-mobile / my-home-recipe），按配置列表渲染 -->
+        <WebPublishPanel
+          v-for="proj in webProjects"
+          :key="proj.id"
+          :project="proj"
+          :current-version="getVersion(proj.platform, proj.name)"
+          @version-updated="(v) => updateVersion(proj.platform, proj.name, v)"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -91,6 +101,12 @@ const activeTab = ref<'android' | 'web'>('android');
 const indicatorStyle = computed(() => ({
   left: activeTab.value === 'android' ? '0' : '50%',
 }));
+
+/** Android 平台项目列表（按 projectList 配置渲染发布面板） */
+const androidProjects = computed(() => projectList.filter((p) => p.platform === 'android'));
+
+/** Web 平台项目列表（按 projectList 配置渲染发布面板） */
+const webProjects = computed(() => projectList.filter((p) => p.platform === 'web'));
 
 /** 从 manifest 计算各项目条目（供版本清单展示） */
 const projectEntries = computed(() =>
@@ -144,6 +160,12 @@ onMounted(async () => {
       color: #909399;
       margin-left: 32px;
     }
+  }
+
+  .project-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
   .tab-bar {

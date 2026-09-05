@@ -15,4 +15,17 @@ export type WebGroup = {
       onError: (data: { message: string }) => void
     }
   }
+  /**
+   * 发布 my-home-recipe（菜谱）项目（版本更新 → 构建 → 压缩 → 上传 OSS）
+   */
+  publishMyHomeRecipe: {
+    type: 'action'
+    params: { version: string }
+    callbacks: {
+      onProgress: (data: { step: string; version?: string }) => void
+      onBuildOutput: (data: { data: string }) => void
+      onSuccess: (data: { url: string; version: string }) => void
+      onError: (data: { message: string }) => void
+    }
+  }
 }
