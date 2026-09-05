@@ -1,7 +1,7 @@
 {
   "android": {
     "MyHome": "0.0.52",
-    "MyHomeRecipe": "0.0.4"
+    "MyHomeRecipe": "0.0.6"
   },
   "web": {
     "my-home-mobile": "0.0.19",

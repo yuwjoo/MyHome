@@ -69,7 +69,7 @@ object AppConfig {
     // ==================== WebView ====================
 
     /** 本地虚拟域名协议（正式环境） */
-    const val LOCAL_RESOURCE_PROTOCOL = "https"
+    const val LOCAL_RESOURCE_PROTOCOL = "http"
 
     /** 本地虚拟域名（正式环境），由 WebViewAssetLoader 拦截并映射到本地文件 */
     const val LOCAL_RESOURCE_HOST = WEB_PRODUCT_NAME
