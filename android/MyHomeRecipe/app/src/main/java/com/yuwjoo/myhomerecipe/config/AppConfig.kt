@@ -35,8 +35,12 @@ object AppConfig {
     /** 菜谱 Web 资源 zip 包（解压后根目录应包含 index.html） */
     const val WEB_RESOURCE_URL = "$OSS_BASE_URL/web/my-home-recipe.zip"
 
-    /** Android 安装包。OSS 上传时若强制改后缀，请同步修正此地址 */
-    const val APP_DOWNLOAD_URL = "$OSS_BASE_URL/android/MyHomeRecipe.apk"
+    /**
+     * Android 安装包下载地址。
+     * 与 MyHome 一致：发布时 APK 以 .zip 后缀上传 OSS（避免部分环境拦截 .apk 下载），
+     * 实际内容仍是 APK，本地下载后另存为 .apk 再安装。
+     */
+    const val APP_DOWNLOAD_URL = "$OSS_BASE_URL/android/MyHomeRecipe.zip"
 
     // ==================== 产品命名（三处必须一致） ====================
     // 约定：版本清单中 web 段的 key、OSS zip 包名、本地资源目录名

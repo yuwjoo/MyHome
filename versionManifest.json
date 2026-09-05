@@ -1,10 +1,10 @@
 {
   "android": {
     "MyHome": "0.0.52",
-    "MyHomeRecipe": "0.0.1"
+    "MyHomeRecipe": "0.0.2"
   },
   "web": {
     "my-home-mobile": "0.0.19",
-    "my-home-recipe": "0.0.0"
+    "my-home-recipe": "0.0.2"
   }
 }

@@ -60,8 +60,12 @@ class RecipeWebViewClient(
      *
      * - 开发环境：直接请求开发服务器，不拦截
      * - 正式环境：本地虚拟域名内的请求映射到本地文件；
+     *   目标文件存在时交给 assetLoader 处理（负责 MIME 推断）；
      *   文件缺失时仅对主框架请求回退 index.html（SPA 路由），
-     *   子资源缺失交给浏览器自然失败，避免把 HTML 当 JS/CSS 返回。
+     *   子资源缺失（如 Chromium 自动请求的 /favicon.ico）直接返回 null 放行。
+     *
+     * 必须先在外部判断文件是否存在：WebViewAssetLoader 对缺失文件会在内部
+     * 打一整条 E 日志再抛 FileNotFoundException（我们虽能 catch，但日志已刷屏）。
      */
     override fun shouldInterceptRequest(
         view: WebView?,
@@ -73,6 +77,16 @@ class RecipeWebViewClient(
             return super.shouldInterceptRequest(view, request)
         }
 
+        val file = resolveFile(request)
+        if (file?.isFile != true) {
+            // 文件不存在：主框架走 SPA 兜底，子资源直接放行（不触发 loader 内部异常）
+            return if (request.isForMainFrame) {
+                fallbackResponse(onlyForMainFrame = true)
+            } else {
+                null
+            }
+        }
+
         return try {
             assetLoader.shouldInterceptRequest(request.url)
                 ?: fallbackResponse(onlyForMainFrame = request.isForMainFrame)
@@ -80,6 +94,19 @@ class RecipeWebViewClient(
             Log.w(TAG, "本地资源拦截失败: ${request.url}", e)
             fallbackResponse(onlyForMainFrame = request.isForMainFrame)
         }
+    }
+
+    /**
+     * 把请求 URL 解析为本地资源目录下的目标文件（与根路径处理器的映射规则一致）：
+     * - 根路径 "/"（或空）→ index.html；
+     * - 其余路径去掉前导 "/" 后与 resourceDir 拼接；
+     * - 含 ".." 段落的路径一律视为不存在（防目录穿越）。
+     */
+    private fun resolveFile(request: WebResourceRequest): File? {
+        val relative = request.url.path?.trimStart('/') ?: return null
+        if (relative.isEmpty()) return indexFile
+        if (relative.split('/').any { it == ".." }) return null
+        return File(resourceDir, relative)
     }
 
     /**

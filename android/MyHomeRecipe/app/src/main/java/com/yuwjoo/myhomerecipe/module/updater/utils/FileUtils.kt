@@ -6,7 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.Response
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
@@ -35,13 +34,12 @@ object FileUtils {
         .followSslRedirects(true)
         .build()
 
-    /** 在 IO 线程同步执行一次 HTTP 请求 */
-    private suspend fun executeInIo(request: Request): Response = withContext(Dispatchers.IO) {
-        httpClient.newCall(request).execute()
-    }
-
     /**
      * 请求文本内容
+     *
+     * 注意：建连、发送与读取响应体都属于网络 I/O，
+     * 必须在 IO 线程上完整执行（只把建连切到 IO、在主线程读 body，
+     * 会在 Android 上触发 NetworkOnMainThreadException）。
      *
      * @param url 远程地址
      * @return 响应文本
@@ -49,18 +47,23 @@ object FileUtils {
      */
     suspend fun fetch(url: String): String {
         val request = Request.Builder().url(url).build()
-        val response = executeInIo(request)
-        response.use {
-            if (!it.isSuccessful) {
-                throw IOException("请求失败，HTTP ${it.code}: $url")
+        return withContext(Dispatchers.IO) {
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw IOException("请求失败，HTTP ${response.code}: $url")
+                }
+                response.body?.string()
+                    ?: throw IOException("响应体为空: $url")
             }
-            return it.body?.string()
-                ?: throw IOException("响应体为空: $url")
         }
     }
 
     /**
      * 下载文件到目标路径
+     *
+     * 与 [fetch] 同理，整个请求与响应体读取都在 IO 线程内完成。
+     * 进度回调在 IO 线程触发，调用方如需更新 UI 请自行切回主线程
+     * （进度对话框封装已内置线程切换，可直接传入）。
      *
      * @param url        远程下载地址
      * @param destFile   本地目标文件
@@ -72,18 +75,19 @@ object FileUtils {
         destFile: File,
         onProgress: ((downloaded: Long, total: Long) -> Unit)? = null,
     ) {
-        destFile.parentFile?.mkdirs()
-
         val request = Request.Builder().url(url).build()
-        val response = executeInIo(request)
-        response.use {
-            if (!it.isSuccessful) {
-                throw IOException("下载失败，HTTP ${it.code}: $url")
-            }
+        withContext(Dispatchers.IO) {
+            destFile.parentFile?.mkdirs()
 
-            val body = it.body ?: throw IOException("响应体为空: $url")
-            body.byteStream().use { input ->
-                writeToFile(input, destFile, body.contentLength(), onProgress)
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw IOException("下载失败，HTTP ${response.code}: $url")
+                }
+
+                val body = response.body ?: throw IOException("响应体为空: $url")
+                body.byteStream().use { input ->
+                    writeToFile(input, destFile, body.contentLength(), onProgress)
+                }
             }
             Log.d(TAG, "下载完成: ${destFile.absolutePath}")
         }

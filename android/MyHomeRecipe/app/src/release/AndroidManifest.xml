@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Release 专用 Manifest（仅合并到 release 构建）：
+    菜谱前端（WebView 内页面）目前通过明文 HTTP 请求生产后端
+    http://47.115.161.79:3000（见 web/my-home-recipe/.env.production）。
+    targetSdk>=28 时系统默认禁止明文流量，若无放行，正式包所有接口都会报
+    "网络连接失败"，因此这里与 debug 保持一致，放行明文 HTTP。
+
+    注意：这是"后端尚未上 HTTPS"期间的临时策略。后端接入域名 + HTTPS 后，
+    应删除本文件并同步把 .env.production 改为 https 地址。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application android:usesCleartextTraffic="true" />
+
+</manifest>

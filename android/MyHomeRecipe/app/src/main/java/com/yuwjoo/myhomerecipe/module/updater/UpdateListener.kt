@@ -40,6 +40,15 @@ interface UpdateListener {
     /** 更新完成（下载并安装/切换完成） */
     fun onUpdateComplete(platform: UpdatePlatform) = Unit
 
-    /** 更新流程出错 */
-    fun onUpdateError(error: String) = Unit
+    /**
+     * 更新流程出错
+     *
+     * @param error    错误信息
+     * @param platform 出错阶段对应的平台：
+     *                 - null：拉取版本清单（检查更新）失败
+     *                 - [UpdatePlatform.WEB]：Web 资源下载/安装失败
+     *                 - [UpdatePlatform.APP]：APK 下载/安装失败
+     *                 UI 层可据此决定是否需要打扰用户。
+     */
+    fun onUpdateError(error: String, platform: UpdatePlatform? = null) = Unit
 }

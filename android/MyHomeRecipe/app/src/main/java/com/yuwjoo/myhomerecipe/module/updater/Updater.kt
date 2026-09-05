@@ -33,6 +33,12 @@ object Updater {
     val currentAppVersion: String
         get() = appManager.currentVersion
 
+    /** 本地 Web 资源是否为可用的正式版本（区别于首次安装的内置占位页） */
+    val hasUsableWebResource: Boolean
+        get() = webManager.isResourceReady &&
+            currentWebVersion.isNotBlank() &&
+            currentWebVersion != UpdaterConfig.SEED_VERSION
+
     /**
      * 初始化（内部会创建目录；正式环境首次启动还会植入内置占位页）
      */
@@ -52,7 +58,7 @@ object Updater {
         try {
             manifest.fetch()
         } catch (e: Exception) {
-            Log.e(TAG, "拉取版本清单失败: ${e.message}", e)
+            Log.w(TAG, "拉取版本清单失败: ${e.message}")
             listener?.onUpdateError("检查更新失败：${e.message}")
             return false
         }
@@ -108,7 +114,7 @@ object Updater {
             true
         } catch (e: Exception) {
             Log.e(TAG, "应用更新失败: ${e.message}", e)
-            listener?.onUpdateError("应用更新失败：${e.message}")
+            listener?.onUpdateError("应用更新失败：${e.message}", UpdatePlatform.APP)
             false
         }
     }
@@ -129,7 +135,7 @@ object Updater {
             true
         } catch (e: Exception) {
             Log.e(TAG, "Web 更新失败: ${e.message}", e)
-            listener?.onUpdateError("页面更新失败：${e.message}")
+            listener?.onUpdateError("页面更新失败：${e.message}", UpdatePlatform.WEB)
             false
         }
     }

@@ -3,7 +3,7 @@ import baseConfig, { BaseConfig } from 'src/config/base.config';
 import databaseConfig, { DatabaseConfig } from 'src/config/database.config';
 import { DataSource } from 'typeorm';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
-import { addTransactionalDataSource } from 'typeorm-transactional';
+import { addTransactionalDataSource, getDataSourceByName } from 'typeorm-transactional';
 
 /**
  * 初始化数据库模块
@@ -30,7 +30,11 @@ export function initDatabaseModule() {
         throw new Error('Invalid options passed');
       }
 
-      return addTransactionalDataSource(new DataSource(options));
+      // typeorm-transactional 按名称（默认 default）全局登记 DataSource，同名重复添加会抛错；
+      // 而 @nestjs/typeorm 在连接失败时会多次重试并重复调用本工厂。
+      // 因此已登记过就复用同一实例（Nest 会对它再次 initialize()，
+      // 数据库恢复后无需重启进程即可自动连上），否则才注册新实例。
+      return getDataSourceByName('default') ?? addTransactionalDataSource(new DataSource(options));
     },
   });
 }

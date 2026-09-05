@@ -16,8 +16,8 @@ export const releaseConfig = {
     manifest: `${ossRoot}/versionManifest.json`,
     /** Android 智能家居 App APK */
     android: `${ossRoot}/android/MyHome.zip`,
-    /** Android 菜谱 App APK */
-    androidRecipe: `${ossRoot}/android/MyHomeRecipe.apk`,
+    /** Android 菜谱 App APK（沿用 MyHome 做法，OSS 上以 .zip 后缀存放） */
+    androidRecipe: `${ossRoot}/android/MyHomeRecipe.zip`,
     /** Web 打包文件 */
     web: `${ossRoot}/web/my-home-mobile.zip`,
     /** 菜谱 Web 打包文件 */

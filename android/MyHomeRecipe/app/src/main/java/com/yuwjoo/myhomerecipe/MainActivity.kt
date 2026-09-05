@@ -116,10 +116,18 @@ class MainActivity : ComponentActivity() {
             progressDialog = null
         }
 
-        override fun onUpdateError(error: String) {
+        override fun onUpdateError(error: String, platform: UpdatePlatform?) {
             Log.e(TAG, "更新出错: $error")
             progressDialog?.dismiss()
             progressDialog = null
+
+            // 检查更新 / Web 资源更新都属于后台静默流程：本地已有可用的正式页面时
+            // 失败不打扰用户（离线或网络不可达的冷启动很常见，直接沿用本地资源）；
+            // 仅当仍停留在内置占位页（页面从未下载成功）或 App 更新（用户已确认）失败时弹窗。
+            if (platform != UpdatePlatform.APP && Updater.hasUsableWebResource) {
+                Log.w(TAG, "后台更新失败（静默降级，继续使用本地资源）: $error")
+                return
+            }
             DialogHelper.showErrorDialog(this@MainActivity, error)
         }
     }
