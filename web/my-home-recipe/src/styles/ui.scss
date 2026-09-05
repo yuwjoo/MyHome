@@ -1,0 +1,236 @@
+// ============================================================
+// 共享 UI 组件类（全局，非原子化）
+// ------------------------------------------------------------
+// 由 base.scss 引入。这里集中定义跨页面复用的“语义化组件类”：
+// 按钮、图标按钮、表单字段、悬浮按钮、角标、骨架屏等。
+// 组件内部布局仍使用各自 scoped 样式，此处不写原子化工具类。
+// ============================================================
+
+@use './mixins' as *;
+
+/* ---------- 按钮 ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4375rem;
+  min-height: 2.75rem;
+  padding: 0 1.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-ink-900);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  @include pressable;
+
+  &[disabled] {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  &__icon {
+    display: inline-flex;
+    font-size: 1.125rem;
+    line-height: 0;
+  }
+}
+
+// 主按钮：品牌色渐变（大面积使用，视觉焦点）
+.btn--primary {
+  background: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-600));
+  color: #fff;
+  box-shadow: var(--shadow-btn);
+}
+
+// 浅色幽灵按钮：白底 + 细描边，用于次操作
+.btn--soft {
+  background: var(--color-surface);
+  border-color: var(--color-line);
+  color: var(--color-ink-700);
+}
+
+// 危险按钮：描边形式呈现删除等破坏性操作（避免过于刺眼）
+.btn--danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+// 危险实心（确认弹窗内使用）
+.btn--danger-solid {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* ---------- 圆形图标按钮 ---------- */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--color-ink-700);
+  cursor: pointer;
+  @include pressable;
+}
+
+// 悬浮按钮（FAB）—— 列表页「新建菜谱」
+// 定位遵循“手机壳”宽度（30rem 居中），窄屏即贴视口右缘
+.fab {
+  position: fixed;
+  z-index: 20;
+  right: max(1.25rem, calc(50vw - 15rem + 1.25rem));
+  bottom: calc(1.5rem + var(--safe-bottom, 0rem));
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 3.25rem;
+  padding: 0 1.5rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-600));
+  color: #fff;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-float);
+  cursor: pointer;
+  @include pressable;
+}
+
+/* ---------- 表单字段 ---------- */
+.field {
+  display: block;
+
+  &__label {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.625rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-ink-700);
+    letter-spacing: 0.02em;
+  }
+
+  &__extra {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--color-ink-300);
+  }
+}
+
+.input,
+.textarea {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-field);
+  color: var(--color-ink-900);
+  font-size: 1rem;
+  line-height: 1.5;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &::placeholder {
+    color: var(--color-ink-300);
+  }
+
+  &:focus {
+    border-color: var(--color-brand-400);
+    background: #fff;
+    box-shadow: 0 0 0 0.1875rem rgba(226, 94, 52, 0.14);
+  }
+}
+
+.input {
+  min-height: 3.125rem;
+  padding: 0 1.125rem;
+}
+
+.textarea {
+  min-height: 8.5rem;
+  padding: 0.875rem 1.125rem;
+  resize: none;
+}
+
+/* ---------- 角标（如「视频时长」） ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: rgba(24, 16, 8, 0.6);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  backdrop-filter: blur(2px);
+}
+
+/* ---------- 骨架屏 ---------- */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-field);
+  border-radius: var(--radius-sm);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.75) 50%,
+      transparent 80%
+    );
+    transform: translateX(-100%);
+    animation: skeleton-wave 1.4s ease-in-out infinite;
+  }
+}
+
+/* ---------- 通用空状态容器 ---------- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3.5rem 1.5rem;
+  text-align: center;
+
+  &__title {
+    margin-top: 1.25rem;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--color-ink-700);
+  }
+
+  &__desc {
+    max-width: 17rem;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.7;
+    color: var(--color-ink-500);
+    // 保留文案中的换行（空状态副标题常用）
+    white-space: pre-line;
+  }
+
+  &__action {
+    margin-top: 1.5rem;
+  }
+}

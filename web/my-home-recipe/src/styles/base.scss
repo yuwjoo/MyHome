@@ -1,0 +1,217 @@
+// ============================================================
+// 全局基础样式（base）
+// ------------------------------------------------------------
+// 职责：
+//  1. 在 Tailwind preflight 之上的补充性全局基础样式；
+//  2. 移动端“手机壳”式页面框架布局；
+//  3. 通用动画关键帧。
+//
+// 尺寸约定：本项目样式单位一律使用 rem（根字号 16px，随系统
+// 字号设置自适应），保持全局一致、便于缩放。
+// ============================================================
+
+@use './ui';
+
+/* ---------- 基础 ---------- */
+html {
+  // 明确根字号：1rem = 16px（尊重用户系统字号偏好）
+  font-size: 16px;
+  // 移动端避免点击高亮闪块
+  -webkit-tap-highlight-color: transparent;
+  // iOS 橡皮筋回弹改为页面内部滚动更贴近原生 App
+  overscroll-behavior-y: none;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--color-paper);
+  color: var(--color-ink-900);
+  font-family: var(--font-sans, -apple-system, 'PingFang SC', sans-serif);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// 媒体默认块级、不溢出
+img,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font-family: inherit;
+}
+
+// 输入类元素在 iOS 上不被系统放大（字号已 >= 16px 时默认如此）
+// 统一让输入框继承字体
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--color-brand-200);
+  color: var(--color-ink-900);
+}
+
+// 无障碍：键盘操作可见焦点
+:focus-visible {
+  outline: 2px solid var(--color-brand-400);
+  outline-offset: 2px;
+}
+
+/* ---------- 系统安全区变量（统一入口） ----------
+ * 布局一律引用 var(--safe-top / --safe-bottom / ...)，不要直接写 env()：
+ * - Android WebView 不保证 env(safe-area-inset-*) 有值，由原生外壳在页面
+ *   就绪后按真实系统栏尺寸覆写为内联样式；
+ * - iOS / 桌面浏览器没有外壳时，由 env() 自身兜底。
+ */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+/* ---------- App 框架（手机壳式居中） ---------- */
+.app-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--color-paper);
+
+  // 宽屏（桌面浏览器）时两侧显示略深底色，突出“手机卡片”
+  @media (min-width: 30rem) {
+    background:
+      radial-gradient(60rem 60rem at 20% 0%, rgba(226, 94, 52, 0.05), transparent 60%),
+      var(--color-paper);
+  }
+}
+
+.app-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 30rem; // 设计上以 375~480px 的移动宽度呈现
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin-inline: auto;
+  background: var(--color-paper);
+
+  @media (min-width: 30rem) {
+    box-shadow: 0 0 0 1px rgba(74, 46, 30, 0.04), 0 1.25rem 4rem rgba(74, 46, 30, 0.12);
+  }
+}
+
+/* ---------- 页面通用结构 ---------- */
+// 页面根节点：占据框架内剩余高度，纵向布局
+.page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0; // 允许子级滚动
+}
+
+// 页面主体内容（Header 之外的可滚动区）
+.page-body {
+  flex: 1;
+  padding: 0 1.25rem 3rem;
+}
+
+// 区块标题：如「照片与视频」「备注」
+.section {
+  margin-top: 1.875rem;
+
+  &__title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.875rem;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: var(--color-ink-900);
+    letter-spacing: 0.01em;
+
+    .count {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--color-ink-300);
+    }
+  }
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+/* ---------- 通用关键帧 ---------- */
+@keyframes skeleton-wave {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* ---------- 路由切换过渡（淡入 + 轻微上移，柔和呼吸感） ---------- */
+.page-enter-active,
+.page-leave-active {
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(0.5rem);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-0.25rem);
+}

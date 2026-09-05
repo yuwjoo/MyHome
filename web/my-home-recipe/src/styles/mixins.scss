@@ -1,0 +1,43 @@
+// ============================================================
+// 全局 Sass 混入（Mixins）
+// ------------------------------------------------------------
+// 需要时在组件 <style lang="scss"> 顶部显式引入：
+//   @use '../styles/mixins' as *;
+// 保持「按需引入、显式依赖」，不注入全局作用域。
+// ============================================================
+
+/// 单行文本省略
+@mixin text-ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/// 多行文本截断（默认 2 行），配合 -webkit-box 兼容移动端
+@mixin text-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: $lines;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+/// 移动端「点击按压」反馈：轻微缩小 + 降低不透明度
+@mixin pressable($scale: 0.97) {
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease;
+  &:active {
+    transform: scale($scale);
+    opacity: 0.86;
+  }
+}
+
+/// 隐藏滚动条但保留可滚动能力（相册横向滚动等场景）
+@mixin hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome / Safari */
+  }
+}

@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+
+/* ============================================================
+ * 主题层（设计令牌）
+ * ------------------------------------------------------------
+ * 使用 Tailwind CSS v4 的 @theme 统一维护整套设计变量（颜色、
+ * 圆角、阴影、字体等），编译后输出为 :root 上的 CSS 变量，
+ * 供全局/组件 SCSS 通过 var(--xxx) 引用。
+ *
+ * 约定：本项目「不使用」Tailwind 原子类，样式一律用 Sass 编写；
+ * Tailwind 仅作为主题/令牌管理引擎。@theme static 确保变量
+ * 始终输出（即使未被任何原子类引用）。
+ * ============================================================ */
+@theme static {
+  /* ---- 品牌色：暖调番茄橙红（主次分明、有食欲感） ---- */
+  --color-brand-50: #fdf3ee;
+  --color-brand-100: #fbe3d7;
+  --color-brand-200: #f7c4ac;
+  --color-brand-300: #f19d7c;
+  --color-brand-400: #eb7952;
+  --color-brand-500: #e25e34; /* 主强调色（图标/点缀） */
+  --color-brand-600: #cf4b1f; /* 主按钮底色（白字对比达标） */
+  --color-brand-700: #a93c17; /* 按压态 */
+
+  /* ---- 中性色：暖纸风格 ---- */
+  --color-paper: #f6f1e9; /* 页面底色（米纸） */
+  --color-surface: #ffffff; /* 卡片/浮层 */
+  --color-field: #f7f2ec; /* 输入框底 */
+  --color-line: #ecdfd3; /* 分隔线/描边 */
+
+  /* ---- 文字色阶 ---- */
+  --color-ink-900: #2b211b; /* 主标题/正文 */
+  --color-ink-700: #54463c; /* 次级文字 */
+  --color-ink-500: #837163; /* 弱化文字 */
+  --color-ink-300: #b4a597; /* 占位符/禁用 */
+
+  /* ---- 功能色 ---- */
+  --color-success: #3a9d5d;
+  --color-success-soft: #e5f5ea;
+  --color-danger: #d64545;
+  --color-danger-soft: #fdecec;
+  --color-warning: #e6a23c;
+  --color-warning-soft: #fdf3e3;
+
+  /* ---- 圆角 ---- */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.625rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  /* 卡片（菜谱列表/骨架）统一用更克制的圆角，避免视觉圆胖 */
+  --radius-card: 0.75rem;
+  --radius-full: 9999px;
+
+  /* ---- 阴影 ---- */
+  --shadow-card: 0 0.0625rem 0.25rem rgba(74, 46, 30, 0.04),
+    0 0.5rem 1.5rem rgba(74, 46, 30, 0.07);
+  --shadow-btn: 0 0.3125rem 1rem rgba(207, 75, 31, 0.3);
+  --shadow-float: 0 0.625rem 2rem rgba(207, 75, 31, 0.32);
+  --shadow-pop: 0 0.75rem 2.5rem rgba(40, 24, 12, 0.24);
+  --shadow-toast: 0 0.375rem 1.25rem rgba(40, 24, 12, 0.18);
+
+  /* ---- 字体（系统字体栈，移动端优先） ---- */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', Roboto, sans-serif;
+}

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider 可共享路径 -->
+<paths>
+    <!-- 允许共享 cache 目录中的 APK（自更新下载的临时安装包） -->
+    <cache-path
+        name="apk"
+        path="." />
+</paths>
