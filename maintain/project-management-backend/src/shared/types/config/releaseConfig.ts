@@ -14,6 +14,8 @@ export interface ProjectInfo {
   projectVersion: string
   /** 项目类型 */
   projectType: string
+  /** OSS 存储相对路径 */
+  ossStorageRelativePath: string
 }
 
 /**

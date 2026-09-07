@@ -3,6 +3,7 @@
  */
 import { webFrame, webUtils } from 'electron'
 import { addListener, removeListener } from '@preload/api/utils/handler'
+import { appConfigApi } from '@preload/api/appConfigApi'
 import { releaseApi } from '@preload/api/releaseApi'
 import type { ElectronApi } from '@preload/api/types/api'
 
@@ -20,6 +21,8 @@ export const electronApi: ElectronApi = {
   addListener,
   /** 取消订阅（须传入与 addListener 相同的回调引用） */
   removeListener,
+  /** 应用配置api */
+  appConfig: appConfigApi,
   /** 发布api */
   release: releaseApi
 }

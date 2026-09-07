@@ -10,13 +10,15 @@ const defaultConfig = {
       projectName: 'MyHome（示例）',
       projectPath: '../../android/MyHome',
       projectVersion: '0.0.0',
-      projectType: 'android'
+      projectType: 'android',
+      ossStorageRelativePath: ''
     },
     {
       projectName: 'my-home-service（示例）',
       projectPath: '../../service/my-home-service',
       projectVersion: '0.0.0',
-      projectType: 'nestJS'
+      projectType: 'nestJS',
+      ossStorageRelativePath: ''
     }
   ],
   androidStudio: {
