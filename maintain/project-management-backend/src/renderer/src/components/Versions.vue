@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
+import { electronApi } from '@renderer/utils/electronApi'
 
-const versions = reactive({ ...window.electronApi.process.versions })
+const versions = reactive({ ...electronApi.process.versions })
 </script>
 
 <template>
