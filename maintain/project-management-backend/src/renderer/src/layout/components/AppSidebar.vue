@@ -22,9 +22,11 @@ const activeMenu = computed(() => route.path)
   </el-menu>
 </template>
 
-<style scoped>
-.app-sidebar__menu {
-  height: 100%;
-  border-right: none;
+<style scoped lang="scss">
+.app-sidebar {
+  &__menu {
+    height: 100%;
+    border-right: none;
+  }
 }
 </style>

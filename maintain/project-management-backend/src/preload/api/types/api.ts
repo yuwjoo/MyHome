@@ -1,7 +1,7 @@
 /**
  * @file api-类型（所有 api 集合）
  */
-import type { NodeProcess, WebFrame, WebUtils } from '@electron-toolkit/preload'
+import type { WebFrame, WebUtils } from 'electron'
 import type { IpcMsgChannel } from '@main/ipc/types/Ipc'
 import type { IpcApiShape, IpcMsgListener } from '@preload/api/types/ipc'
 
@@ -13,8 +13,6 @@ export type ElectronApi = IpcApiShape & {
   webFrame: WebFrame
   /** 文件等 web 工具能力 */
   webUtils: WebUtils
-  /** 进程信息 */
-  process: NodeProcess
   /** 订阅主进程推送消息 */
   addListener: <C extends IpcMsgChannel>(channel: C, listener: IpcMsgListener<C>) => void
   /** 取消订阅（须传入与 addListener 相同的回调引用） */

@@ -17,44 +17,44 @@ const route = useRoute()
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .app-header {
   display: flex;
   align-items: center;
   gap: 16px;
   height: 100%;
-}
 
-.app-header__brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
-.app-header__logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: var(--el-color-primary);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-}
+  &__logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--el-color-primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+  }
 
-.app-header__name {
-  font-size: 16px;
-  font-weight: 600;
-}
+  &__name {
+    font-size: 16px;
+    font-weight: 600;
+  }
 
-.app-header__current {
-  color: var(--el-text-color-secondary);
-  font-size: 14px;
-}
+  &__current {
+    color: var(--el-text-color-secondary);
+    font-size: 14px;
+  }
 
-.app-header__actions {
-  margin-left: auto;
+  &__actions {
+    margin-left: auto;
+  }
 }
 </style>

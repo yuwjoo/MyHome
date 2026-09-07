@@ -19,30 +19,30 @@ import AppSidebar from './components/AppSidebar.vue'
   </el-container>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .app-layout {
   height: 100%;
-}
 
-.app-layout__header {
-  padding: 0 20px;
-  background: #fff;
-  border-bottom: 1px solid var(--el-border-color-light);
-}
+  &__header {
+    padding: 0 20px;
+    background: #fff;
+    border-bottom: 1px solid var(--el-border-color-light);
+  }
 
-.app-layout__body {
-  height: calc(100% - 56px);
-  overflow: hidden;
-}
+  &__body {
+    height: calc(100% - 56px);
+    overflow: hidden;
 
-.app-layout__aside {
-  background: #fff;
-  border-right: 1px solid var(--el-border-color-light);
-}
+    .app-layout__aside {
+      background: #fff;
+      border-right: 1px solid var(--el-border-color-light);
+    }
 
-.app-layout__main {
-  padding: 16px;
-  background: #f0f2f5;
-  overflow: auto;
+    .app-layout__main {
+      padding: 16px;
+      background: #f0f2f5;
+      overflow: auto;
+    }
+  }
 }
 </style>

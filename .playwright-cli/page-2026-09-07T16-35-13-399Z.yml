@@ -1,0 +1,25 @@
+- generic [ref=e1]:
+  - generic [ref=e6]:
+    - banner [ref=e7]:
+      - paragraph [ref=e8]: 好好吃饭 · 认真生活
+      - heading "我的菜谱" [level=1] [ref=e9]
+      - paragraph [ref=e10]: 登录后，菜谱与影像将同步到云端
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - generic [ref=e13]: 账号
+        - textbox "账号" [active] [ref=e14]:
+          - /placeholder: 请输入账号
+      - generic [ref=e15]:
+        - generic [ref=e16]: 密码
+        - generic [ref=e17]:
+          - textbox "密码" [ref=e18]:
+            - /placeholder: 请输入密码
+          - button "显示密码" [ref=e19] [cursor=pointer]
+      - button "登录" [ref=e22] [cursor=pointer]
+    - paragraph [ref=e24]:
+      - text: 还没有账号？
+      - link "注册一个新账号" [ref=e25] [cursor=pointer]:
+        - /url: /register
+  - generic [ref=e26]:
+    - generic "Toggle devtools panel" [ref=e27] [cursor=pointer]
+    - generic "Toggle Component Inspector" [ref=e33] [cursor=pointer]

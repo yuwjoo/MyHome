@@ -4,18 +4,17 @@ import type { RouteRecordRaw } from 'vue-router'
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    // 顶级布局：顶部 header + 左侧 sidebar + 右侧主区域
     component: () => import('@renderer/layout/index.vue'),
-    redirect: '/project-publish',
+    redirect: '/projectPublish',
     children: [
       {
-        path: 'project-publish',
+        path: 'projectPublish',
         name: 'ProjectPublish',
         component: () => import('@renderer/views/projectPublish/index.vue'),
         meta: { title: '项目发布' }
       },
       {
-        path: 'config',
+        path: 'configManagement',
         name: 'Config',
         component: () => import('@renderer/views/configManagement/index.vue'),
         meta: { title: '配置管理' }

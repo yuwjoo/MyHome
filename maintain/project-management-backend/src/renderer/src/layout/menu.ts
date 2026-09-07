@@ -12,6 +12,6 @@ export interface AppMenuItem {
 
 /** 侧边栏菜单配置（后续如需动态菜单，可改为接口下发后映射） */
 export const appMenus: AppMenuItem[] = [
-  { path: '/project-publish', title: '项目发布', icon: Promotion },
-  { path: '/config', title: '配置管理', icon: Setting }
+  { path: '/projectPublish', title: '项目发布', icon: Promotion },
+  { path: '/configManagement', title: '配置管理', icon: Setting }
 ]

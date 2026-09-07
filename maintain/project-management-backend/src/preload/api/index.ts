@@ -1,21 +1,21 @@
 /**
  * @file preload api 统一出口
  */
-import { electronAPI } from '@electron-toolkit/preload'
+import { webFrame, webUtils } from 'electron'
 import { addListener, removeListener } from '@preload/api/utils/handler'
 import { releaseApi } from '@preload/api/releaseApi'
 import type { ElectronApi } from '@preload/api/types/api'
 
 /**
  * electronApi
+ * 沙箱模式下 preload 仅可访问 electron 白名单模块（webFrame/webUtils/ipcRenderer/contextBridge），
+ * 因此不使用 @electron-toolkit/preload 封装，直接取 electron 原生实例。
  */
 export const electronApi: ElectronApi = {
   /** 页面渲染控制能力 */
-  webFrame: electronAPI.webFrame,
+  webFrame,
   /** 文件等 web 工具能力 */
-  webUtils: electronAPI.webUtils,
-  /** 进程信息 */
-  process: electronAPI.process,
+  webUtils,
   /** 订阅主进程推送消息 */
   addListener,
   /** 取消订阅（须传入与 addListener 相同的回调引用） */
