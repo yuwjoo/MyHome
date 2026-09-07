@@ -1,8 +1,8 @@
 /**
  * @file 发版ipc
  */
-import { releaseStore } from '../store/releaseStore'
-import { handle } from './utils/handler'
+import { releaseStore } from '@main/store/releaseStore'
+import { handle } from '@main/ipc/utils/handler'
 
 /**
  * 获取项目列表

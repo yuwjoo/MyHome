@@ -1,7 +1,7 @@
 /**
  * @file IPC 聚合契约
  */
-import type { ReleaseIpcApi, ReleaseIpcMsg } from './releaseIpc'
+import type { ReleaseIpcApi, ReleaseIpcMsg } from '@main/ipc/types/releaseIpc'
 
 /**
  * API 聚合契约

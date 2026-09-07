@@ -2,7 +2,7 @@
  * @file 发版store
  */
 import Store from 'electron-store'
-import { ReleaseConfig } from './types/releaseStore'
+import { ReleaseConfig } from '@main/store/types/releaseStore'
 
 const defaultConfig = {
   projects: [

@@ -2,4 +2,4 @@
  * @file store 统一出口
  */
 
-export * from './releaseStore'
+export * from '@main/store/releaseStore'

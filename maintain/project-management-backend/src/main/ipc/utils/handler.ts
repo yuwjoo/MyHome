@@ -2,8 +2,14 @@
  * @file IPC 处理封装
  */
 import { ipcMain } from 'electron'
-import type { IpcMainEvent, IpcMainInvokeEvent } from 'electron'
-import type { IpcApiChannel, IpcApiChannelArgs, IpcApiChannelResult } from '../types/Ipc'
+import type { IpcMainEvent, IpcMainInvokeEvent, WebContents } from 'electron'
+import type {
+  IpcApiChannel,
+  IpcApiChannelArgs,
+  IpcApiChannelResult,
+  IpcMsgChannel,
+  IpcMsgPayload
+} from '@main/ipc/types/Ipc'
 
 /**
  * ipc handle
@@ -30,4 +36,18 @@ export function on<C extends IpcApiChannel>(
   listener: (event: IpcMainEvent, ...args: IpcApiChannelArgs<C>) => void
 ): void {
   ipcMain.on(channel, listener)
+}
+
+/**
+ * ipc send：主进程推送消息给 web
+ * @param webContents 目标渲染进程的 webContents
+ * @param channel 推送通道名（须在 IpcMsg 契约中登记）
+ * @param payload 推送负载（元组展开）
+ */
+export function send<C extends IpcMsgChannel>(
+  webContents: WebContents,
+  channel: C,
+  ...payload: IpcMsgPayload<C>
+): void {
+  webContents.send(channel, ...(payload as unknown[]))
 }

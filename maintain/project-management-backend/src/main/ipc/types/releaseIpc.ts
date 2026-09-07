@@ -1,7 +1,7 @@
 /**
  * @file 发版 IPC
  */
-import type { AndroidStudioInfo, ProjectInfo } from '../../store/types/releaseStore'
+import type { AndroidStudioInfo, ProjectInfo } from '@main/store/types/releaseStore'
 
 /**
  * 发版 API
