@@ -1,7 +1,7 @@
 /**
  * @file 发版 IPC 契约（跨进程共享）
  */
-import type { AndroidStudioInfo, ProjectInfo } from '@shared/types/config/releaseConfig'
+import type { AndroidStudioInfo, ProjectInfo } from '@shared/types/config/publishAssetConfig'
 
 /**
  * 发版 API

@@ -1,7 +1,8 @@
 /**
  * @file 发版ipc
  */
-import { releaseStore } from '@main/store/releaseStore'
+import { publishAssetStore } from '@main/store/publishAssetStore'
+import type { ProjectInfo } from '@shared/types/config/publishAssetConfig'
 import { handle } from '@main/ipc/utils/handler'
 
 /**
@@ -9,7 +10,7 @@ import { handle } from '@main/ipc/utils/handler'
  * @returns 当前全部项目
  */
 handle('release:getProjectList', () => {
-  return releaseStore.get('projects', [])
+  return publishAssetStore.get('local.projects', [] as ProjectInfo[])
 })
 
 /**
@@ -27,12 +28,12 @@ handle('release:addProject', (_event, project) => {
   ) {
     throw new Error('添加失败：项目信息不完整')
   }
-  const projects = releaseStore.get('projects', [])
+  const projects = publishAssetStore.get('local.projects', [] as ProjectInfo[])
   if (projects.some((item) => item.projectName === project.projectName)) {
     throw new Error(`添加失败：项目「${project.projectName}」已存在`)
   }
   const next = [...projects, project]
-  releaseStore.set('projects', next)
+  publishAssetStore.set('local.projects', next)
   return next
 })
 
@@ -51,7 +52,7 @@ handle('release:updateProject', (_event, project) => {
   ) {
     throw new Error('修改失败：项目信息不完整')
   }
-  const projects = releaseStore.get('projects', [])
+  const projects = publishAssetStore.get('local.projects', [] as ProjectInfo[])
   const index = projects.findIndex((item) => item.projectName === project.projectName)
   if (index === -1) {
     throw new Error(`修改失败：未找到项目「${project.projectName}」`)
@@ -61,7 +62,7 @@ handle('release:updateProject', (_event, project) => {
   }
   const next = [...projects]
   next[index] = project
-  releaseStore.set('projects', next)
+  publishAssetStore.set('local.projects', next)
   return next
 })
 
@@ -71,14 +72,14 @@ handle('release:updateProject', (_event, project) => {
  * @returns 删除后的项目列表
  */
 handle('release:deleteProject', (_event, projectName) => {
-  const projects = releaseStore.get('projects', [])
+  const projects = publishAssetStore.get('local.projects', [] as ProjectInfo[])
   const index = projects.findIndex((item) => item.projectName === projectName)
   if (index === -1) {
     throw new Error(`删除失败：未找到项目「${projectName}」`)
   }
   const next = [...projects]
   next.splice(index, 1)
-  releaseStore.set('projects', next)
+  publishAssetStore.set('local.projects', next)
   return next
 })
 
@@ -87,7 +88,7 @@ handle('release:deleteProject', (_event, projectName) => {
  * @returns 当前 androidStudio 配置
  */
 handle('release:getAndroidStudio', () => {
-  return releaseStore.get('androidStudio', { jdkPath: '', sdkPath: '' })
+  return publishAssetStore.get('local.androidStudio', { jdkPath: '', sdkPath: '' })
 })
 
 /**
@@ -99,6 +100,6 @@ handle('release:updateAndroidStudio', (_event, config) => {
   if (!config || !config.jdkPath || !config.sdkPath) {
     throw new Error('保存失败：androidStudio 配置不完整')
   }
-  releaseStore.set('androidStudio', config)
+  publishAssetStore.set('local.androidStudio', config)
   return config
 })

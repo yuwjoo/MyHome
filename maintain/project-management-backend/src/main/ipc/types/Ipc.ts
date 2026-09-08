@@ -1,13 +1,12 @@
 /**
  * @file IPC 聚合契约
  */
-import type { AppConfigIpcApi, AppConfigIpcMsg } from '@shared/types/ipc/appConfigIpc'
 import type { ReleaseIpcApi, ReleaseIpcMsg } from '@shared/types/ipc/releaseIpc'
 
 /**
  * API 聚合契约
  */
-export type IpcApi = AppConfigIpcApi & ReleaseIpcApi
+export type IpcApi = ReleaseIpcApi
 
 /**
  * API 通道名
@@ -27,7 +26,7 @@ export type IpcApiChannelResult<C extends IpcApiChannel> = IpcApi[C]['result']
 /**
  * MSG 聚合契约
  */
-export type IpcMsg = AppConfigIpcMsg & ReleaseIpcMsg
+export type IpcMsg = ReleaseIpcMsg
 
 /**
  * MSG 通道名
