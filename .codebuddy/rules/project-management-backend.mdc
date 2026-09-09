@@ -1,15 +1,10 @@
 ---
-description: 子项目路由规则。改动位于 maintain/project-management-backend/** 时，先读该子项目 CODEBUDDY.md（铁律与模块约束收口处），再按需读 docs/design/00-index.md 定位设计文档
+description: 任何对 maintain/project-management-backend/** 的访问/操作必须先读取本向导内容
 globs: maintain/project-management-backend/**
 alwaysApply: false
 enabled: true
-updatedAt: 2026-09-09T10:00:00.000Z
+updatedAt: 2026-09-10T00:00:00.000Z
+provider:
 ---
 
-# project-management-backend（子项目路由规则）
-
-工作区根目录不是该项目的项目根。命中本规则（改动位于 `maintain/project-management-backend/**`，含其 `src/`、`docs/`）时：
-
-1. 先读 `maintain/project-management-backend/CODEBUDDY.md`——该子项目的铁律与模块约束全部收口在此文件，改码前必须遵循。
-2. 需要详细设计背景时，按 `maintain/project-management-backend/docs/design/00-index.md` 定位对应设计文档再阅读。
-3. 以上约束只适用于该子项目，不要套用到工作区内其他子项目（android / web / my-home-builder 等）。
+**必读** `maintain/project-management-backend/.codebuddy/CODEBUDDY.md` 项目文档
