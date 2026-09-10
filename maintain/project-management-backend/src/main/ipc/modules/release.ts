@@ -1,16 +1,16 @@
 /**
- * @file 发版ipc
+ * @file 发版 IPC 通道
+ * @description 提供项目列表与 Android Studio 配置的增删改查通道
  */
-import { publishAssetStore } from '@main/store/publishAssetStore'
-import type { ProjectInfo } from '@shared/types/config/publishAssetConfig'
-import { handle } from '@main/ipc/utils/handler'
+import { handle } from '../utils/handler'
+import { publishAssetStore } from '@main/stores/publishAssetStore'
 
 /**
  * 获取项目列表
  * @returns 当前全部项目
  */
 handle('release:getProjectList', () => {
-  return publishAssetStore.get('local.projects', [] as ProjectInfo[])
+  return publishAssetStore.get('local').projects
 })
 
 /**
@@ -28,7 +28,7 @@ handle('release:addProject', (_event, project) => {
   ) {
     throw new Error('添加失败：项目信息不完整')
   }
-  const projects = publishAssetStore.get('local.projects', [] as ProjectInfo[])
+  const projects = publishAssetStore.get('local').projects
   if (projects.some((item) => item.projectName === project.projectName)) {
     throw new Error(`添加失败：项目「${project.projectName}」已存在`)
   }
@@ -52,12 +52,14 @@ handle('release:updateProject', (_event, project) => {
   ) {
     throw new Error('修改失败：项目信息不完整')
   }
-  const projects = publishAssetStore.get('local.projects', [] as ProjectInfo[])
+  const projects = publishAssetStore.get('local').projects
   const index = projects.findIndex((item) => item.projectName === project.projectName)
   if (index === -1) {
     throw new Error(`修改失败：未找到项目「${project.projectName}」`)
   }
-  if (projects.some((item, i) => i !== index && item.projectName === project.projectName)) {
+  if (
+    projects.some((item, i) => i !== index && item.projectName === project.projectName)
+  ) {
     throw new Error(`修改失败：项目「${project.projectName}」已存在`)
   }
   const next = [...projects]
@@ -72,7 +74,7 @@ handle('release:updateProject', (_event, project) => {
  * @returns 删除后的项目列表
  */
 handle('release:deleteProject', (_event, projectName) => {
-  const projects = publishAssetStore.get('local.projects', [] as ProjectInfo[])
+  const projects = publishAssetStore.get('local').projects
   const index = projects.findIndex((item) => item.projectName === projectName)
   if (index === -1) {
     throw new Error(`删除失败：未找到项目「${projectName}」`)
@@ -88,7 +90,7 @@ handle('release:deleteProject', (_event, projectName) => {
  * @returns 当前 androidStudio 配置
  */
 handle('release:getAndroidStudio', () => {
-  return publishAssetStore.get('local.androidStudio', { jdkPath: '', sdkPath: '' })
+  return publishAssetStore.get('local').androidStudio
 })
 
 /**

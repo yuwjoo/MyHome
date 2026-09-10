@@ -1,11 +1,17 @@
+/**
+ * @file 主进程入口
+ * @description 创建应用窗口、注册 IPC 通道、管理应用生命周期
+ */
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import '@main/ipc'
 
+/**
+ * 创建应用主窗口
+ */
 function createWindow(): void {
-  // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 860,
@@ -23,13 +29,13 @@ function createWindow(): void {
     mainWindow.show()
   })
 
+  // 站外链接交由系统浏览器打开，不在应用内新建窗口
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
+  // 开发环境加载 dev server 地址（支持 HMR），生产环境加载本地 html
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -37,37 +43,27 @@ function createWindow(): void {
   }
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+// 应用初始化完成后创建窗口
 app.whenReady().then(() => {
-  // Set app user model id for windows
+  // 设置 Windows 平台应用用户模型 id
   electronApp.setAppUserModelId('com.electron')
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
+  // 开发环境由 F12 开关 DevTools，生产环境忽略 Ctrl/Cmd + R
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
 
   createWindow()
 
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
+  // macOS 下点击 dock 图标且无窗口时重新创建窗口
+  app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// 除 macOS 外，关闭全部窗口即退出应用
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.

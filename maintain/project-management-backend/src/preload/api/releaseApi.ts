@@ -1,12 +1,11 @@
 /**
- * @file 发版api：渲染进程侧对发版主进程通道的方法封装
+ * @file 发版 api
+ * @description 渲染进程侧对发版主进程通道的方法封装，方法签名由 IPC 契约自动推导
  */
 import { invoke } from '@preload/api/utils/handler'
 import type { IpcApiShape } from '@preload/api/types/ipc'
 
-/**
- * 发版 api
- */
+// 发版 api
 export const releaseApi: IpcApiShape['release'] = {
   /**
    * 获取项目列表

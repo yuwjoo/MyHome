@@ -1,3 +1,7 @@
+/**
+ * @file 路由配置
+ * @description 定义应用路由表并创建 hash 模式路由实例
+ */
 import { createRouter, createWebHashHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 

@@ -1,22 +1,23 @@
 /**
- * @file 渲染侧 IPC 契约推导类型
+ * @file 渲染侧 IPC 契约类型
+ * @description 由主进程 IPC 契约自动推导渲染进程可用的域分组方法签名
  */
 import type { IpcRendererEvent } from 'electron'
 import type {
-  IpcApi,
-  IpcApiChannel,
-  IpcApiChannelArgs,
-  IpcApiChannelResult,
-  IpcMsgChannel,
-  IpcMsgPayload
-} from '@main/ipc/types/Ipc'
+  TIpcApi,
+  TIpcApiChannel,
+  TIpcApiChannelArgs,
+  TIpcApiChannelResult,
+  TIpcMsgChannel,
+  TIpcMsgPayload
+} from '@shared/types/ipc'
 
 /**
  * 推送订阅回调：主进程推送时携带事件与负载
  */
-export type IpcMsgListener<C extends IpcMsgChannel> = (
+export type IpcMsgListener<C extends TIpcMsgChannel> = (
   event: IpcRendererEvent,
-  ...payload: IpcMsgPayload<C>
+  ...payload: TIpcMsgPayload<C>
 ) => void
 
 /**
@@ -34,25 +35,25 @@ type MethodName<C extends string> = C extends `${string}:${infer M}` ? M : C
  * - result 非空（invoke 请求-响应）→ (...args) => Promise<Result>
  * - result 为 void（send 单向通知）→ (...args) => void
  */
-type ChannelMethod<C extends IpcApiChannel> =
-  IpcApiChannelResult<C> extends void
-    ? (...args: IpcApiChannelArgs<C>) => void
-    : (...args: IpcApiChannelArgs<C>) => Promise<IpcApiChannelResult<C>>
+type ChannelMethod<C extends TIpcApiChannel> =
+  TIpcApiChannelResult<C> extends void
+    ? (...args: TIpcApiChannelArgs<C>) => void
+    : (...args: TIpcApiChannelArgs<C>) => Promise<TIpcApiChannelResult<C>>
 
 /**
  * 单个域的方法集合
  */
 type DomainShape<D extends string> = {
   [
-    C in keyof IpcApi as C extends `${D}:${string}` ? MethodName<C & string> : never
+    C in keyof TIpcApi as C extends `${D}:${string}` ? MethodName<C & string> : never
   ]: ChannelMethod<C>
 }
 
 /**
- * 由 IpcApi 契约自动推导的域分组形状：
+ * 由 TIpcApi 契约自动推导的域分组形状：
  * { release: { getProjectList: () => Promise<...>, ... } }
  * 新增域前缀即自动新增顶层 key，与主进程契约保持一致
  */
 export type IpcApiShape = {
-  [D in ChannelDomain<keyof IpcApi & string>]: DomainShape<D>
+  [D in ChannelDomain<keyof TIpcApi & string>]: DomainShape<D>
 }

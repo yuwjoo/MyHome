@@ -1,3 +1,7 @@
+/**
+ * @file 预加载脚本入口
+ * @description 上下文隔离开启时通过 contextBridge 将 electronApi 暴露到渲染进程 window
+ */
 import { contextBridge } from 'electron'
 import { electronApi } from '@preload/api'
 

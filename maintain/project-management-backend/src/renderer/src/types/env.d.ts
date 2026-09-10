@@ -1,3 +1,7 @@
+/**
+ * @file Vite 环境变量类型
+ * @description 声明 import.meta.env 上的自定义环境变量类型
+ */
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {

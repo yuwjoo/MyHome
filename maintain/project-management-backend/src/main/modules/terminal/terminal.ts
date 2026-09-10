@@ -1,5 +1,6 @@
 /**
- * @file 终端模块：以子进程方式执行命令，支持后台运行与系统终端窗口两种模式
+ * @file 终端模块
+ * @description 以子进程方式执行命令，支持后台运行与系统终端窗口两种模式
  *
  * 特性：
  * - run(command) 执行命令，默认后台运行，stdout/stderr 通过日志回调实时流出
@@ -12,18 +13,22 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { EOL } from 'node:os'
 import type {
-  TerminalExit,
-  TerminalExitListener,
-  TerminalLog,
-  TerminalLogListener,
-  TerminalOptions,
+  ITerminalExit,
+  ITerminalLog,
+  ITerminalOptions,
+  TTerminalExitListener,
+  TTerminalLogListener
 } from './types/terminal'
 
-/** 默认日志历史缓冲上限（字节） */
+// 默认日志历史缓冲上限（字节）
 const DEFAULT_MAX_BUFFER = 10 * 1024 * 1024
 
-/** 空操作，用于兜底子进程 stdin 的 EPIPE 等异常，避免未处理事件导致主进程崩溃 */
-const noop = (): void => undefined
+/**
+ * 空操作，用于兜底子进程 stdin 的 EPIPE 等异常，避免未处理事件导致主进程崩溃
+ */
+function noop(): void {
+  return undefined
+}
 
 /**
  * 终端实例
@@ -32,37 +37,63 @@ const noop = (): void => undefined
  * 日志与结束监听会跨命令持续生效。
  */
 export class Terminal {
-  /** 工作目录 */
+  /**
+   * 工作目录
+   */
   private readonly cwd: string | undefined
-  /** 注入的环境变量 */
+  /**
+   * 注入的环境变量
+   */
   private readonly env: NodeJS.ProcessEnv | undefined
-  /** shell：true 表示系统默认 shell，字符串表示自定义 shell */
+  /**
+   * shell：true 表示系统默认 shell，字符串表示自定义 shell
+   */
   private readonly shell: boolean | string
-  /** 是否弹出系统终端窗口运行 */
+  /**
+   * 是否弹出系统终端窗口运行
+   */
   private readonly openTerminal: boolean
-  /** 日志历史缓冲上限 */
+  /**
+   * 日志历史缓冲上限
+   */
   private readonly maxBuffer: number
 
-  /** 当前运行中的子进程，空闲时为 null */
+  /**
+   * 当前运行中的子进程，空闲时为 null
+   */
   private child: ChildProcess | null = null
-  /** 本次命令是否由用户主动终止 */
+  /**
+   * 本次命令是否由用户主动终止
+   */
   private killedByUser = false
-  /** 最近一次命令的结束信息，尚未结束时为 null */
-  private exitInfo: TerminalExit | null = null
+  /**
+   * 最近一次命令的结束信息，尚未结束时为 null
+   */
+  private exitInfo: ITerminalExit | null = null
 
-  /** 日志历史缓冲 */
+  /**
+   * 日志历史缓冲
+   */
   private outputBuffer = ''
-  /** 日志历史已写入字节数 */
+  /**
+   * 日志历史已写入字节数
+   */
   private outputBytes = 0
-  /** 日志历史是否已超出缓冲上限（超出后不再累积，仅实时回调） */
+  /**
+   * 日志历史是否已超出缓冲上限（超出后不再累积，仅实时回调）
+   */
   private outputTruncated = false
 
-  /** 日志监听器集合 */
-  private readonly logListeners = new Set<TerminalLogListener>()
-  /** 结束监听器集合 */
-  private readonly exitListeners = new Set<TerminalExitListener>()
+  /**
+   * 日志监听器集合
+   */
+  private readonly logListeners = new Set<TTerminalLogListener>()
+  /**
+   * 结束监听器集合
+   */
+  private readonly exitListeners = new Set<TTerminalExitListener>()
 
-  constructor(options: TerminalOptions = {}) {
+  constructor(options: ITerminalOptions = {}) {
     this.cwd = options.cwd
     this.env = options.env
     this.shell = options.shell ?? true
@@ -79,28 +110,37 @@ export class Terminal {
     }
   }
 
-  /** 是否有命令正在运行 */
+  /**
+   * 是否有命令正在运行
+   */
   get running(): boolean {
     return this.child !== null
   }
 
-  /** 当前运行中子进程的 pid，空闲时为 null */
+  /**
+   * 当前运行中子进程的 pid，空闲时为 null
+   */
   get pid(): number | null {
     return this.child?.pid ?? null
   }
 
-  /** 最近一次命令的结束信息，尚未结束时为 null */
-  get exit(): TerminalExit | null {
+  /**
+   * 最近一次命令的结束信息，尚未结束时为 null
+   */
+  get exit(): ITerminalExit | null {
     return this.exitInfo
   }
 
-  /** 累计的日志历史（超出缓冲上限后仅保留前 maxBuffer 字节） */
+  /**
+   * 累计的日志历史（超出缓冲上限后仅保留前 maxBuffer 字节）
+   */
   get output(): string {
     return this.outputBuffer
   }
 
   /**
    * 合并注入的环境变量与进程默认环境
+   * @returns 合并后的环境变量
    */
   private mergedEnv(): NodeJS.ProcessEnv {
     return { ...process.env, ...this.env }
@@ -110,7 +150,7 @@ export class Terminal {
    * 输出一条日志：先按缓冲上限累积历史，再实时分发给日志监听器
    * @param log 日志条目
    */
-  private pushLog(log: TerminalLog): void {
+  private pushLog(log: ITerminalLog): void {
     if (!log.data) return
     if (!this.outputTruncated) {
       const remain = this.maxBuffer - this.outputBytes
@@ -178,7 +218,7 @@ export class Terminal {
       cwd: this.cwd,
       shell: this.shell,
       env: this.mergedEnv(),
-      windowsHide: true,
+      windowsHide: true
     })
     this.child = child
 
@@ -207,7 +247,7 @@ export class Terminal {
       env: this.mergedEnv(),
       detached: true,
       windowsHide: false,
-      stdio: 'ignore',
+      stdio: 'ignore'
     })
     this.child = child
     child.once('error', (error) => this.handleProcessError(error))
@@ -290,9 +330,11 @@ export class Terminal {
     if (process.platform === 'win32' && child.pid) {
       const killer = spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
         stdio: 'ignore',
-        windowsHide: true,
+        windowsHide: true
       })
-      killer.once('error', () => child.kill(signal))
+      killer.once('error', () => {
+        child.kill(signal)
+      })
       killer.unref()
     } else {
       try {
@@ -310,7 +352,7 @@ export class Terminal {
    * @param listener 日志监听函数
    * @returns 取消监听的函数
    */
-  onLog(listener: TerminalLogListener): () => void {
+  onLog(listener: TTerminalLogListener): () => void {
     this.logListeners.add(listener)
     return () => {
       this.logListeners.delete(listener)
@@ -321,7 +363,7 @@ export class Terminal {
    * 取消日志监听
    * @param listener 之前注册的日志监听函数
    */
-  offLog(listener: TerminalLogListener): void {
+  offLog(listener: TTerminalLogListener): void {
     this.logListeners.delete(listener)
   }
 
@@ -332,7 +374,7 @@ export class Terminal {
    * @param listener 结束监听函数
    * @returns 取消监听的函数
    */
-  onExit(listener: TerminalExitListener): () => void {
+  onExit(listener: TTerminalExitListener): () => void {
     this.exitListeners.add(listener)
     if (this.exitInfo) {
       const info = this.exitInfo
@@ -349,7 +391,7 @@ export class Terminal {
    * 取消命令结束监听
    * @param listener 之前注册的结束监听函数
    */
-  offExit(listener: TerminalExitListener): void {
+  offExit(listener: TTerminalExitListener): void {
     this.exitListeners.delete(listener)
   }
 

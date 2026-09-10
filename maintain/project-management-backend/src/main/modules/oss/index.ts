@@ -1,15 +1,15 @@
 /**
- * @file OSS 模块：通过 secret 模块获取凭据并创建 OSS 客户端；
- * OSS 凭据值变化（secretDir 变化或主动刷新）后自动重建客户端
+ * @file OSS 模块
+ * @description 基于 secret 模块的凭据创建 OSS 客户端，凭据变化时自动重建
  */
 import OSS from 'ali-oss'
-import { fetchCredentials } from '@main/module/secret/credentials'
-import type { OssConfig } from '@main/module/secret/types/credentials'
+import { fetchCredentials } from '@main/modules/secret'
+import type { IOssConfig } from '@main/modules/secret'
 
-/** OSS 客户端缓存 */
+// OSS 客户端缓存
 let ossClient: OSS | null = null
-/** 当前客户端对应的 OSS 凭据值，null 表示未初始化 */
-let curOssCredentials: OssConfig | null = null
+// 当前客户端对应的 OSS 凭据值，null 表示未初始化
+let curOssCredentials: IOssConfig | null = null
 
 /**
  * 判断两套 OSS 凭据是否一致（逐字段比较值，不比较对象引用）
@@ -17,7 +17,7 @@ let curOssCredentials: OssConfig | null = null
  * @param b 凭据 B
  * @returns 字段值全部一致返回 true，任一字段为 null/undefined 且另一方有值时返回 false
  */
-function isSameOssConfig(a: OssConfig | null, b: OssConfig | null): boolean {
+function isSameOssConfig(a: IOssConfig | null, b: IOssConfig | null): boolean {
   return (
     a?.region === b?.region &&
     a?.accessKeyId === b?.accessKeyId &&

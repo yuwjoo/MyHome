@@ -79,10 +79,10 @@ src/
 
 1. 目录/文件命名使用小驼峰命名法；前端.vue文件除了index文件，其他文件名使用大驼峰命名法；前端路由path/name，vue组件名称都使用小驼峰
 2. 所有层级的目录代码，都要参考基础目录来组织结构
-3. 永远只能访问上级/同级目录的代码文件
+3. 永远只能访问上级/同级目录的代码文件，目录内哪些文件能访问取决与目录分类的规范
 4. ts类型中：interface都加上`I`前缀，type都加上`T`前缀，enum都加上`E`前缀
-5. 函数返回类型必须声明，即使为空也要声明`void`
-6. 改任意代码时，如果该目录下当前层有目录`doc`，必需先读取`doc`目录下的`INDEX.md`文件，并遵循其中的约定
+5. 非箭头函数参数类型和返回类型必须声明
+6. 改任意代码时，如果该目录下当前层有目录`doc`，必需先读取`doc`目录下的`index.md`文件，并遵循其中的约定
 
 ### 注释规范
 
@@ -90,7 +90,7 @@ src/
 
 ```ts
 /**
- * @file <文件名>
+ * @file <文件中文名>
  * @description <说明字段：一句话讲清职责，复杂文件可换行续写约定 / 注意点>
  * @see <文档链接>（可选：模块沉淀了设计文档 / 有关联文档时填写，如 docs/design/release.md）
  */
@@ -107,7 +107,7 @@ src/
 export function fetchReleaseConfig(projectName: string): ReleaseConfig | null
 ```
 
-#### 类型 / 枚举 / class 注释
+#### 类型 / 枚举 / class / 对象注释
 
 ```ts
 /**
@@ -152,11 +152,31 @@ class Terminal {
     return true
   }
 }
+
+// 发布资产配置
+const publishAssetConfig: IPublishAssetConfig = {
+  // OSS 根路径
+  ossRootPath: '',
+  // 项目列表
+  projects: []
+}
 ```
 
 #### 变量注释
 
+单行注释使用 `//`：
+
 ```ts
 // OSS 根路径
+const ossRootPath = ''
+```
+
+多行注释使用 `/** */`：
+
+```ts
+/**
+ * OSS 根路径
+ * 不包含 bucket 部分
+ */
 const ossRootPath = ''
 ```

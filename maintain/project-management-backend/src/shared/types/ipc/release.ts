@@ -1,7 +1,8 @@
 /**
  * @file 发版 IPC 契约（跨进程共享）
+ * @description 定义发版域的 API 与 MSG 通道契约，供主进程与预加载脚本共用
  */
-import type { AndroidStudioInfo, ProjectInfo } from '@shared/types/config/publishAssetConfig'
+import type { AndroidStudioInfo, ProjectInfo } from '@shared/types/config'
 
 /**
  * 发版 API

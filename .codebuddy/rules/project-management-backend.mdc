@@ -1,5 +1,5 @@
 ---
-description: 任何对 maintain/project-management-backend/** 的访问/操作必须先读取本向导内容
+description: 任何对 maintain/project-management-backend/** 的访问/操作触发：在每次当前看到这条规则时必须先读取本向导内容
 globs: maintain/project-management-backend/**
 alwaysApply: false
 enabled: true
@@ -7,4 +7,4 @@ updatedAt: 2026-09-10T00:00:00.000Z
 provider:
 ---
 
-**必读** `maintain/project-management-backend/.codebuddy/CODEBUDDY.md` 项目文档
+**读取一遍，即使已经读过** `maintain/project-management-backend/.codebuddy/CODEBUDDY.md` 项目文档
