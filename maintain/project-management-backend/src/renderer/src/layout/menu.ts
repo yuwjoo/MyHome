@@ -8,7 +8,7 @@ import { Promotion, Setting } from '@element-plus/icons-vue'
 /**
  * 侧边栏菜单项
  */
-export interface AppMenuItem {
+export interface IAppMenuItem {
   /** 路由路径，同时作为菜单项唯一标识 */
   path: string
   /** 菜单显示名 */
@@ -18,7 +18,7 @@ export interface AppMenuItem {
 }
 
 // 侧边栏菜单配置（后续如需动态菜单，可改为接口下发后映射）
-export const appMenus: AppMenuItem[] = [
+export const appMenus: IAppMenuItem[] = [
   { path: '/projectPublish', title: '项目发布', icon: Promotion },
   { path: '/configManagement', title: '配置管理', icon: Setting }
 ]

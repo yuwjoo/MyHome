@@ -6,7 +6,7 @@
 /**
  * 项目信息
  */
-export interface ProjectInfo {
+export interface IProjectInfo {
   /** 项目名称 */
   projectName: string
   /** 项目路径 */
@@ -22,7 +22,7 @@ export interface ProjectInfo {
 /**
  * Android Studio 配置信息
  */
-export interface AndroidStudioInfo {
+export interface IAndroidStudioInfo {
   /** JDK路径 */
   jdkPath: string
   /** SDK路径 */
@@ -32,7 +32,7 @@ export interface AndroidStudioInfo {
 /**
  * 发布资产配置数据：统一存放发布相关的本地数据与 OSS 发布配置
  */
-export interface PublishAssetConfig {
+export interface IPublishAssetConfig {
   /** 本地数据 */
   local: {
     /** 本地根目录 */
@@ -40,9 +40,9 @@ export interface PublishAssetConfig {
     /** .secret 目录 */
     secretDir: string
     /** 项目信息列表 */
-    projects: ProjectInfo[]
+    projects: IProjectInfo[]
     /** Android Studio 相关配置 */
-    androidStudio: AndroidStudioInfo
+    androidStudio: IAndroidStudioInfo
   }
   /** OSS数据 */
   oss: {

@@ -9,7 +9,7 @@ import type {
   TIpcApiChannelResult,
   TIpcMsgChannel
 } from '@shared/types/ipc'
-import type { IpcMsgListener } from '@preload/api/types/ipc'
+import type { TIpcMsgListener } from '@preload/api/types/ipc'
 
 /**
  * ipc invoke：渲染进程调用主进程通道
@@ -40,7 +40,7 @@ export function send<C extends TIpcApiChannel>(channel: C, ...args: TIpcApiChann
  */
 export function addListener<C extends TIpcMsgChannel>(
   channel: C,
-  listener: IpcMsgListener<C>
+  listener: TIpcMsgListener<C>
 ): void {
   ipcRenderer.on(channel, listener)
 }
@@ -52,7 +52,7 @@ export function addListener<C extends TIpcMsgChannel>(
  */
 export function removeListener<C extends TIpcMsgChannel>(
   channel: C,
-  listener: IpcMsgListener<C>
+  listener: TIpcMsgListener<C>
 ): void {
   ipcRenderer.removeListener(channel, listener)
 }
