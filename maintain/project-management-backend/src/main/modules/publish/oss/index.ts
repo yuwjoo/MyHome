@@ -3,8 +3,8 @@
  * @description 基于 secret 模块的凭据创建 OSS 客户端，凭据变化时自动重建
  */
 import OSS from 'ali-oss'
-import { fetchCredentials } from '@main/modules/secret'
-import type { IOssConfig } from '@main/modules/secret'
+import { fetchCredentials } from '@main/modules/publish/secret'
+import type { IOssConfig } from '@main/modules/publish/secret'
 
 // OSS 客户端缓存
 let ossClient: OSS | null = null

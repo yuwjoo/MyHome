@@ -1,12 +1,12 @@
 /**
- * @file 发布资产仓库
- * @description 存放发布相关的本地数据与 OSS 发布配置
+ * @file MyHome 仓库
+ * @description 存放 MyHome 的本地数据与 OSS 发布配置
  */
 import Store from 'electron-store'
-import type { IPublishAssetConfig } from '@shared/types/config'
+import type { IMyHomeConfig } from '@shared/types/config'
 
 // 默认配置
-const defaultConfig: IPublishAssetConfig = {
+const defaultConfig: IMyHomeConfig = {
   // 本地数据
   local: {
     // 本地根目录
@@ -34,8 +34,8 @@ const defaultConfig: IPublishAssetConfig = {
   }
 }
 
-// 发布资产 store
-export const publishAssetStore = new Store<IPublishAssetConfig>({
-  name: 'publishAssetConfig',
+// MyHome store
+export const myHomeStore = new Store<IMyHomeConfig>({
+  name: 'myHomeConfig',
   defaults: defaultConfig
 })

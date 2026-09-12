@@ -1,6 +1,6 @@
 /**
- * @file 发布资产配置类型（跨进程共享）
- * @description 定义发布相关本地数据与 OSS 配置的数据结构
+ * @file MyHome 配置类型（跨进程共享）
+ * @description 定义 MyHome 本地数据与 OSS 发布配置的数据结构
  */
 
 /**
@@ -30,9 +30,9 @@ export interface IAndroidStudioInfo {
 }
 
 /**
- * 发布资产配置数据：统一存放发布相关的本地数据与 OSS 发布配置
+ * MyHome 配置数据：统一存放本地数据与 OSS 发布配置
  */
-export interface IPublishAssetConfig {
+export interface IMyHomeConfig {
   /** 本地数据 */
   local: {
     /** 本地根目录 */
