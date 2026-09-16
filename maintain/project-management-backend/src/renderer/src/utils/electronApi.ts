@@ -1,5 +1,5 @@
 /**
- * @file electronApi
+ * @file electronApi 出口
  * @description 统一导出 preload 注入到 window 上的 electronApi，供渲染进程业务代码引用
  */
 

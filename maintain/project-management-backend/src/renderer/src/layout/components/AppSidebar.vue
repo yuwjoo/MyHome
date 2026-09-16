@@ -1,7 +1,13 @@
+<!--
+  @file 侧边栏组件
+  @description 按菜单配置渲染导航项，高亮当前路由
+-->
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { appMenus } from '../menu'
+
+defineOptions({ name: 'appSidebar' })
 
 const route = useRoute()
 

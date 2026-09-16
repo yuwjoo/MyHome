@@ -1,5 +1,11 @@
+<!--
+  @file 顶栏组件
+  @description 展示品牌标识与当前页面标题，右侧预留操作区
+-->
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
+
+defineOptions({ name: 'appHeader' })
 
 const route = useRoute()
 </script>

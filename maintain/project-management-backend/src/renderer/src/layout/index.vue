@@ -1,6 +1,12 @@
+<!--
+  @file 页面布局
+  @description 顶栏 + 侧边栏 + 内容区的整体骨架，内容区渲染子路由
+-->
 <script setup lang="ts">
 import AppHeader from './components/AppHeader.vue'
 import AppSidebar from './components/AppSidebar.vue'
+
+defineOptions({ name: 'appLayout' })
 </script>
 
 <template>

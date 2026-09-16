@@ -8,7 +8,7 @@
 import { shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
-import icon from '../../../resources/icon.png?asset'
+import icon from '../../../../resources/icon.png?asset'
 
 /**
  * 应用主窗口实例，未创建或已关闭时为 null

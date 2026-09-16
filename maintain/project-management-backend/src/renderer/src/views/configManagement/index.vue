@@ -1,3 +1,11 @@
+<!--
+  @file 配置管理页
+  @description 配置管理页面入口，当前为占位页
+-->
+<script setup lang="ts">
+defineOptions({ name: 'configManagement' })
+</script>
+
 <template>
   <div class="config">
     <el-card shadow="never">

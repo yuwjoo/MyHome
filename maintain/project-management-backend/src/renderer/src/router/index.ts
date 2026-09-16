@@ -13,13 +13,13 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: 'projectPublish',
-        name: 'ProjectPublish',
+        name: 'projectPublish',
         component: () => import('@renderer/views/projectPublish/index.vue'),
         meta: { title: '项目发布' }
       },
       {
         path: 'configManagement',
-        name: 'Config',
+        name: 'configManagement',
         component: () => import('@renderer/views/configManagement/index.vue'),
         meta: { title: '配置管理' }
       }
