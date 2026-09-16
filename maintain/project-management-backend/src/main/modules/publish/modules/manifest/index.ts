@@ -4,9 +4,7 @@
  */
 import { getOssClient } from '@main/modules/publish/modules/oss'
 import { myHomeStore } from '@main/stores/myHomeStore'
-import type { IVersionManifest, TVersionRecord } from './types/manifest'
-
-export type { IVersionManifest, TVersionRecord }
+import type { IVersionManifest } from './types/manifest'
 
 // 版本清单缓存，null 表示未缓存
 let versionManifestCache: IVersionManifest | null = null
@@ -35,6 +33,24 @@ export async function fetchVersionManifest(): Promise<IVersionManifest> {
   const result = await getOssClient().get(myHomeStore.store.oss.versionManifestPath)
   versionManifestCache = JSON.parse(result.content.toString()) as IVersionManifest
   return versionManifestCache
+}
+
+/**
+ * 获取某个项目的版本号
+ *
+ * 读的是本地清单数据（有缓存用缓存，无缓存时先从 OSS 读一次）；
+ * 项目类型或项目名称在清单里不存在时返回 null，不会自动补建
+ * @param projectType 项目类型（android / web / ...），对应清单第一层 key
+ * @param projectName 项目名称，对应清单第二层 key
+ * @returns 该项目的版本号，清单中没有该项目时为 null
+ * @throws OSS 凭据未配置、清单文件不存在或 json 非法时抛错
+ */
+export async function fetchProjectVersion(
+  projectType: string,
+  projectName: string
+): Promise<string | null> {
+  const manifest = await resolveLocalManifest()
+  return manifest[projectType]?.[projectName] ?? null
 }
 
 /**

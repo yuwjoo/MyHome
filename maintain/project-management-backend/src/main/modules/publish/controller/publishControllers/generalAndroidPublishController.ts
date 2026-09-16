@@ -5,12 +5,12 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { posix, resolve } from 'node:path'
 import { myHomeStore } from '@main/stores/myHomeStore'
-import { updateProjectVersion } from '../modules/manifest'
-import { getOssClient } from '../modules/oss'
-import { Shell } from '../modules/shell'
-import { versionToCode } from '../utils/version'
-import { PublishController } from './common/publishController'
-import type { IPublishNodeParams, TPublishLogger } from './common/types/publish'
+import { updateProjectVersion } from '../../modules/manifest'
+import { getOssClient } from '../../modules/oss'
+import { Shell } from '../../modules/shell'
+import { versionToCode } from '../../utils/version'
+import { PublishController } from '../publishController'
+import type { IPublishNodeParams, TPublishLogger } from '../types/publish'
 
 // gradle 应用模块目录名（相对项目目录）
 const APP_DIR_NAME = 'app'

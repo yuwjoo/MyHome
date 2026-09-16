@@ -23,7 +23,8 @@ handle('release:addProject', (_event, project) => {
     !project ||
     !project.projectName ||
     !project.projectPath ||
-    !project.projectVersion ||
+    !project.latestVersion ||
+    !project.publishController ||
     !project.projectType
   ) {
     throw new Error('添加失败：项目信息不完整')
@@ -47,7 +48,8 @@ handle('release:updateProject', (_event, project) => {
     !project ||
     !project.projectName ||
     !project.projectPath ||
-    !project.projectVersion ||
+    !project.latestVersion ||
+    !project.publishController ||
     !project.projectType
   ) {
     throw new Error('修改失败：项目信息不完整')

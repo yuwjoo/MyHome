@@ -4,7 +4,7 @@
  */
 import OSS from 'ali-oss'
 import { fetchCredentials } from '@main/modules/publish/modules/secret'
-import type { IOssConfig } from '@main/modules/publish/modules/secret'
+import type { IOssConfig } from '@main/modules/publish/modules/secret/types/credentials'
 
 // OSS 客户端缓存
 let ossClient: OSS | null = null

@@ -4,6 +4,14 @@
  */
 
 /**
+ * 发布控制器标识
+ *
+ * 决定项目发布时使用的控制器：generalAndroid -> GeneralAndroidPublishController，
+ * generalWeb -> GeneralWebPublishController
+ */
+export type TPublishController = 'generalAndroid' | 'generalWeb'
+
+/**
  * 项目信息
  */
 export interface IProjectInfo {
@@ -11,10 +19,12 @@ export interface IProjectInfo {
   projectName: string
   /** 项目路径 */
   projectPath: string
-  /** 项目版本号 */
-  projectVersion: string
+  /** 最新版本号（当前已发布的最新版本） */
+  latestVersion: string
   /** 项目类型 */
   projectType: string
+  /** 发布控制器标识 */
+  publishController: TPublishController
   /** OSS 发布目录 */
   ossPublishDir: string
 }

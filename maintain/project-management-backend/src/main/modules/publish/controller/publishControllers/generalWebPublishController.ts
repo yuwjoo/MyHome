@@ -5,11 +5,11 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { posix, resolve } from 'node:path'
 import { zip } from 'compressing'
-import { updateProjectVersion } from '../modules/manifest'
-import { getOssClient } from '../modules/oss'
-import { Shell } from '../modules/shell'
-import { PublishController } from './common/publishController'
-import type { IPublishNodeParams, TPublishLogger } from './common/types/publish'
+import { updateProjectVersion } from '../../modules/manifest'
+import { getOssClient } from '../../modules/oss'
+import { Shell } from '../../modules/shell'
+import { PublishController } from '../publishController'
+import type { IPublishNodeParams, TPublishLogger } from '../types/publish'
 
 // web 项目构建产物目录名（相对项目目录）
 const DIST_DIR_NAME = 'dist'
