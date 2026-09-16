@@ -1,8 +1,18 @@
 /**
  * @file 发布模块出口
- * @description 对外暴露发布相关能力：凭据读取、OSS 客户端、Shell 命令执行
+ * @description 对外暴露发布相关能力：凭据读取、OSS 客户端、Shell 命令执行、版本清单读写、发布控制器
  */
-export { BasePublishController } from './bases/basePublishController'
+export { PublishController } from './controllers/common/publishController'
+export type {
+  IPublishLog,
+  IPublishNodeParams,
+  IPublishParams,
+  TPublishLogger,
+  TPublishLogListener,
+  TPublishStage
+} from './controllers/common/types/publish'
+export { GeneralWebPublishController } from './controllers/generalWebPublishController'
+export { GeneralAndroidPublishController } from './controllers/generalAndroidPublishController'
 export { getOssClient } from './modules/oss'
 export { fetchCredentials, refreshCredentials } from './modules/secret'
 export type { ICredentials, IOssConfig } from './modules/secret'
@@ -15,3 +25,9 @@ export type {
   TShellLogListener,
   TShellLogType
 } from './modules/shell'
+export {
+  fetchVersionManifest,
+  updateProjectVersion,
+  uploadVersionManifest
+} from './modules/manifest'
+export type { IVersionManifest, TVersionRecord } from './modules/manifest'

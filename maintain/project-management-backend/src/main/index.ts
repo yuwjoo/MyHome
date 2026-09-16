@@ -4,8 +4,8 @@
  */
 import { app, BrowserWindow } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
-import { createWindow } from '@main/window'
-import '@main/ipc'
+import { createWindow } from '@main/modules/window'
+import '@main/modules/ipc'
 
 // 应用初始化完成后创建窗口
 app.whenReady().then(() => {
