@@ -64,3 +64,13 @@ export interface IMyHomeConfig {
     secretPath: string
   }
 }
+
+/**
+ * 设置数据：MyHome 配置里除项目列表之外的部分
+ *
+ * 项目列表由本地项目模块单独维护，设置的读写不涉及
+ */
+export interface ISetting extends Omit<IMyHomeConfig, 'local'> {
+  /** 本地数据（不含项目列表） */
+  local: Omit<IMyHomeConfig['local'], 'projects'>
+}

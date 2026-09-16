@@ -5,7 +5,7 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { posix, resolve } from 'node:path'
 import { zip } from 'compressing'
-import { updateProjectVersion } from '../../modules/manifest'
+import { updateProjectVersion } from '../../modules/versionManifest'
 import { getOssClient } from '../../modules/oss'
 import { Shell } from '../../modules/shell'
 import { PublishController } from '../publishController'

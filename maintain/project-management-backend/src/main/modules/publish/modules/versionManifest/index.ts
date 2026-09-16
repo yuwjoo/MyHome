@@ -4,7 +4,7 @@
  */
 import { getOssClient } from '@main/modules/publish/modules/oss'
 import { myHomeStore } from '@main/stores/myHomeStore'
-import type { IVersionManifest } from './types/manifest'
+import type { IVersionManifest } from './types/versionManifest'
 
 // 版本清单缓存，null 表示未缓存
 let versionManifestCache: IVersionManifest | null = null
