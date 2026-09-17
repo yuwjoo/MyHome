@@ -3,11 +3,12 @@
  * @description 通用 web 项目发布：改 package.json 版本号 -> npm run build -> 压缩 dist -> 上传 OSS（公共读）-> 更新版本清单
  */
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { posix, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import { zip } from 'compressing'
 import { updateProjectVersion } from '../../modules/versionManifest'
 import { getOssClient } from '../../modules/oss'
 import { Shell } from '../../modules/shell'
+import { resolveProjectOssAssetPath } from '../../utils/path'
 import { PublishController } from '../publishController'
 import type { IPublishNodeParams, TPublishLogger } from '../types/publish'
 
@@ -21,7 +22,7 @@ const OSS_PUBLIC_READ_HEADERS = { 'x-oss-object-acl': 'public-read' }
  *
  * 准备：校验 package.json 存在 -> 清掉上一次的同名压缩包
  * 构建：把 package.json 的 version 改成目标版本号 -> 执行 npm run build -> 把 dist 压成 v{版本号}.zip
- * 上传：把压缩产物传到 OSS 的 ossPublishDir 目录下，权限为公共读
+ * 上传：把压缩产物传到 OSS 的项目发布目录（oss 根路径 / 项目类型 / 项目名称）下，权限为公共读
  * 结束：把本次版本号写进版本清单并上传 OSS -> 删除本地压缩包并复位中间状态
  */
 export class GeneralWebPublishController extends PublishController {
@@ -56,14 +57,18 @@ export class GeneralWebPublishController extends PublishController {
   }
 
   /**
-   * 上传产物：把压缩产物传到 OSS 的 ossPublishDir 目录下
+   * 上传产物：把压缩产物传到 OSS 的项目发布目录下
    * @param params 节点参数，取其中的目标版本号
    * @param log 日志发送器，转发上传过程消息
    * @throws 未执行构建（没有压缩产物）时抛错
    */
   protected async upload(params: IPublishNodeParams, log: TPublishLogger): Promise<void> {
     if (!this.zipPath) throw new Error('上传失败：未找到压缩产物，请先执行构建')
-    const objectName = this.resolveOssPath(`v${params.targetVersion}.zip`)
+    const objectName = resolveProjectOssAssetPath(
+      this.projectInfo.projectType,
+      this.projectInfo.projectName,
+      `v${params.targetVersion}.zip`
+    )
     log(`正在上传到 OSS：${objectName}`)
     await getOssClient().put(objectName, this.zipPath, {
       headers: OSS_PUBLIC_READ_HEADERS
@@ -149,15 +154,5 @@ export class GeneralWebPublishController extends PublishController {
    */
   private resolveZipPath(targetVersion: string): string {
     return resolve(this.projectInfo.projectPath, `v${targetVersion}.zip`)
-  }
-
-  /**
-   * 拼 OSS 对象路径：ossPublishDir 目录下的指定文件
-   * @param fileName 文件名
-   * @returns OSS 对象路径
-   */
-  private resolveOssPath(fileName: string): string {
-    // 先挂到根目录拼（顺带处理目录两端的斜杠、重复斜杠与空目录），再去掉开头的 /
-    return posix.join('/', this.projectInfo.ossPublishDir, fileName).slice(1)
   }
 }

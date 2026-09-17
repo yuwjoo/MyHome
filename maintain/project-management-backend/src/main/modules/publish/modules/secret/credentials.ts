@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { load } from 'js-yaml'
 import { publishStore } from '@main/stores/publishStore'
+import { resolveLocalSecretDir } from '../../utils/path'
 import type { ICredentials } from './types/credentials'
 
 // 凭据数据缓存，null 表示未缓存
@@ -14,13 +15,14 @@ let credentialsCache: ICredentials | null = null
 /**
  * 读取本地 credentials.yaml 并解析为凭据数据
  *
- * 凭据目录取自 publishStore.localAssets.secretDir，
+ * 凭据目录取自路径工具的 resolveLocalSecretDir，
  * 读取/解析失败（secretDir 未配置、文件缺失或 YAML 非法）时抛错
  * @returns 解析后的凭据数据
  */
 function loadCredentials(): ICredentials | null {
-  if (!publishStore.store.localAssets.secretDir) return null
-  const configPath = resolve(publishStore.store.localAssets.secretDir, 'credentials.yaml')
+  const secretDir = resolveLocalSecretDir()
+  if (!secretDir) return null
+  const configPath = resolve(secretDir, 'credentials.yaml')
   return load(readFileSync(configPath, 'utf-8')) as ICredentials
 }
 

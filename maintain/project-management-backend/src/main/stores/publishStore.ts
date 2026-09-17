@@ -21,9 +21,9 @@ const defaultConfig: IPublishConfig = {
     // 发布根路径
     rootDir: 'MyHome',
     // 版本清单文件路径
-    versionManifestPath: 'MyHome/versionManifest.json',
+    versionManifestPath: './versionManifest.json',
     // .secret 文件路径
-    secretPath: 'MyHome/.secret.zip'
+    secretPath: './.secret.zip'
   },
   // Android Studio 相关配置
   androidStudio: {
@@ -36,7 +36,6 @@ const defaultConfig: IPublishConfig = {
 
 // 发布 store
 export const publishStore = new Store<IPublishConfig>({
-  // 沿用旧配置文件名，避免升级后丢失已有本地配置
-  name: 'myHomeConfig',
+  name: 'publishConfig',
   defaults: defaultConfig
 })

@@ -31,13 +31,13 @@ function isSameOssConfig(a: IOssConfig | null, b: IOssConfig | null): boolean {
  *
  * 基于 secret 模块缓存的凭据创建客户端；
  * OSS 凭据值变化（secretDir 变化或主动刷新）时自动重建；
- * 未配置 local.secretDir（fetchCredentials 返回 null）时抛错
+ * 未配置 localAssets.secretDir（fetchCredentials 返回 null）时抛错
  * @returns OSS 客户端
  */
 export function getOssClient(): OSS {
   const ossCredentials = fetchCredentials()?.oss
   if (!ossCredentials) {
-    throw new Error('OSS 客户端不可用：请先在配置中设置 local.secretDir')
+    throw new Error('OSS 客户端不可用：请先在配置中设置 localAssets.secretDir')
   }
   if (ossClient && isSameOssConfig(curOssCredentials, ossCredentials)) {
     return ossClient

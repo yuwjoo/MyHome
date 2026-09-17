@@ -55,7 +55,7 @@ export abstract class PublishController {
   /**
    * 上传产物
    *
-   * 由继承方实现：把 build 产出的文件上传到目标位置（如 OSS 的 ossPublishDir），
+   * 由继承方实现：把 build 产出的文件上传到目标位置（如 OSS 的项目发布目录），
    * 版本目录等按 params.targetVersion 确定
    * @param params 节点参数（发布参数去掉日志回调），扩展字段直接从中取
    * @param log 日志发送器，发出的消息会带上 upload 阶段

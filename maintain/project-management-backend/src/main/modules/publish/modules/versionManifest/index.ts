@@ -1,9 +1,10 @@
 /**
  * @file 版本清单模块
- * @description 通过 OSS 读写版本清单 json（路径取 publishStore.ossAssets.versionManifestPath），并在进程内缓存一份
+ * @description 通过 OSS 读写版本清单 json（路径取路径工具的 resolveOssVersionManifestPath），并在进程内缓存一份
  */
 import { getOssClient } from '@main/modules/publish/modules/oss'
 import { publishStore } from '@main/stores/publishStore'
+import { resolveOssVersionManifestPath } from '../../utils/path'
 import type { IVersionManifest } from './types/versionManifest'
 
 // 版本清单缓存，null 表示未缓存
@@ -30,7 +31,7 @@ async function resolveLocalManifest(): Promise<IVersionManifest> {
  */
 export async function fetchVersionManifest(): Promise<IVersionManifest> {
   if (versionManifestCache) return versionManifestCache
-  const result = await getOssClient().get(publishStore.store.ossAssets.versionManifestPath)
+  const result = await getOssClient().get(resolveOssVersionManifestPath())
   versionManifestCache = JSON.parse(result.content.toString()) as IVersionManifest
   return versionManifestCache
 }
@@ -68,7 +69,7 @@ export async function uploadVersionManifest(
 ): Promise<IVersionManifest> {
   const next = manifest ?? (await resolveLocalManifest())
   await getOssClient().put(
-    publishStore.store.ossAssets.versionManifestPath,
+    resolveOssVersionManifestPath(),
     Buffer.from(JSON.stringify(next, null, 2), 'utf-8')
   )
   versionManifestCache = next

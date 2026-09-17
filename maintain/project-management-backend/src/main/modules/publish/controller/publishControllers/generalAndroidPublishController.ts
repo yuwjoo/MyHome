@@ -3,11 +3,12 @@
  * @description 通用 android 项目发布：改 app/build.gradle.kts 版本号 -> gradlew assembleRelease -> 上传 APK 到 OSS（公共读）-> 更新版本清单
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { posix, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import { publishStore } from '@main/stores/publishStore'
 import { updateProjectVersion } from '../../modules/versionManifest'
 import { getOssClient } from '../../modules/oss'
 import { Shell } from '../../modules/shell'
+import { resolveProjectOssAssetPath } from '../../utils/path'
 import { versionToCode } from '../../utils/version'
 import { PublishController } from '../publishController'
 import type { IPublishNodeParams, TPublishLogger } from '../types/publish'
@@ -28,7 +29,7 @@ const GRADLEW_NAME = process.platform === 'win32' ? 'gradlew.bat' : './gradlew'
  *
  * 准备：校验 Android 构建环境（JDK / SDK）与 gradle 配置文件存在
  * 构建：把 app/build.gradle.kts 的 versionCode / versionName 改成目标版本 -> 执行 gradlew assembleRelease
- * 上传：把 release APK 传到 OSS 的 ossPublishDir 目录下，权限为公共读
+ * 上传：把 release APK 传到 OSS 的项目发布目录（oss 根路径 / 项目类型 / 项目名称）下，权限为公共读
  * 结束：把本次版本号写进版本清单并上传 OSS
  */
 export class GeneralAndroidPublishController extends PublishController {
@@ -60,7 +61,7 @@ export class GeneralAndroidPublishController extends PublishController {
   }
 
   /**
-   * 上传产物：把 release APK 传到 OSS 的 ossPublishDir 目录下
+   * 上传产物：把 release APK 传到 OSS 的项目发布目录下
    * @param params 节点参数，取其中的目标版本号
    * @param log 日志发送器，转发上传过程消息
    * @throws 未找到构建产物（APK）时抛错
@@ -69,7 +70,11 @@ export class GeneralAndroidPublishController extends PublishController {
     const apkPath = this.resolveProjectPath(RELEASE_APK_RELATIVE_PATH)
     if (!existsSync(apkPath)) throw new Error(`上传失败：未找到构建产物 ${apkPath}`)
     // OSS 未绑定自定义域名时不允许下载 apk，产物统一以 .zip 后缀存放
-    const objectName = this.resolveOssPath(`v${params.targetVersion}.zip`)
+    const objectName = resolveProjectOssAssetPath(
+      this.projectInfo.projectType,
+      this.projectInfo.projectName,
+      `v${params.targetVersion}.zip`
+    )
     log(`正在上传到 OSS：${objectName}`)
     await getOssClient().put(objectName, apkPath, {
       headers: OSS_PUBLIC_READ_HEADERS
@@ -158,15 +163,5 @@ export class GeneralAndroidPublishController extends PublishController {
    */
   private resolveProjectPath(...segments: string[]): string {
     return resolve(this.projectInfo.projectPath, ...segments)
-  }
-
-  /**
-   * 拼 OSS 对象路径：ossPublishDir 目录下的指定文件
-   * @param fileName 文件名
-   * @returns OSS 对象路径
-   */
-  private resolveOssPath(fileName: string): string {
-    // 先挂到根目录拼（顺带处理目录两端的斜杠、重复斜杠与空目录），再去掉开头的 /
-    return posix.join('/', this.projectInfo.ossPublishDir, fileName).slice(1)
   }
 }

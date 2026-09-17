@@ -25,8 +25,6 @@ export interface IProjectInfo {
   projectType: string
   /** 发布控制器标识 */
   publishController: TPublishController
-  /** OSS 发布目录 */
-  ossPublishDir: string
 }
 
 /**
