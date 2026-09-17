@@ -5,7 +5,7 @@
 export type {
   IProjectInfo,
   IAndroidStudioInfo,
-  IMyHomeConfig,
+  IPublishConfig,
   ISetting,
   TPublishController
-} from './myHomeConfig'
+} from './publishConfig'

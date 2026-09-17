@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { load } from 'js-yaml'
-import { myHomeStore } from '@main/stores/myHomeStore'
+import { publishStore } from '@main/stores/publishStore'
 import type { ICredentials } from './types/credentials'
 
 // 凭据数据缓存，null 表示未缓存
@@ -14,13 +14,13 @@ let credentialsCache: ICredentials | null = null
 /**
  * 读取本地 credentials.yaml 并解析为凭据数据
  *
- * 凭据目录取自 myHomeStore.local.secretDir，
+ * 凭据目录取自 publishStore.localAssets.secretDir，
  * 读取/解析失败（secretDir 未配置、文件缺失或 YAML 非法）时抛错
  * @returns 解析后的凭据数据
  */
 function loadCredentials(): ICredentials | null {
-  if (!myHomeStore.store.local.secretDir) return null
-  const configPath = resolve(myHomeStore.store.local.secretDir, 'credentials.yaml')
+  if (!publishStore.store.localAssets.secretDir) return null
+  const configPath = resolve(publishStore.store.localAssets.secretDir, 'credentials.yaml')
   return load(readFileSync(configPath, 'utf-8')) as ICredentials
 }
 
@@ -50,13 +50,13 @@ export function refreshCredentials(): ICredentials | null {
 }
 
 /**
- * 监听 local.secretDir 字段变化：目录变化后清除缓存
+ * 监听 localAssets.secretDir 字段变化：目录变化后清除缓存
  *
- * local 下其他字段（如 projects）变化时 secretDir 未变，直接忽略，避免误清缓存
- * @param newLocal 变化后的 local 配置（可能为 undefined）
- * @param oldLocal 变化前的 local 配置（可能为 undefined）
+ * localAssets 下其他字段（如 projects）变化时 secretDir 未变，直接忽略，避免误清缓存
+ * @param newLocalAssets 变化后的 localAssets 配置（可能为 undefined）
+ * @param oldLocalAssets 变化前的 localAssets 配置（可能为 undefined）
  */
-myHomeStore.onDidChange('local', (newLocal, oldLocal) => {
-  if (newLocal?.secretDir === oldLocal?.secretDir) return
+publishStore.onDidChange('localAssets', (newLocalAssets, oldLocalAssets) => {
+  if (newLocalAssets?.secretDir === oldLocalAssets?.secretDir) return
   credentialsCache = null
 })

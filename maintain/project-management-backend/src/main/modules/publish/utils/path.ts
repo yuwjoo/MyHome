@@ -3,7 +3,7 @@
  * @description 把配置里的相对路径拼成完整路径：local 下的路径相对 local.rootDir，oss 下的路径相对 oss.rootDir
  */
 import { posix, resolve } from 'node:path'
-import { myHomeStore } from '@main/stores/myHomeStore'
+import { publishStore } from '@main/stores/publishStore'
 
 /**
  * 获取完整本地 .secret 目录
@@ -12,7 +12,7 @@ import { myHomeStore } from '@main/stores/myHomeStore'
  * @returns 完整 .secret 目录的本地绝对路径
  */
 export function resolveLocalSecretDir(): string {
-  const { rootDir, secretDir } = myHomeStore.get('local')
+  const { rootDir, secretDir } = publishStore.get('localAssets')
   return resolve(rootDir, secretDir)
 }
 
@@ -34,7 +34,7 @@ export function resolveProjectOssPublishDir(ossPublishDir: string): string {
  * @returns 完整 OSS 版本清单文件路径（posix 风格，不带首尾斜杠）
  */
 export function resolveOssVersionManifestPath(): string {
-  return resolveOssPath(myHomeStore.get('oss').versionManifestPath)
+  return resolveOssPath(publishStore.get('ossAssets').versionManifestPath)
 }
 
 /**
@@ -44,7 +44,7 @@ export function resolveOssVersionManifestPath(): string {
  * @returns 完整 OSS .secret 文件路径（posix 风格，不带首尾斜杠）
  */
 export function resolveOssSecretPath(): string {
-  return resolveOssPath(myHomeStore.get('oss').secretPath)
+  return resolveOssPath(publishStore.get('ossAssets').secretPath)
 }
 
 /**
@@ -55,5 +55,5 @@ export function resolveOssSecretPath(): string {
  * @returns 完整 OSS 路径（posix 风格，不带首尾斜杠）
  */
 function resolveOssPath(relativePath: string): string {
-  return posix.join('/', myHomeStore.get('oss').rootDir, relativePath).slice(1)
+  return posix.join('/', publishStore.get('ossAssets').rootDir, relativePath).slice(1)
 }

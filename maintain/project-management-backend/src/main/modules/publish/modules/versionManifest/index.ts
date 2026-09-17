@@ -1,9 +1,9 @@
 /**
  * @file 版本清单模块
- * @description 通过 OSS 读写版本清单 json（路径取 myHomeStore.oss.versionManifestPath），并在进程内缓存一份
+ * @description 通过 OSS 读写版本清单 json（路径取 publishStore.ossAssets.versionManifestPath），并在进程内缓存一份
  */
 import { getOssClient } from '@main/modules/publish/modules/oss'
-import { myHomeStore } from '@main/stores/myHomeStore'
+import { publishStore } from '@main/stores/publishStore'
 import type { IVersionManifest } from './types/versionManifest'
 
 // 版本清单缓存，null 表示未缓存
@@ -30,7 +30,7 @@ async function resolveLocalManifest(): Promise<IVersionManifest> {
  */
 export async function fetchVersionManifest(): Promise<IVersionManifest> {
   if (versionManifestCache) return versionManifestCache
-  const result = await getOssClient().get(myHomeStore.store.oss.versionManifestPath)
+  const result = await getOssClient().get(publishStore.store.ossAssets.versionManifestPath)
   versionManifestCache = JSON.parse(result.content.toString()) as IVersionManifest
   return versionManifestCache
 }
@@ -68,7 +68,7 @@ export async function uploadVersionManifest(
 ): Promise<IVersionManifest> {
   const next = manifest ?? (await resolveLocalManifest())
   await getOssClient().put(
-    myHomeStore.store.oss.versionManifestPath,
+    publishStore.store.ossAssets.versionManifestPath,
     Buffer.from(JSON.stringify(next, null, 2), 'utf-8')
   )
   versionManifestCache = next
@@ -102,13 +102,13 @@ export async function updateProjectVersion(
 }
 
 /**
- * 监听 oss.versionManifestPath 字段变化：路径变化后清除缓存
+ * 监听 ossAssets.versionManifestPath 字段变化：路径变化后清除缓存
  *
- * oss 下其他字段（如 rootDir）变化时路径未变，直接忽略，避免误清缓存
- * @param newOss 变化后的 oss 配置（可能为 undefined）
- * @param oldOss 变化前的 oss 配置（可能为 undefined）
+ * ossAssets 下其他字段（如 rootDir）变化时路径未变，直接忽略，避免误清缓存
+ * @param newOssAssets 变化后的 ossAssets 配置（可能为 undefined）
+ * @param oldOssAssets 变化前的 ossAssets 配置（可能为 undefined）
  */
-myHomeStore.onDidChange('oss', (newOss, oldOss) => {
-  if (newOss?.versionManifestPath === oldOss?.versionManifestPath) return
+publishStore.onDidChange('ossAssets', (newOssAssets, oldOssAssets) => {
+  if (newOssAssets?.versionManifestPath === oldOssAssets?.versionManifestPath) return
   versionManifestCache = null
 })

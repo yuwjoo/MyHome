@@ -4,7 +4,7 @@
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { posix, resolve } from 'node:path'
-import { myHomeStore } from '@main/stores/myHomeStore'
+import { publishStore } from '@main/stores/publishStore'
 import { updateProjectVersion } from '../../modules/versionManifest'
 import { getOssClient } from '../../modules/oss'
 import { Shell } from '../../modules/shell'
@@ -97,12 +97,12 @@ export class GeneralAndroidPublishController extends PublishController {
   }
 
   /**
-   * 取 Android 构建环境变量：JDK 与 SDK 取自本地 androidStudio 配置
+   * 取 Android 构建环境变量：JDK 与 SDK 取自 publishStore 的 androidStudio 配置
    * @returns 注入子进程的环境变量
    * @throws 未配置 androidStudio.jdkPath / sdkPath 时抛错
    */
   private resolveBuildEnv(): NodeJS.ProcessEnv {
-    const { jdkPath, sdkPath } = myHomeStore.get('local').androidStudio
+    const { jdkPath, sdkPath } = publishStore.get('androidStudio')
     if (!jdkPath) throw new Error('发布准备失败：未配置 androidStudio.jdkPath')
     if (!sdkPath) throw new Error('发布准备失败：未配置 androidStudio.sdkPath')
     return { JAVA_HOME: jdkPath, ANDROID_HOME: sdkPath, ANDROID_SDK_ROOT: sdkPath }
