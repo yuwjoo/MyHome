@@ -6,6 +6,5 @@ export type {
   IProjectInfo,
   IAndroidStudioInfo,
   IPublishConfig,
-  ISetting,
   TPublishController
 } from './publishConfig'

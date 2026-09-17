@@ -10,7 +10,7 @@ import { publishStore } from '@main/stores/publishStore'
  * @returns 当前全部项目
  */
 handle('release:getProjectList', () => {
-  return publishStore.get('localAssets').projects
+  return publishStore.get('projects')
 })
 
 /**
@@ -29,12 +29,12 @@ handle('release:addProject', (_event, project) => {
   ) {
     throw new Error('添加失败：项目信息不完整')
   }
-  const projects = publishStore.get('localAssets').projects
+  const projects = publishStore.get('projects')
   if (projects.some((item) => item.projectName === project.projectName)) {
     throw new Error(`添加失败：项目「${project.projectName}」已存在`)
   }
   const next = [...projects, project]
-  publishStore.set('localAssets.projects', next)
+  publishStore.set('projects', next)
   return next
 })
 
@@ -54,7 +54,7 @@ handle('release:updateProject', (_event, project) => {
   ) {
     throw new Error('修改失败：项目信息不完整')
   }
-  const projects = publishStore.get('localAssets').projects
+  const projects = publishStore.get('projects')
   const index = projects.findIndex((item) => item.projectName === project.projectName)
   if (index === -1) {
     throw new Error(`修改失败：未找到项目「${project.projectName}」`)
@@ -64,7 +64,7 @@ handle('release:updateProject', (_event, project) => {
   }
   const next = [...projects]
   next[index] = project
-  publishStore.set('localAssets.projects', next)
+  publishStore.set('projects', next)
   return next
 })
 
@@ -74,14 +74,14 @@ handle('release:updateProject', (_event, project) => {
  * @returns 删除后的项目列表
  */
 handle('release:deleteProject', (_event, projectName) => {
-  const projects = publishStore.get('localAssets').projects
+  const projects = publishStore.get('projects')
   const index = projects.findIndex((item) => item.projectName === projectName)
   if (index === -1) {
     throw new Error(`删除失败：未找到项目「${projectName}」`)
   }
   const next = [...projects]
   next.splice(index, 1)
-  publishStore.set('localAssets.projects', next)
+  publishStore.set('projects', next)
   return next
 })
 

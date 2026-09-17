@@ -7,14 +7,14 @@ import type { IPublishConfig } from '@shared/types/config'
 
 // 默认配置
 const defaultConfig: IPublishConfig = {
+  // 项目信息列表
+  projects: [],
   // 本地资源数据
   localAssets: {
     // 本地根目录
     rootDir: '',
     // .secret 目录
-    secretDir: '',
-    // 项目信息列表
-    projects: []
+    secretDir: ''
   },
   // OSS 资源数据
   ossAssets: {

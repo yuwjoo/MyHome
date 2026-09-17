@@ -54,7 +54,7 @@ export function refreshCredentials(): ICredentials | null {
 /**
  * 监听 localAssets.secretDir 字段变化：目录变化后清除缓存
  *
- * localAssets 下其他字段（如 projects）变化时 secretDir 未变，直接忽略，避免误清缓存
+ * localAssets 下其他字段（如 rootDir）变化时 secretDir 未变，直接忽略，避免误清缓存
  * @param newLocalAssets 变化后的 localAssets 配置（可能为 undefined）
  * @param oldLocalAssets 变化前的 localAssets 配置（可能为 undefined）
  */

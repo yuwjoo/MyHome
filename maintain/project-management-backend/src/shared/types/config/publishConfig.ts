@@ -41,14 +41,14 @@ export interface IAndroidStudioInfo {
  * 发布配置数据：统一存放本地数据与 OSS 发布配置
  */
 export interface IPublishConfig {
+  /** 项目信息列表 */
+  projects: IProjectInfo[]
   /** 本地资源数据 */
   localAssets: {
     /** 本地根目录 */
     rootDir: string
     /** .secret 目录 */
     secretDir: string
-    /** 项目信息列表 */
-    projects: IProjectInfo[]
   }
   /** OSS 资源数据 */
   ossAssets: {
@@ -61,14 +61,4 @@ export interface IPublishConfig {
   }
   /** Android Studio 相关配置 */
   androidStudio: IAndroidStudioInfo
-}
-
-/**
- * 设置数据：发布配置里除项目列表与 androidStudio 之外的部分
- *
- * 项目列表由本地项目模块单独维护，androidStudio 配置由发版通道单独维护，设置的读写不涉及
- */
-export interface ISetting extends Omit<IPublishConfig, 'localAssets' | 'androidStudio'> {
-  /** 本地资源数据（不含项目列表） */
-  localAssets: Omit<IPublishConfig['localAssets'], 'projects'>
 }

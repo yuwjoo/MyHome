@@ -8,11 +8,11 @@ import type { IProjectInfo } from '@shared/types/config'
 /**
  * 获取本地项目列表
  *
- * 直接取 publishStore 里 localAssets.projects 的当前值
+ * 直接取 publishStore 里 projects 的当前值
  * @returns 本地项目列表
  */
 export function getLocalProjectList(): IProjectInfo[] {
-  return publishStore.get('localAssets').projects
+  return publishStore.get('projects')
 }
 
 /**
@@ -26,10 +26,8 @@ export function getLocalProjectList(): IProjectInfo[] {
 export function getLocalProject(projectType: string, projectName: string): IProjectInfo | null {
   return (
     publishStore
-      .get('localAssets')
-      .projects.find(
-        (item) => item.projectType === projectType && item.projectName === projectName
-      ) ?? null
+      .get('projects')
+      .find((item) => item.projectType === projectType && item.projectName === projectName) ?? null
   )
 }
 
@@ -46,14 +44,14 @@ export function saveLocalProject(project: IProjectInfo): IProjectInfo[] {
   if (!project.projectType || !project.projectName) {
     throw new Error('保存失败：项目类型与项目名称不能为空')
   }
-  const projects = publishStore.get('localAssets').projects
+  const projects = publishStore.get('projects')
   const index = projects.findIndex(
     (item) => item.projectType === project.projectType && item.projectName === project.projectName
   )
   const next = [...projects]
   if (index === -1) next.push(project)
   else next[index] = project
-  publishStore.set('localAssets.projects', next)
+  publishStore.set('projects', next)
   return next
 }
 
@@ -67,13 +65,13 @@ export function saveLocalProject(project: IProjectInfo): IProjectInfo[] {
  * @throws 未找到对应项目时抛错
  */
 export function deleteLocalProject(projectType: string, projectName: string): IProjectInfo[] {
-  const projects = publishStore.get('localAssets').projects
+  const projects = publishStore.get('projects')
   const next = projects.filter(
     (item) => !(item.projectType === projectType && item.projectName === projectName)
   )
   if (next.length === projects.length) {
     throw new Error(`删除失败：未找到项目「${projectType}/${projectName}」`)
   }
-  publishStore.set('localAssets.projects', next)
+  publishStore.set('projects', next)
   return next
 }
