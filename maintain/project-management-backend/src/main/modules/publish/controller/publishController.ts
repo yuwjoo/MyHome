@@ -26,6 +26,14 @@ export abstract class PublishController {
   protected readonly projectInfo: IProjectInfo
 
   /**
+   * 当前所处的发布阶段，未发布时为 null
+   *
+   * 由 publish 在各节点执行前写入，全部节点结束后复位为 null；
+   * 继承方据此判断是否处于可中止的阶段
+   */
+  protected currentStage: TPublishStage | null = null
+
+  /**
    * 创建发布控制器：只保存项目信息，不执行任何发布动作
    * @param projectInfo 待发布的项目信息
    */
@@ -73,17 +81,35 @@ export abstract class PublishController {
   protected abstract finish(params: IPublishNodeParams, log: TPublishLogger): Promise<void>
 
   /**
+   * 中止发布：供外部在 publish 执行期间调用
+   *
+   * 由继承方实现：只有处于可中止的阶段（如构建阶段终止构建命令）时才真正中止，
+   * 被中止的节点会抛错，从而中断整个发布流程；不可中止时返回 false
+   * @returns 是否已发起中止：已发起返回 true，当前阶段不支持中止或无运行中的任务时返回 false
+   */
+  public abstract abort(): Promise<boolean>
+
+  /**
    * 执行发布：准备 -> 构建 -> 上传 -> 结束
    *
    * 顺序固定；任一步失败即中断后续步骤，错误抛给调用方处理；
-   * 节点参数原样传给四个节点，各节点用 log 发出的消息由基类补上当前阶段后回调 params.onLog
+   * 节点参数原样传给四个节点，各节点用 log 发出的消息由基类补上当前阶段后回调 params.onLog；
+   * 执行期间把当前阶段写入 currentStage，结束后复位为 null
    * @param params 发布参数：节点参数 + 可选的日志回调
    */
   async publish(params: IPublishParams): Promise<void> {
-    await this.prepare(params, this.createLogger(params, 'prepare'))
-    await this.build(params, this.createLogger(params, 'build'))
-    await this.upload(params, this.createLogger(params, 'upload'))
-    await this.finish(params, this.createLogger(params, 'finish'))
+    try {
+      this.currentStage = 'prepare'
+      await this.prepare(params, this.createLogger(params, 'prepare'))
+      this.currentStage = 'build'
+      await this.build(params, this.createLogger(params, 'build'))
+      this.currentStage = 'upload'
+      await this.upload(params, this.createLogger(params, 'upload'))
+      this.currentStage = 'finish'
+      await this.finish(params, this.createLogger(params, 'finish'))
+    } finally {
+      this.currentStage = null
+    }
   }
 
   /**

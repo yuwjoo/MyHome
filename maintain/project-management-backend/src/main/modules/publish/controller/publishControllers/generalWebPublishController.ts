@@ -32,6 +32,11 @@ export class GeneralWebPublishController extends PublishController {
   private zipPath = ''
 
   /**
+   * 构建阶段运行中的 shell，构建命令结束后置为 null
+   */
+  private buildShell: Shell | null = null
+
+  /**
    * 发布准备：校验项目目录与 package.json 存在，并清掉上一次的同名压缩包
    * @param params 节点参数，取其中的目标版本号
    * @param log 日志发送器，转发准备过程消息
@@ -99,6 +104,18 @@ export class GeneralWebPublishController extends PublishController {
   }
 
   /**
+   * 中止发布：只在构建阶段终止 npm run build
+   *
+   * 终止后 shell 以 killed 结束，runNpmBuild 抛错从而中断整个发布流程；
+   * 准备 / 上传 / 结束阶段不支持中止，返回 false
+   * @returns 已发起中止返回 true，其余情况返回 false
+   */
+  public async abort(): Promise<boolean> {
+    if (this.currentStage !== 'build') return false
+    return this.buildShell?.kill() ?? false
+  }
+
+  /**
    * 把项目 package.json 的 version 字段改为目标版本号
    * @param targetVersion 本次发布的目标版本号
    */
@@ -116,10 +133,11 @@ export class GeneralWebPublishController extends PublishController {
    */
   private async runNpmBuild(log: TPublishLogger): Promise<void> {
     await new Promise<void>((res, rej) => {
-      const shell = new Shell({
+      this.buildShell = new Shell({
         cwd: this.projectInfo.projectPath,
         onLog: (item): void => log(item.data),
         onExit: (exit): void => {
+          this.buildShell = null
           if (exit.killed) {
             rej(new Error('构建失败：npm run build 被终止'))
             return
@@ -131,7 +149,7 @@ export class GeneralWebPublishController extends PublishController {
           res()
         }
       })
-      shell.run('npm run build')
+      this.buildShell.run('npm run build')
     })
   }
 

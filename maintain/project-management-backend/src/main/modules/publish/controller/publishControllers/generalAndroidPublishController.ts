@@ -34,6 +34,11 @@ const GRADLEW_NAME = process.platform === 'win32' ? 'gradlew.bat' : './gradlew'
  */
 export class GeneralAndroidPublishController extends PublishController {
   /**
+   * 构建阶段运行中的 shell，构建命令结束后置为 null
+   */
+  private buildShell: Shell | null = null
+
+  /**
    * 发布准备：校验构建环境与 gradle 版本配置文件存在
    * @param params 节点参数，取其中的目标版本号
    * @param log 日志发送器，转发准备过程消息
@@ -102,6 +107,18 @@ export class GeneralAndroidPublishController extends PublishController {
   }
 
   /**
+   * 中止发布：只在构建阶段终止 gradlew assembleRelease
+   *
+   * 终止后 shell 以 killed 结束，runGradleRelease 抛错从而中断整个发布流程；
+   * 准备 / 上传 / 结束阶段不支持中止，返回 false
+   * @returns 已发起中止返回 true，其余情况返回 false
+   */
+  public async abort(): Promise<boolean> {
+    if (this.currentStage !== 'build') return false
+    return this.buildShell?.kill() ?? false
+  }
+
+  /**
    * 取 Android 构建环境变量：JDK 与 SDK 取自 publishStore 的 androidStudio 配置
    * @returns 注入子进程的环境变量
    * @throws 未配置 androidStudio.jdkPath / sdkPath 时抛错
@@ -134,11 +151,12 @@ export class GeneralAndroidPublishController extends PublishController {
   private async runGradleRelease(log: TPublishLogger): Promise<void> {
     const buildEnv = this.resolveBuildEnv()
     await new Promise<void>((res, rej) => {
-      const shell = new Shell({
+      this.buildShell = new Shell({
         cwd: this.projectInfo.projectPath,
         env: buildEnv,
         onLog: (item): void => log(item.data),
         onExit: (exit): void => {
+          this.buildShell = null
           if (exit.killed) {
             rej(new Error(`构建失败：${GRADLEW_NAME} assembleRelease 被终止`))
             return
@@ -152,7 +170,7 @@ export class GeneralAndroidPublishController extends PublishController {
           res()
         }
       })
-      shell.run(`${GRADLEW_NAME} assembleRelease`)
+      this.buildShell.run(`${GRADLEW_NAME} assembleRelease`)
     })
   }
 

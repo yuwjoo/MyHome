@@ -7,6 +7,9 @@ import { GeneralAndroidPublishController } from './publishControllers/generalAnd
 import { GeneralWebPublishController } from './publishControllers/generalWebPublishController'
 import type { TPublishControllerConstructor } from './types/controller'
 
+export type { PublishController } from './publishController'
+
+
 /**
  * 发布控制器集合
  *
