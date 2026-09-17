@@ -3,7 +3,7 @@
  * @description 定义暴露给渲染进程的 electron api 结构
  */
 import type { WebFrame, WebUtils } from 'electron'
-import type { TIpcMsgChannel } from '@shared/types/ipc'
+import type { TIpcMsgChannel } from '@shared/types/ipc/ipc'
 import type { TIpcApiShape, TIpcMsgListener } from '@preload/api/types/ipc'
 
 /**

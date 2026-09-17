@@ -8,7 +8,7 @@ import type {
   TIpcApiChannelArgs,
   TIpcApiChannelResult,
   TIpcMsgChannel
-} from '@shared/types/ipc'
+} from '@shared/types/ipc/ipc'
 import type { TIpcMsgListener } from '@preload/api/types/ipc'
 
 /**

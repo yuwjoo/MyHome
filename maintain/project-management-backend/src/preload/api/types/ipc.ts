@@ -10,7 +10,7 @@ import type {
   TIpcApiChannelResult,
   TIpcMsgChannel,
   TIpcMsgPayload
-} from '@shared/types/ipc'
+} from '@shared/types/ipc/ipc'
 
 /**
  * 推送订阅回调：主进程推送时携带事件与负载
@@ -21,12 +21,12 @@ export type TIpcMsgListener<C extends TIpcMsgChannel> = (
 ) => void
 
 /**
- * 提取通道域前缀，如 'release:getProjectList' → 'release'
+ * 提取通道域前缀，如 'publish:getLocalProjectList' → 'publish'
  */
 type TChannelDomain<C extends string> = C extends `${infer D}:${string}` ? D : C
 
 /**
- * 去除通道前缀获得方法名，如 'release:getProjectList' → 'getProjectList'
+ * 去除通道前缀获得方法名，如 'publish:getLocalProjectList' → 'getLocalProjectList'
  */
 type TMethodName<C extends string> = C extends `${string}:${infer M}` ? M : C
 
@@ -51,7 +51,7 @@ type TDomainShape<D extends string> = {
 
 /**
  * 由 TIpcApi 契约自动推导的域分组形状：
- * { release: { getProjectList: () => Promise<...>, ... } }
+ * { publish: { getLocalProjectList: () => Promise<...>, ... } }
  * 新增域前缀即自动新增顶层 key，与主进程契约保持一致
  */
 export type TIpcApiShape = {

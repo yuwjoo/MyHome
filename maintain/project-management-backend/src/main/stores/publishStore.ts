@@ -3,7 +3,7 @@
  * @description 存放发布所需的本地数据与 OSS 发布配置
  */
 import Store from 'electron-store'
-import type { IPublishConfig } from '@shared/types/config'
+import type { IPublishConfig } from '@shared/types/config/publishConfig'
 
 // 默认配置
 const defaultConfig: IPublishConfig = {

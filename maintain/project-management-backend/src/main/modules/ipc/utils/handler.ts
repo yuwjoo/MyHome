@@ -10,7 +10,7 @@ import type {
   TIpcApiChannelResult,
   TIpcMsgChannel,
   TIpcMsgPayload
-} from '@shared/types/ipc'
+} from '@shared/types/ipc/ipc'
 
 /**
  * 注册请求-响应通道

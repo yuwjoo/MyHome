@@ -3,7 +3,7 @@
  * @description 基于 publishStore 读写设置数据（发布配置里除项目列表之外的部分）
  */
 import { publishStore } from '@main/stores/publishStore'
-import type { TSetting } from './types/setting'
+import type { ISetting } from './types/setting'
 
 /**
  * 获取设置
@@ -12,7 +12,7 @@ import type { TSetting } from './types/setting'
  * 项目列表由本地项目模块维护，不在设置范围内
  * @returns 当前设置数据
  */
-export function getSetting(): TSetting {
+export function getSetting(): ISetting {
   return {
     localAssets: publishStore.get('localAssets'),
     ossAssets: publishStore.get('ossAssets'),
@@ -28,7 +28,7 @@ export function getSetting(): TSetting {
  * @param setting 最新设置数据
  * @returns 更新后的设置数据
  */
-export function updateSetting(setting: TSetting): TSetting {
+export function updateSetting(setting: ISetting): ISetting {
   publishStore.set({
     localAssets: setting.localAssets,
     ossAssets: setting.ossAssets,

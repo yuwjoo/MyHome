@@ -1,15 +1,13 @@
 /**
- * @file IPC 契约出口
- * @description 汇总各域 IPC 契约并派生通道工具类型，供主进程与预加载脚本共用
+ * @file IPC 契约类型
+ * @description 汇总各域 IPC 契约并派生通道工具类型；各域自身的类型请直接引入对应域文件（如 ./publish）
  */
-import type { IReleaseApi, IReleaseMsg } from './release'
-
-export type { IReleaseApi, IReleaseMsg }
+import type { IPublishApi, IPublishMsg } from './publish'
 
 /**
  * API 聚合契约
  */
-export type TIpcApi = IReleaseApi
+export type TIpcApi = IPublishApi
 
 /**
  * API 通道名
@@ -29,7 +27,7 @@ export type TIpcApiChannelResult<C extends TIpcApiChannel> = TIpcApi[C]['result'
 /**
  * MSG 聚合契约
  */
-export type TIpcMsg = IReleaseMsg
+export type TIpcMsg = IPublishMsg
 
 /**
  * MSG 通道名

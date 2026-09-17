@@ -2,7 +2,7 @@
  * @file 发布模块出口
  * @description 对外暴露发布能力：项目发布 / 中止入口与本地项目读写
  */
-import type { IProjectInfo } from '@shared/types/config'
+import type { IProjectInfo } from '@shared/types/config/publishConfig'
 import { controller } from './controller'
 import type { IPublishLog } from './controller/types/publish'
 import { getLocalProject, saveLocalProject } from './modules/localProject'

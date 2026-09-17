@@ -3,7 +3,7 @@
  * @description 基于 publishStore 的本地项目列表做查询 / 保存 / 删除，以项目类型 + 项目名称定位项目
  */
 import { publishStore } from '@main/stores/publishStore'
-import type { IProjectInfo } from '@shared/types/config'
+import type { IProjectInfo } from '@shared/types/config/publishConfig'
 
 /**
  * 获取本地项目列表

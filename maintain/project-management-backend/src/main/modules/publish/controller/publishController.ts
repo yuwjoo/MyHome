@@ -4,7 +4,7 @@
  * 准备/构建/上传/结束四个节点均由继承方实现，各节点通过 log 发出的消息会带上当前阶段回调给外界
  * @see 与 publish/modules/shell 的约定一致：构造不产生副作用
  */
-import type { IProjectInfo } from '@shared/types/config'
+import type { IProjectInfo } from '@shared/types/config/publishConfig'
 import type {
   IPublishNodeParams,
   IPublishParams,

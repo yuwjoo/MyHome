@@ -2,14 +2,14 @@
  * @file 发布任务管理模块
  * @description 按项目类型 + 项目名称登记发布中的控制器，保证同一项目同一时间只有一个发布任务，并可随时取回控制器
  */
-import type { PublishController } from '@main/modules/publish/controller'
+import type { TPublishControllerInstance } from '@main/modules/publish/controller/types/controller'
 
 /**
  * 发布任务集合
  *
  * key 为「项目类型/项目名称」，value 为正在执行发布的控制器实例
  */
-const publishTaskMap = new Map<string, PublishController>()
+const publishTaskMap = new Map<string, TPublishControllerInstance>()
 
 /**
  * 添加发布任务：把正在发布的控制器登记到该项目下
@@ -23,7 +23,7 @@ const publishTaskMap = new Map<string, PublishController>()
 export function addPublishTask(
   projectType: string,
   projectName: string,
-  publishController: PublishController
+  publishController: TPublishControllerInstance
 ): void {
   const taskKey = resolveTaskKey(projectType, projectName)
   if (publishTaskMap.has(taskKey)) {
@@ -64,7 +64,7 @@ export function hasPublishTask(projectType: string, projectName: string): boolea
 export function getPublishTaskController(
   projectType: string,
   projectName: string
-): PublishController | null {
+): TPublishControllerInstance | null {
   return publishTaskMap.get(resolveTaskKey(projectType, projectName)) ?? null
 }
 
