@@ -11,10 +11,7 @@ import type { TPublishController } from '@shared/types/config/publishConfig'
  * @param project 含项目类型与项目名称的项目信息
  * @returns 项目标识
  */
-export function resolveProjectKey(project: {
-  projectType: string
-  projectName: string
-}): string {
+export function resolveProjectKey(project: { projectType: string; projectName: string }): string {
   return `${project.projectType}/${project.projectName}`
 }
 

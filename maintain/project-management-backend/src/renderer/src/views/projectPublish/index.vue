@@ -215,10 +215,7 @@ async function handlePublish(project: IProjectInfo, targetVersion: string): Prom
 async function handleAbort(project: IProjectInfo): Promise<void> {
   const projectKey = resolveProjectKey(project)
   try {
-    const aborted = await electronApi.publish.abortPublish(
-      project.projectType,
-      project.projectName
-    )
+    const aborted = await electronApi.publish.abortPublish(project.projectType, project.projectName)
     if (aborted) {
       ElMessage.success(`已发起中止：${projectKey}`)
       return
@@ -352,12 +349,7 @@ onMounted(() => {
           clearable
           :prefix-icon="Search"
         />
-        <el-select
-          v-model="filterType"
-          class="toolbar__type"
-          placeholder="全部项目类型"
-          clearable
-        >
+        <el-select v-model="filterType" class="toolbar__type" placeholder="全部项目类型" clearable>
           <el-option v-for="type in typeOptions" :key="type" :label="type" :value="type" />
         </el-select>
         <div class="toolbar__actions">

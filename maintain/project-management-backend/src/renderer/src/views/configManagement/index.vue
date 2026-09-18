@@ -4,13 +4,12 @@
 -->
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Folder } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { ISetting } from '@shared/types/ipc/publish'
 import { resolveErrorMessage } from '@renderer/utils/error'
 import { electronApi } from '@renderer/utils/electronApi'
-import { pickDirectoryPath } from '@renderer/utils/pathPicker'
+import PathInput from './components/PathInput.vue'
 
 defineOptions({ name: 'configManagement' })
 
@@ -109,18 +108,6 @@ async function fetchSetting(): Promise<void> {
 }
 
 /**
- * 选择目录并写入指定字段
- *
- * 取消选择时得到空路径，保持原值不动
- * @param setter 把选到的目录写到目标字段上的函数
- * @returns 选择完成的 Promise
- */
-async function handlePickDirectory(setter: (path: string) => void): Promise<void> {
-  const directoryPath = await pickDirectoryPath()
-  if (directoryPath) setter(directoryPath)
-}
-
-/**
  * 保存配置
  * @returns 保存完成的 Promise
  */
@@ -178,12 +165,7 @@ onMounted(() => {
           <el-tag v-if="isDirty" type="warning" size="small" effect="light">有未保存的修改</el-tag>
           <div class="config-management__actions">
             <el-button :disabled="!isDirty" @click="handleReset">还原</el-button>
-            <el-button
-              type="primary"
-              :loading="saving"
-              :disabled="!isDirty"
-              @click="handleSave"
-            >
+            <el-button type="primary" :loading="saving" :disabled="!isDirty" @click="handleSave">
               保存配置
             </el-button>
           </div>
@@ -199,32 +181,22 @@ onMounted(() => {
       >
         <section class="setting-section">
           <h3 class="setting-section__title">本地资源</h3>
-          <p class="setting-section__desc">
-            产物压缩与本地密钥都以此为基准目录，均按本机路径处理
-          </p>
+          <p class="setting-section__desc">产物压缩与本地密钥都以此为基准目录，均按本机路径处理</p>
 
           <el-form-item label="本地根目录" prop="localAssets.rootDir">
-            <el-input
+            <PathInput
               v-model="settingForm.localAssets.rootDir"
               placeholder="请选择或填写本地资源根目录"
-              clearable
-            >
-              <template #append>
-                <el-button
-                  :icon="Folder"
-                  @click="handlePickDirectory((path) => (settingForm.localAssets.rootDir = path))"
-                >
-                  选择
-                </el-button>
-              </template>
-            </el-input>
+              show-picker
+            />
           </el-form-item>
 
           <el-form-item label=".secret 目录" prop="localAssets.secretDir">
-            <el-input
+            <PathInput
               v-model="settingForm.localAssets.secretDir"
+              :root-path="settingForm.localAssets.rootDir"
               placeholder="相对本地根目录，如 .secret"
-              clearable
+              show-root-path
             />
             <p class="setting-section__hint">
               推荐填写相对本地根目录的路径；填绝对路径时以绝对路径为准
@@ -243,21 +215,18 @@ onMounted(() => {
           </p>
 
           <el-form-item label="发布根路径" prop="ossAssets.rootDir">
-            <el-input
-              v-model="settingForm.ossAssets.rootDir"
-              placeholder="如 MyHome"
-              clearable
-            />
+            <PathInput v-model="settingForm.ossAssets.rootDir" placeholder="如 MyHome" />
             <p class="setting-section__hint">
               项目产物按「发布根路径 / 项目类型 / 项目名称」分目录存放
             </p>
           </el-form-item>
 
           <el-form-item label="版本清单路径" prop="ossAssets.versionManifestPath">
-            <el-input
+            <PathInput
               v-model="settingForm.ossAssets.versionManifestPath"
+              :root-path="settingForm.ossAssets.rootDir"
               placeholder="如 ./versionManifest.json"
-              clearable
+              show-root-path
             />
             <p v-if="versionManifestPreview" class="setting-section__preview">
               拼接后的完整路径：{{ versionManifestPreview }}
@@ -265,10 +234,11 @@ onMounted(() => {
           </el-form-item>
 
           <el-form-item label=".secret 文件路径" prop="ossAssets.secretPath">
-            <el-input
+            <PathInput
               v-model="settingForm.ossAssets.secretPath"
+              :root-path="settingForm.ossAssets.rootDir"
               placeholder="如 ./.secret.zip"
-              clearable
+              show-root-path
             />
             <p v-if="ossSecretPreview" class="setting-section__preview">
               拼接后的完整路径：{{ ossSecretPreview }}
@@ -278,46 +248,22 @@ onMounted(() => {
 
         <section class="setting-section">
           <h3 class="setting-section__title">Android Studio</h3>
-          <p class="setting-section__desc">
-            仅发布 Android 项目时用到，未配置该类项目时可留空
-          </p>
+          <p class="setting-section__desc">仅发布 Android 项目时用到，未配置该类项目时可留空</p>
 
           <el-form-item label="JDK 路径">
-            <el-input
+            <PathInput
               v-model="settingForm.androidStudio.jdkPath"
               placeholder="请选择或填写 JDK 根目录"
-              clearable
-            >
-              <template #append>
-                <el-button
-                  :icon="Folder"
-                  @click="
-                    handlePickDirectory((path) => (settingForm.androidStudio.jdkPath = path))
-                  "
-                >
-                  选择
-                </el-button>
-              </template>
-            </el-input>
+              show-picker
+            />
           </el-form-item>
 
           <el-form-item label="SDK 路径">
-            <el-input
+            <PathInput
               v-model="settingForm.androidStudio.sdkPath"
               placeholder="请选择或填写 Android SDK 根目录"
-              clearable
-            >
-              <template #append>
-                <el-button
-                  :icon="Folder"
-                  @click="
-                    handlePickDirectory((path) => (settingForm.androidStudio.sdkPath = path))
-                  "
-                >
-                  选择
-                </el-button>
-              </template>
-            </el-input>
+              show-picker
+            />
           </el-form-item>
         </section>
       </el-form>

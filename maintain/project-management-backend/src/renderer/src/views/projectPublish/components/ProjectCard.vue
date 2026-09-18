@@ -54,9 +54,7 @@ const controllerLabel = computed(
   () => publishControllerLabels[props.project.publishController] ?? props.project.publishController
 )
 // 当前阶段在流程中的序号，未开始或日志已清空时为 -1
-const stageIndex = computed(() =>
-  props.latestLog ? resolveStageIndex(props.latestLog.stage) : -1
-)
+const stageIndex = computed(() => (props.latestLog ? resolveStageIndex(props.latestLog.stage) : -1))
 
 /**
  * 同步目标版本号输入
@@ -131,7 +129,9 @@ function fillNextVersion(): void {
           <el-tag size="small" :type="latestLog ? stageMeta[latestLog.stage].type : 'info'">
             {{ latestLog ? stageMeta[latestLog.stage].label : '准备' }}
           </el-tag>
-          <span class="project-card__latest-message">{{ latestLog?.message ?? '正在启动发布流程' }}</span>
+          <span class="project-card__latest-message">{{
+            latestLog?.message ?? '正在启动发布流程'
+          }}</span>
         </p>
       </template>
     </div>
@@ -156,11 +156,7 @@ function fillNextVersion(): void {
       >
         中止
       </el-button>
-      <el-button
-        size="small"
-        :icon="Document"
-        @click="emit('viewLog')"
-      >
+      <el-button size="small" :icon="Document" @click="emit('viewLog')">
         日志{{ logCount ? `(${logCount})` : '' }}
       </el-button>
       <el-button size="small" :icon="Edit" :disabled="publishing" @click="emit('edit')" />

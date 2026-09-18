@@ -16,11 +16,7 @@ const activeMenu = computed(() => route.path)
 </script>
 
 <template>
-  <el-menu
-    class="app-sidebar__menu"
-    router
-    :default-active="activeMenu"
-  >
+  <el-menu class="app-sidebar__menu" router :default-active="activeMenu">
     <el-menu-item v-for="item in appMenus" :key="item.path" :index="item.path">
       <el-icon><component :is="item.icon" /></el-icon>
       <span>{{ item.title }}</span>

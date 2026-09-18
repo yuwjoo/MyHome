@@ -97,8 +97,6 @@ export function usePublishLog(onPush?: (log: IPublishLogItem) => void): IUsePubl
         .flat()
         .sort((left, right) => left.id - right.id)
     ),
-    logCount: computed(() =>
-      Object.values(logMap).reduce((total, list) => total + list.length, 0)
-    )
+    logCount: computed(() => Object.values(logMap).reduce((total, list) => total + list.length, 0))
   }
 }

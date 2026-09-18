@@ -8,7 +8,7 @@ import { Folder } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { IProjectInfo, TPublishController } from '@shared/types/config/publishConfig'
-import { pickDirectoryPath } from '@renderer/utils/pathPicker'
+import { openFilePicker } from '@renderer/utils/filePicker'
 import { publishControllerLabels, resolveProjectKey } from '../utils/project'
 import { isValidVersion } from '../utils/version'
 
@@ -77,11 +77,7 @@ const controllerOptions = computed(() =>
  * @param value 待校验的版本号
  * @param callback Element Plus 的校验回调
  */
-function validateVersion(
-  _rule: unknown,
-  value: string,
-  callback: (error?: Error) => void
-): void {
+function validateVersion(_rule: unknown, value: string, callback: (error?: Error) => void): void {
   if (!value) {
     callback(new Error('请填写当前版本号'))
     return
@@ -135,7 +131,7 @@ function isDuplicated(): boolean {
  * @returns 选择完成的 Promise
  */
 async function handlePickDirectory(): Promise<void> {
-  const directoryPath = await pickDirectoryPath()
+  const directoryPath = await openFilePicker(true)
   if (directoryPath) formData.projectPath = directoryPath
 }
 
