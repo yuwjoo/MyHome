@@ -4,6 +4,8 @@
  */
 import { webFrame, webUtils } from 'electron'
 import { addListener, removeListener } from '@preload/api/utils/handler'
+import { dialogApi } from '@preload/api/handlers/dialogApi'
+import { pathApi } from '@preload/api/handlers/pathApi'
 import { publishApi } from '@preload/api/handlers/publishApi'
 import type { TElectronApi } from '@preload/api/types/api'
 
@@ -22,5 +24,9 @@ export const electronApi: TElectronApi = {
   // 取消订阅（须传入与 addListener 相同的回调引用）
   removeListener,
   // 发布api
-  publish: publishApi
+  publish: publishApi,
+  // 对话框api
+  dialog: dialogApi,
+  // 路径api
+  path: pathApi
 }

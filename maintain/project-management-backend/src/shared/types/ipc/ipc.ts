@@ -2,12 +2,14 @@
  * @file IPC 契约类型
  * @description 汇总各域 IPC 契约并派生通道工具类型；各域自身的类型请直接引入对应域文件（如 ./publish）
  */
+import type { IDialogApi } from './dialog'
+import type { IPathApi } from './path'
 import type { IPublishApi, IPublishMsg } from './publish'
 
 /**
  * API 聚合契约
  */
-export type TIpcApi = IPublishApi
+export type TIpcApi = IPublishApi & IDialogApi & IPathApi
 
 /**
  * API 通道名

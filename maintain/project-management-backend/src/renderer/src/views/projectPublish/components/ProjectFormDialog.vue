@@ -8,7 +8,7 @@ import { Folder } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { IProjectInfo, TPublishController } from '@shared/types/config/publishConfig'
-import { openFilePicker } from '@renderer/utils/filePicker'
+import { electronApi } from '@renderer/utils/electronApi'
 import { publishControllerLabels, resolveProjectKey } from '../utils/project'
 import { isValidVersion } from '../utils/version'
 
@@ -131,7 +131,7 @@ function isDuplicated(): boolean {
  * @returns 选择完成的 Promise
  */
 async function handlePickDirectory(): Promise<void> {
-  const directoryPath = await openFilePicker(true)
+  const [directoryPath] = await electronApi.dialog.openFilePicker({ selectDirectory: true })
   if (directoryPath) formData.projectPath = directoryPath
 }
 

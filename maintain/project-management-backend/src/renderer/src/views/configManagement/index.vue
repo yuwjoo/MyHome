@@ -3,13 +3,13 @@
   @description 配置并保存发布所需的本地资源目录、OSS 资源路径与 Android Studio 路径
 -->
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { ISetting } from '@shared/types/ipc/publish'
 import { resolveErrorMessage } from '@renderer/utils/error'
 import { electronApi } from '@renderer/utils/electronApi'
-import PathInput from './components/PathInput.vue'
+import PathInput from './components/pathInput/index.vue'
 
 defineOptions({ name: 'configManagement' })
 
@@ -62,6 +62,14 @@ const savedSnapshot = ref('')
 // 是否存在未保存的修改
 const isDirty = computed(() => JSON.stringify(settingForm.value) !== savedSnapshot.value)
 
+// 本地根目录变化后，相对它的 .secret 目录已失效，清空待重新选择
+watch(
+  () => settingForm.value.localAssets.rootDir,
+  () => {
+    settingForm.value.localAssets.secretDir = ''
+  }
+)
+
 // 完整本地 .secret 目录预览
 const localSecretDirPreview = computed(() =>
   joinLocalPath(settingForm.value.localAssets.rootDir, settingForm.value.localAssets.secretDir)
@@ -79,9 +87,9 @@ const ossSecretPreview = computed(() =>
  * 表单校验规则：路径全部必填，留空时对应发布环节必定失败
  */
 const rules: FormRules = {
-  'localAssets.rootDir': [{ required: true, message: '请选择或填写本地根目录', trigger: 'blur' }],
+  'localAssets.rootDir': [{ required: true, message: '请选择或填写本地根目录', trigger: 'change' }],
   'localAssets.secretDir': [
-    { required: true, message: '请填写 .secret 目录，如 .secret', trigger: 'blur' }
+    { required: true, message: '请填写 .secret 目录，如 .secret', trigger: 'change' }
   ],
   'ossAssets.rootDir': [{ required: true, message: '请填写 OSS 发布根路径', trigger: 'blur' }],
   'ossAssets.versionManifestPath': [
@@ -150,14 +158,6 @@ onMounted(() => {
 
 <template>
   <div class="config-management">
-    <el-alert
-      class="config-management__tip"
-      type="info"
-      show-icon
-      :closable="false"
-      title="配置保存在本地，保存后立即对后续发布生效；路径填错时对应的发布环节会直接失败"
-    />
-
     <el-card v-loading="loading" shadow="never">
       <template #header>
         <div class="config-management__header">
@@ -181,11 +181,10 @@ onMounted(() => {
       >
         <section class="setting-section">
           <h3 class="setting-section__title">本地资源</h3>
-          <p class="setting-section__desc">产物压缩与本地密钥都以此为基准目录，均按本机路径处理</p>
 
           <el-form-item label="本地根目录" prop="localAssets.rootDir">
             <PathInput
-              v-model="settingForm.localAssets.rootDir"
+              v-model:path="settingForm.localAssets.rootDir"
               placeholder="请选择或填写本地资源根目录"
               show-picker
             />
@@ -193,66 +192,48 @@ onMounted(() => {
 
           <el-form-item label=".secret 目录" prop="localAssets.secretDir">
             <PathInput
-              v-model="settingForm.localAssets.secretDir"
-              :root-path="settingForm.localAssets.rootDir"
+              v-model:path="settingForm.localAssets.secretDir"
+              :parent-path="settingForm.localAssets.rootDir"
               placeholder="相对本地根目录，如 .secret"
-              show-root-path
+              show-parent-path
+              :show-picker="!!settingForm.localAssets.rootDir"
+              :picker-default-path="settingForm.localAssets.rootDir"
             />
-            <p class="setting-section__hint">
-              推荐填写相对本地根目录的路径；填绝对路径时以绝对路径为准
-            </p>
           </el-form-item>
-
-          <p v-if="localSecretDirPreview" class="setting-section__preview">
-            拼接后的完整目录：{{ localSecretDirPreview }}
-          </p>
         </section>
 
         <section class="setting-section">
           <h3 class="setting-section__title">OSS 资源</h3>
-          <p class="setting-section__desc">
-            均为 OSS 上的虚拟路径（posix 风格），不以斜杠开头；其他路径相对发布根路径
-          </p>
 
           <el-form-item label="发布根路径" prop="ossAssets.rootDir">
-            <PathInput v-model="settingForm.ossAssets.rootDir" placeholder="如 MyHome" />
-            <p class="setting-section__hint">
-              项目产物按「发布根路径 / 项目类型 / 项目名称」分目录存放
-            </p>
+            <PathInput v-model:path="settingForm.ossAssets.rootDir" placeholder="如 MyHome" />
           </el-form-item>
 
           <el-form-item label="版本清单路径" prop="ossAssets.versionManifestPath">
             <PathInput
-              v-model="settingForm.ossAssets.versionManifestPath"
-              :root-path="settingForm.ossAssets.rootDir"
+              v-model:path="settingForm.ossAssets.versionManifestPath"
+              :parent-path="settingForm.ossAssets.rootDir"
               placeholder="如 ./versionManifest.json"
-              show-root-path
+              show-parent-path
             />
-            <p v-if="versionManifestPreview" class="setting-section__preview">
-              拼接后的完整路径：{{ versionManifestPreview }}
-            </p>
           </el-form-item>
 
           <el-form-item label=".secret 文件路径" prop="ossAssets.secretPath">
             <PathInput
-              v-model="settingForm.ossAssets.secretPath"
-              :root-path="settingForm.ossAssets.rootDir"
+              v-model:path="settingForm.ossAssets.secretPath"
+              :parent-path="settingForm.ossAssets.rootDir"
               placeholder="如 ./.secret.zip"
-              show-root-path
+              show-parent-path
             />
-            <p v-if="ossSecretPreview" class="setting-section__preview">
-              拼接后的完整路径：{{ ossSecretPreview }}
-            </p>
           </el-form-item>
         </section>
 
         <section class="setting-section">
           <h3 class="setting-section__title">Android Studio</h3>
-          <p class="setting-section__desc">仅发布 Android 项目时用到，未配置该类项目时可留空</p>
 
           <el-form-item label="JDK 路径">
             <PathInput
-              v-model="settingForm.androidStudio.jdkPath"
+              v-model:path="settingForm.androidStudio.jdkPath"
               placeholder="请选择或填写 JDK 根目录"
               show-picker
             />
@@ -260,7 +241,7 @@ onMounted(() => {
 
           <el-form-item label="SDK 路径">
             <PathInput
-              v-model="settingForm.androidStudio.sdkPath"
+              v-model:path="settingForm.androidStudio.sdkPath"
               placeholder="请选择或填写 Android SDK 根目录"
               show-picker
             />
