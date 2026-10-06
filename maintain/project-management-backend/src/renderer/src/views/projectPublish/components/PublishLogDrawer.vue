@@ -2,6 +2,32 @@
   @file 发布日志抽屉组件
   @description 展示单个项目或全部项目的发布日志流，支持清空当前展示的日志
 -->
+<template>
+  <el-drawer v-model="visible" :title="title" size="580px">
+    <div ref="listRef" class="log-drawer">
+      <el-empty v-if="!logs.length" description="暂无发布日志" :image-size="100" />
+      <template v-else>
+        <div v-for="log in logs" :key="log.id" class="log-drawer__item">
+          <span class="log-drawer__time">{{ formatTime(log.time) }}</span>
+          <el-tag class="log-drawer__stage" size="small" :type="stageMeta[log.stage].type">
+            {{ stageMeta[log.stage].label }}
+          </el-tag>
+          <span v-if="showProject" class="log-drawer__project">
+            {{ log.projectType }}/{{ log.projectName }}
+          </span>
+          <span class="log-drawer__message">{{ log.message }}</span>
+        </div>
+      </template>
+    </div>
+
+    <template #footer>
+      <el-button type="danger" plain :disabled="!logs.length" @click="emit('clear')">
+        清空日志
+      </el-button>
+    </template>
+  </el-drawer>
+</template>
+
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import type { IPublishLogItem } from '../types/publish'
@@ -63,32 +89,6 @@ watch(
   }
 )
 </script>
-
-<template>
-  <el-drawer v-model="visible" :title="title" size="580px">
-    <div ref="listRef" class="log-drawer">
-      <el-empty v-if="!logs.length" description="暂无发布日志" :image-size="100" />
-      <template v-else>
-        <div v-for="log in logs" :key="log.id" class="log-drawer__item">
-          <span class="log-drawer__time">{{ formatTime(log.time) }}</span>
-          <el-tag class="log-drawer__stage" size="small" :type="stageMeta[log.stage].type">
-            {{ stageMeta[log.stage].label }}
-          </el-tag>
-          <span v-if="showProject" class="log-drawer__project">
-            {{ log.projectType }}/{{ log.projectName }}
-          </span>
-          <span class="log-drawer__message">{{ log.message }}</span>
-        </div>
-      </template>
-    </div>
-
-    <template #footer>
-      <el-button type="danger" plain :disabled="!logs.length" @click="emit('clear')">
-        清空日志
-      </el-button>
-    </template>
-  </el-drawer>
-</template>
 
 <style scoped lang="scss">
 .log-drawer {

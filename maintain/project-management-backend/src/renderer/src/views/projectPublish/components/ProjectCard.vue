@@ -2,76 +2,6 @@
   @file 项目卡片组件
   @description 展示单个项目的版本与路径信息、实时发布进度，并提供版本号调整、发布 / 中止与项目维护入口
 -->
-<script setup lang="ts">
-import { computed } from 'vue'
-import { Delete, Document, Edit, Promotion, Refresh, VideoPause } from '@element-plus/icons-vue'
-import type { IProjectInfo } from '@shared/types/config/publishConfig'
-import type { IPublishLogItem } from '../types/publish'
-import { publishControllerLabels } from '../utils/project'
-import { listStages, resolveStageIndex, stageMeta } from '../utils/stage'
-import { resolveNextVersion } from '../utils/version'
-
-defineOptions({ name: 'projectCard' })
-
-/**
- * 组件属性
- */
-const props = defineProps<{
-  /** 项目信息 */
-  project: IProjectInfo
-  /** 本次发布的目标版本号（由父组件持有，便于发布后自动推进到下一版） */
-  targetVersion: string
-  /** 该项目是否正在发布 */
-  publishing: boolean
-  /** 该项目最新一条日志，用于展示当前动作，没有日志时为 null */
-  latestLog: IPublishLogItem | null
-  /** 该项目累计日志条数 */
-  logCount: number
-}>()
-
-/**
- * 组件事件
- */
-const emit = defineEmits<{
-  /** 修改目标版本号 */
-  (event: 'update:targetVersion', value: string): void
-  /** 按当前目标版本号发布 */
-  (event: 'publish', targetVersion: string): void
-  /** 中止当前发布 */
-  (event: 'abort'): void
-  /** 编辑项目 */
-  (event: 'edit'): void
-  /** 删除项目 */
-  (event: 'remove'): void
-  /** 查看该项目日志 */
-  (event: 'viewLog'): void
-}>()
-
-// 发布流程的全部阶段，用于渲染步骤条
-const stages = listStages()
-// 发布控制器展示名称
-const controllerLabel = computed(
-  () => publishControllerLabels[props.project.publishController] ?? props.project.publishController
-)
-// 当前阶段在流程中的序号，未开始或日志已清空时为 -1
-const stageIndex = computed(() => (props.latestLog ? resolveStageIndex(props.latestLog.stage) : -1))
-
-/**
- * 同步目标版本号输入
- * @param value 输入框最新值
- */
-function handleVersionInput(value: string | number): void {
-  emit('update:targetVersion', String(value).trim())
-}
-
-/**
- * 一键填入下一版本号：在当前最新版本基础上末段加一
- */
-function fillNextVersion(): void {
-  emit('update:targetVersion', resolveNextVersion(props.project.latestVersion))
-}
-</script>
-
 <template>
   <el-card class="project-card" shadow="hover">
     <template #header>
@@ -170,6 +100,76 @@ function fillNextVersion(): void {
     </div>
   </el-card>
 </template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { Delete, Document, Edit, Promotion, Refresh, VideoPause } from '@element-plus/icons-vue'
+import type { IProjectInfo } from '@shared/types/config/publishConfig'
+import type { IPublishLogItem } from '../types/publish'
+import { publishControllerLabels } from '../utils/project'
+import { listStages, resolveStageIndex, stageMeta } from '../utils/stage'
+import { resolveNextVersion } from '../utils/version'
+
+defineOptions({ name: 'projectCard' })
+
+/**
+ * 组件属性
+ */
+const props = defineProps<{
+  /** 项目信息 */
+  project: IProjectInfo
+  /** 本次发布的目标版本号（由父组件持有，便于发布后自动推进到下一版） */
+  targetVersion: string
+  /** 该项目是否正在发布 */
+  publishing: boolean
+  /** 该项目最新一条日志，用于展示当前动作，没有日志时为 null */
+  latestLog: IPublishLogItem | null
+  /** 该项目累计日志条数 */
+  logCount: number
+}>()
+
+/**
+ * 组件事件
+ */
+const emit = defineEmits<{
+  /** 修改目标版本号 */
+  (event: 'update:targetVersion', value: string): void
+  /** 按当前目标版本号发布 */
+  (event: 'publish', targetVersion: string): void
+  /** 中止当前发布 */
+  (event: 'abort'): void
+  /** 编辑项目 */
+  (event: 'edit'): void
+  /** 删除项目 */
+  (event: 'remove'): void
+  /** 查看该项目日志 */
+  (event: 'viewLog'): void
+}>()
+
+// 发布流程的全部阶段，用于渲染步骤条
+const stages = listStages()
+// 发布控制器展示名称
+const controllerLabel = computed(
+  () => publishControllerLabels[props.project.publishController] ?? props.project.publishController
+)
+// 当前阶段在流程中的序号，未开始或日志已清空时为 -1
+const stageIndex = computed(() => (props.latestLog ? resolveStageIndex(props.latestLog.stage) : -1))
+
+/**
+ * 同步目标版本号输入
+ * @param value 输入框最新值
+ */
+function handleVersionInput(value: string | number): void {
+  emit('update:targetVersion', String(value).trim())
+}
+
+/**
+ * 一键填入下一版本号：在当前最新版本基础上末段加一
+ */
+function fillNextVersion(): void {
+  emit('update:targetVersion', resolveNextVersion(props.project.latestVersion))
+}
+</script>
 
 <style scoped lang="scss">
 .project-card {

@@ -2,6 +2,92 @@
   @file 项目发布页
   @description 以卡片形式维护本地项目：增删改项目、指定目标版本发布 / 中止发布，并实时展示发布日志
 -->
+<template>
+  <div class="publish-page">
+    <el-alert
+      v-if="missingConfigs.length"
+      class="publish-page__alert"
+      type="warning"
+      show-icon
+      :closable="false"
+    >
+      <div class="publish-page__alert-content">
+        <span>以下配置尚未填写，发布会在对应环节失败：{{ missingConfigs.join('、') }}</span>
+        <el-button link type="primary" @click="goToConfig">前往配置</el-button>
+      </div>
+    </el-alert>
+
+    <el-card shadow="never" class="publish-page__toolbar">
+      <div class="toolbar">
+        <el-input
+          v-model="keyword"
+          class="toolbar__search"
+          placeholder="搜索项目名称 / 类型 / 路径"
+          clearable
+          :prefix-icon="Search"
+        />
+        <el-select v-model="filterType" class="toolbar__type" placeholder="全部项目类型" clearable>
+          <el-option v-for="type in typeOptions" :key="type" :label="type" :value="type" />
+        </el-select>
+        <div class="toolbar__actions">
+          <el-badge :value="logCount" :hidden="!logCount" :max="99">
+            <el-button :icon="Document" @click="openLogDrawer('')">全部日志</el-button>
+          </el-badge>
+          <el-button :icon="Refresh" @click="fetchProjectList">刷新</el-button>
+          <el-button type="primary" :icon="Plus" @click="openCreate">新增项目</el-button>
+        </div>
+      </div>
+    </el-card>
+
+    <!--
+      卡片区：自适应列 + 每列最小 320px
+      容器变窄时先减列数，减到一列后由内容区横向滚动，避免卡片被压到内部错位
+    -->
+    <div v-loading="loading" class="publish-page__grid">
+      <ProjectCard
+        v-for="project in filteredProjects"
+        :key="resolveProjectKey(project)"
+        :project="project"
+        :target-version="draftVersion(project)"
+        :publishing="!!publishingMap[resolveProjectKey(project)]"
+        :latest-log="latestLogOf(project)"
+        :log-count="logsOf(resolveProjectKey(project)).length"
+        @update:target-version="handleVersionUpdate(project, $event)"
+        @publish="handlePublish(project, $event)"
+        @abort="handleAbort(project)"
+        @edit="openEdit(project)"
+        @remove="handleRemove(project)"
+        @view-log="openLogDrawer(resolveProjectKey(project))"
+      />
+    </div>
+
+    <el-empty v-if="!loading && !filteredProjects.length" :image-size="120">
+      <template #description>
+        <span>{{ emptyDescription }}</span>
+      </template>
+      <el-button v-if="!projects.length" type="primary" :icon="Plus" @click="openCreate">
+        新增项目
+      </el-button>
+    </el-empty>
+
+    <PublishLogDrawer
+      v-model="logVisible"
+      :title="logDrawerTitle"
+      :logs="currentLogs"
+      :show-project="!logTargetKey"
+      @clear="handleClearLogs"
+    />
+
+    <ProjectFormDialog
+      v-model="formVisible"
+      :project="editingProject"
+      :projects="projects"
+      :submitting="submitting"
+      @submit="handleFormSubmit"
+    />
+  </div>
+</template>
+
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { Document, Plus, Refresh, Search } from '@element-plus/icons-vue'
@@ -324,92 +410,6 @@ onMounted(() => {
   void fetchSetting()
 })
 </script>
-
-<template>
-  <div class="publish-page">
-    <el-alert
-      v-if="missingConfigs.length"
-      class="publish-page__alert"
-      type="warning"
-      show-icon
-      :closable="false"
-    >
-      <div class="publish-page__alert-content">
-        <span>以下配置尚未填写，发布会在对应环节失败：{{ missingConfigs.join('、') }}</span>
-        <el-button link type="primary" @click="goToConfig">前往配置</el-button>
-      </div>
-    </el-alert>
-
-    <el-card shadow="never" class="publish-page__toolbar">
-      <div class="toolbar">
-        <el-input
-          v-model="keyword"
-          class="toolbar__search"
-          placeholder="搜索项目名称 / 类型 / 路径"
-          clearable
-          :prefix-icon="Search"
-        />
-        <el-select v-model="filterType" class="toolbar__type" placeholder="全部项目类型" clearable>
-          <el-option v-for="type in typeOptions" :key="type" :label="type" :value="type" />
-        </el-select>
-        <div class="toolbar__actions">
-          <el-badge :value="logCount" :hidden="!logCount" :max="99">
-            <el-button :icon="Document" @click="openLogDrawer('')">全部日志</el-button>
-          </el-badge>
-          <el-button :icon="Refresh" @click="fetchProjectList">刷新</el-button>
-          <el-button type="primary" :icon="Plus" @click="openCreate">新增项目</el-button>
-        </div>
-      </div>
-    </el-card>
-
-    <!--
-      卡片区：自适应列 + 每列最小 320px
-      容器变窄时先减列数，减到一列后由内容区横向滚动，避免卡片被压到内部错位
-    -->
-    <div v-loading="loading" class="publish-page__grid">
-      <ProjectCard
-        v-for="project in filteredProjects"
-        :key="resolveProjectKey(project)"
-        :project="project"
-        :target-version="draftVersion(project)"
-        :publishing="!!publishingMap[resolveProjectKey(project)]"
-        :latest-log="latestLogOf(project)"
-        :log-count="logsOf(resolveProjectKey(project)).length"
-        @update:target-version="handleVersionUpdate(project, $event)"
-        @publish="handlePublish(project, $event)"
-        @abort="handleAbort(project)"
-        @edit="openEdit(project)"
-        @remove="handleRemove(project)"
-        @view-log="openLogDrawer(resolveProjectKey(project))"
-      />
-    </div>
-
-    <el-empty v-if="!loading && !filteredProjects.length" :image-size="120">
-      <template #description>
-        <span>{{ emptyDescription }}</span>
-      </template>
-      <el-button v-if="!projects.length" type="primary" :icon="Plus" @click="openCreate">
-        新增项目
-      </el-button>
-    </el-empty>
-
-    <PublishLogDrawer
-      v-model="logVisible"
-      :title="logDrawerTitle"
-      :logs="currentLogs"
-      :show-project="!logTargetKey"
-      @clear="handleClearLogs"
-    />
-
-    <ProjectFormDialog
-      v-model="formVisible"
-      :project="editingProject"
-      :projects="projects"
-      :submitting="submitting"
-      @submit="handleFormSubmit"
-    />
-  </div>
-</template>
 
 <style scoped lang="scss">
 .publish-page {

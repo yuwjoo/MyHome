@@ -2,6 +2,75 @@
   @file 项目表单弹窗组件
   @description 新增 / 修改本地项目：录入项目类型、名称、路径、发布控制器与当前版本号
 -->
+<template>
+  <el-dialog
+    v-model="visible"
+    :title="isEdit ? '修改项目' : '新增项目'"
+    width="560px"
+    :close-on-click-modal="false"
+  >
+    <el-alert
+      v-if="isEdit"
+      class="project-form__tip"
+      type="info"
+      show-icon
+      :closable="false"
+      title="项目类型与项目名称是项目的唯一标识，不支持修改；如需调整请先删除该项目再新增"
+    />
+
+    <el-form ref="formRef" :model="formData" :rules="rules" label-width="96px" @submit.prevent>
+      <el-form-item label="项目类型" prop="projectType">
+        <el-input
+          v-model="formData.projectType"
+          placeholder="如 android / web，与项目名称共同定位项目"
+          :disabled="isEdit"
+          clearable
+        />
+      </el-form-item>
+
+      <el-form-item label="项目名称" prop="projectName">
+        <el-input
+          v-model="formData.projectName"
+          placeholder="如 MyHomeApp"
+          :disabled="isEdit"
+          clearable
+        />
+      </el-form-item>
+
+      <el-form-item label="项目路径" prop="projectPath">
+        <el-input v-model="formData.projectPath" placeholder="请选择项目根目录" clearable>
+          <template #append>
+            <el-button :icon="Folder" @click="handlePickDirectory">选择</el-button>
+          </template>
+        </el-input>
+      </el-form-item>
+
+      <el-form-item label="发布控制器" prop="publishController">
+        <el-select v-model="formData.publishController" class="project-form__select">
+          <el-option
+            v-for="option in controllerOptions"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
+          />
+        </el-select>
+      </el-form-item>
+
+      <el-form-item label="当前版本" prop="latestVersion">
+        <el-input v-model="formData.latestVersion" placeholder="如 1.0.0" clearable />
+        <p class="project-form__hint">
+          已发布的最新版本号；发布成功后会自动更新，仅在本地记录与实际不一致时手动修正
+        </p>
+      </el-form-item>
+    </el-form>
+
+    <template #footer>
+      <el-button @click="visible = false">取消</el-button>
+      <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
+    </template>
+  </el-dialog>
+</template>
+
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { Folder } from '@element-plus/icons-vue'
@@ -149,75 +218,6 @@ async function handleSubmit(): Promise<void> {
   emit('submit', { ...formData })
 }
 </script>
-
-<template>
-  <el-dialog
-    v-model="visible"
-    :title="isEdit ? '修改项目' : '新增项目'"
-    width="560px"
-    :close-on-click-modal="false"
-  >
-    <el-alert
-      v-if="isEdit"
-      class="project-form__tip"
-      type="info"
-      show-icon
-      :closable="false"
-      title="项目类型与项目名称是项目的唯一标识，不支持修改；如需调整请先删除该项目再新增"
-    />
-
-    <el-form ref="formRef" :model="formData" :rules="rules" label-width="96px" @submit.prevent>
-      <el-form-item label="项目类型" prop="projectType">
-        <el-input
-          v-model="formData.projectType"
-          placeholder="如 android / web，与项目名称共同定位项目"
-          :disabled="isEdit"
-          clearable
-        />
-      </el-form-item>
-
-      <el-form-item label="项目名称" prop="projectName">
-        <el-input
-          v-model="formData.projectName"
-          placeholder="如 MyHomeApp"
-          :disabled="isEdit"
-          clearable
-        />
-      </el-form-item>
-
-      <el-form-item label="项目路径" prop="projectPath">
-        <el-input v-model="formData.projectPath" placeholder="请选择项目根目录" clearable>
-          <template #append>
-            <el-button :icon="Folder" @click="handlePickDirectory">选择</el-button>
-          </template>
-        </el-input>
-      </el-form-item>
-
-      <el-form-item label="发布控制器" prop="publishController">
-        <el-select v-model="formData.publishController" class="project-form__select">
-          <el-option
-            v-for="option in controllerOptions"
-            :key="option.value"
-            :label="option.label"
-            :value="option.value"
-          />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item label="当前版本" prop="latestVersion">
-        <el-input v-model="formData.latestVersion" placeholder="如 1.0.0" clearable />
-        <p class="project-form__hint">
-          已发布的最新版本号；发布成功后会自动更新，仅在本地记录与实际不一致时手动修正
-        </p>
-      </el-form-item>
-    </el-form>
-
-    <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
-    </template>
-  </el-dialog>
-</template>
 
 <style scoped lang="scss">
 .project-form {
