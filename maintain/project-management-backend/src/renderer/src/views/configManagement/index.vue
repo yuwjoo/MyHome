@@ -120,7 +120,6 @@ import type { FormInstance, FormRules } from 'element-plus'
 import type { ISetting } from '@shared/types/ipc/publish'
 import { resolveErrorMessage } from '@renderer/utils/error'
 import { electronApi } from '@renderer/utils/electronApi'
-import PathInput from './components/pathInput/index.vue'
 
 defineOptions({
   name: 'configManagement'

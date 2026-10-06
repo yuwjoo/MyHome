@@ -102,58 +102,31 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, toRefs } from 'vue'
 import { Delete, Document, Edit, Promotion, Refresh, VideoPause } from '@element-plus/icons-vue'
-import type { IProjectInfo } from '@shared/types/config/publishConfig'
-import type { IPublishLogItem } from '../types/publish'
-import { publishControllerLabels } from '../utils/project'
-import { listStages, resolveStageIndex, stageMeta } from '../utils/stage'
-import { resolveNextVersion } from '../utils/version'
+import { projectCardProps } from './defines/props'
+import type { TProjectCardEmits } from './types/defines'
+import { publishControllerLabels } from '../../utils/project'
+import { listStages, resolveStageIndex, stageMeta } from '../../utils/stage'
+import { resolveNextVersion } from '../../utils/version'
 
-defineOptions({ name: 'projectCard' })
+defineOptions({
+  name: 'projectCard'
+})
 
-/**
- * 组件属性
- */
-const props = defineProps<{
-  /** 项目信息 */
-  project: IProjectInfo
-  /** 本次发布的目标版本号（由父组件持有，便于发布后自动推进到下一版） */
-  targetVersion: string
-  /** 该项目是否正在发布 */
-  publishing: boolean
-  /** 该项目最新一条日志，用于展示当前动作，没有日志时为 null */
-  latestLog: IPublishLogItem | null
-  /** 该项目累计日志条数 */
-  logCount: number
-}>()
+const props = defineProps(projectCardProps)
+const emit = defineEmits<TProjectCardEmits>()
 
-/**
- * 组件事件
- */
-const emit = defineEmits<{
-  /** 修改目标版本号 */
-  (event: 'update:targetVersion', value: string): void
-  /** 按当前目标版本号发布 */
-  (event: 'publish', targetVersion: string): void
-  /** 中止当前发布 */
-  (event: 'abort'): void
-  /** 编辑项目 */
-  (event: 'edit'): void
-  /** 删除项目 */
-  (event: 'remove'): void
-  /** 查看该项目日志 */
-  (event: 'viewLog'): void
-}>()
+const { project, targetVersion, publishing, latestLog, logCount } = toRefs(props)
 
 // 发布流程的全部阶段，用于渲染步骤条
 const stages = listStages()
 // 发布控制器展示名称
 const controllerLabel = computed(
-  () => publishControllerLabels[props.project.publishController] ?? props.project.publishController
+  () => publishControllerLabels[project.value.publishController] ?? project.value.publishController
 )
 // 当前阶段在流程中的序号，未开始或日志已清空时为 -1
-const stageIndex = computed(() => (props.latestLog ? resolveStageIndex(props.latestLog.stage) : -1))
+const stageIndex = computed(() => (latestLog.value ? resolveStageIndex(latestLog.value.stage) : -1))
 
 /**
  * 同步目标版本号输入
@@ -167,7 +140,7 @@ function handleVersionInput(value: string | number): void {
  * 一键填入下一版本号：在当前最新版本基础上末段加一
  */
 function fillNextVersion(): void {
-  emit('update:targetVersion', resolveNextVersion(props.project.latestVersion))
+  emit('update:targetVersion', resolveNextVersion(project.value.latestVersion))
 }
 </script>
 

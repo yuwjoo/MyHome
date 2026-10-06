@@ -34,7 +34,9 @@
             <el-button :icon="Document" @click="openLogDrawer('')">全部日志</el-button>
           </el-badge>
           <el-button :icon="Refresh" @click="fetchProjectList">刷新</el-button>
-          <el-button type="primary" :icon="Plus" @click="openCreate">新增项目</el-button>
+          <el-button type="primary" :icon="Plus" @click="formDialogRef?.openCreate()">
+            新增项目
+          </el-button>
         </div>
       </div>
     </el-card>
@@ -55,7 +57,7 @@
         @update:target-version="handleVersionUpdate(project, $event)"
         @publish="handlePublish(project, $event)"
         @abort="handleAbort(project)"
-        @edit="openEdit(project)"
+        @edit="formDialogRef?.openEdit(project)"
         @remove="handleRemove(project)"
         @view-log="openLogDrawer(resolveProjectKey(project))"
       />
@@ -65,7 +67,12 @@
       <template #description>
         <span>{{ emptyDescription }}</span>
       </template>
-      <el-button v-if="!projects.length" type="primary" :icon="Plus" @click="openCreate">
+      <el-button
+        v-if="!projects.length"
+        type="primary"
+        :icon="Plus"
+        @click="formDialogRef?.openCreate()"
+      >
         新增项目
       </el-button>
     </el-empty>
@@ -78,18 +85,12 @@
       @clear="handleClearLogs"
     />
 
-    <ProjectFormDialog
-      v-model="formVisible"
-      :project="editingProject"
-      :projects="projects"
-      :submitting="submitting"
-      @submit="handleFormSubmit"
-    />
+    <ProjectFormDialog ref="formDialogRef" :projects="projects" @change="handleProjectChange" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, useTemplateRef } from 'vue'
 import { Document, Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
@@ -97,9 +98,10 @@ import type { IProjectInfo } from '@shared/types/config/publishConfig'
 import type { ISetting } from '@shared/types/ipc/publish'
 import { resolveErrorMessage } from '@renderer/utils/error'
 import { electronApi } from '@renderer/utils/electronApi'
-import ProjectCard from './components/ProjectCard.vue'
-import ProjectFormDialog from './components/ProjectFormDialog.vue'
-import PublishLogDrawer from './components/PublishLogDrawer.vue'
+import ProjectCard from './components/projectCard/index.vue'
+import ProjectFormDialog from './components/projectFormDialog/index.vue'
+import type { IProjectFormDialogExpose } from './components/projectFormDialog/types/defines'
+import PublishLogDrawer from './components/publishLogDrawer/index.vue'
 import { usePublishLog } from './hooks/usePublishLog'
 import type { IPublishLogItem } from './types/publish'
 import { resolveProjectKey } from './utils/project'
@@ -119,12 +121,8 @@ const keyword = ref('')
 const filterType = ref('')
 // 发布资源配置，仅用于提示配置是否完整
 const setting = ref<ISetting | null>(null)
-// 项目弹窗是否展示
-const formVisible = ref(false)
-// 正在修改的项目，为空表示新增
-const editingProject = ref<IProjectInfo | null>(null)
-// 是否正在保存项目
-const submitting = ref(false)
+// 项目表单弹窗：新增 / 修改都由弹窗内部完成，这里只持有打开入口
+const formDialogRef = useTemplateRef<IProjectFormDialogExpose>('formDialogRef')
 // 各项目的目标版本号草稿：发布成功后清掉该草稿，自动推进到下一版
 const versionDrafts = ref<Record<string, string>>({})
 // 正在发布的项目：key 为项目标识，value 为本次发布的目标版本号
@@ -313,39 +311,10 @@ async function handleAbort(project: IProjectInfo): Promise<void> {
 }
 
 /**
- * 打开新增项目弹窗
+ * 项目新增 / 修改成功后刷新列表
  */
-function openCreate(): void {
-  editingProject.value = null
-  formVisible.value = true
-}
-
-/**
- * 打开修改项目弹窗
- * @param project 待修改的项目
- */
-function openEdit(project: IProjectInfo): void {
-  editingProject.value = { ...project }
-  formVisible.value = true
-}
-
-/**
- * 保存项目（新增或修改）
- * @param project 表单提交的项目信息
- * @returns 保存完成的 Promise
- */
-async function handleFormSubmit(project: IProjectInfo): Promise<void> {
-  submitting.value = true
-  try {
-    await electronApi.publish.saveLocalProject(project)
-    ElMessage.success(`项目已保存：${resolveProjectKey(project)}`)
-    formVisible.value = false
-    await fetchProjectList()
-  } catch (error) {
-    ElMessage.error(resolveErrorMessage(error, '保存项目失败'))
-  } finally {
-    submitting.value = false
-  }
+function handleProjectChange(): void {
+  void fetchProjectList()
 }
 
 /**

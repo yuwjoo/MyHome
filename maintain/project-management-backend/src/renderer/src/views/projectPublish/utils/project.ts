@@ -1,8 +1,22 @@
 /**
  * @file 项目工具
- * @description 生成项目在本地的唯一标识，并提供发布控制器的中文说明
+ * @description 生成项目在本地的唯一标识与一份新项目的初始数据，并提供发布控制器的中文说明
  */
-import type { TPublishController } from '@shared/types/config/publishConfig'
+import type { IProjectInfo, TPublishController } from '@shared/types/config/publishConfig'
+
+/**
+ * 生成一份新项目的初始数据
+ * @returns 版本号为 0.0.0、控制器为通用 Web 的项目信息
+ */
+export function createEmptyProject(): IProjectInfo {
+  return {
+    projectName: '',
+    projectPath: '',
+    latestVersion: '0.0.0',
+    projectType: '',
+    publishController: 'generalWeb'
+  }
+}
 
 /**
  * 生成项目标识：项目类型 / 项目名称

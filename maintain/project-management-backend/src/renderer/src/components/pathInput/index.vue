@@ -1,6 +1,7 @@
 <!--
   @file 路径输入组件
-  @description 
+  @description 路径录入框：可带父路径前缀展示，可选系统文件选择器直接选路径，
+    通过 v-model:path 双向绑定输入框中的路径，失焦或选择后抛出拼接好的完整路径
 -->
 <template>
   <el-input

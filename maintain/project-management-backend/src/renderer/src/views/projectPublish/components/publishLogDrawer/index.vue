@@ -29,38 +29,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
-import type { IPublishLogItem } from '../types/publish'
-import { stageMeta } from '../utils/stage'
+import { computed, nextTick, useTemplateRef, watch } from 'vue'
+import { publishLogDrawerProps } from './defines/props'
+import type { TPublishLogDrawerEmits } from './types/defines'
+import { stageMeta } from '../../utils/stage'
 
-defineOptions({ name: 'publishLogDrawer' })
+defineOptions({
+  name: 'publishLogDrawer'
+})
 
-/**
- * 组件属性
- */
-const props = defineProps<{
-  /** 是否展示抽屉 */
-  modelValue: boolean
-  /** 抽屉标题 */
-  title: string
-  /** 当前展示的日志列表 */
-  logs: IPublishLogItem[]
-  /** 是否展示日志所属项目（汇总日志时需要） */
-  showProject?: boolean
-}>()
+const props = defineProps(publishLogDrawerProps)
+const emit = defineEmits<TPublishLogDrawerEmits>()
 
-/**
- * 组件事件
- */
-const emit = defineEmits<{
-  /** 更新抽屉展示状态 */
-  (event: 'update:modelValue', value: boolean): void
-  /** 清空当前展示的日志 */
-  (event: 'clear'): void
-}>()
-
-// 日志滚动容器
-const listRef = ref<HTMLElement>()
+// 日志滚动容器：按模板上的 ref 名称取，值为 HTMLElement 或 null
+const listRef = useTemplateRef<HTMLElement>('listRef')
 // 抽屉展示状态：受父组件 v-model 控制
 const visible = computed({
   get: () => props.modelValue,

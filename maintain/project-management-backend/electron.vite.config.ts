@@ -47,8 +47,10 @@ export default defineConfig(({ mode }) => {
           resolvers: [ElementPlusResolver()],
           dts: resolve('src/renderer/src/types/auto-imports.d.ts')
         }),
-        // 组件按需注册：模板中出现的 ElXxx 自动引入组件与样式
+        // 组件按需注册：模板中出现的 ElXxx 自动引入组件与样式；
+        // src/renderer/src/components 下的本地组件同样自动注册，无需手写 import
         Components({
+          dirs: [resolve('src/renderer/src/components')],
           resolvers: [ElementPlusResolver()],
           dts: resolve('src/renderer/src/types/components.d.ts')
         })
