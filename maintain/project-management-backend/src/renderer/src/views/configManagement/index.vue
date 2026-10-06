@@ -2,124 +2,6 @@
   @file 配置管理页
   @description 配置并保存发布所需的本地资源目录、OSS 资源路径与 Android Studio 路径
 -->
-<script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
-import type { ISetting } from '@shared/types/ipc/publish'
-import { resolveErrorMessage } from '@renderer/utils/error'
-import { electronApi } from '@renderer/utils/electronApi'
-import PathInput from './components/pathInput/index.vue'
-
-defineOptions({ name: 'configManagement' })
-
-/**
- * 生成一份空设置数据
- * @returns 各配置路径均为空的设置数据
- */
-function createEmptySetting(): ISetting {
-  return {
-    localAssets: { rootDir: '', secretDir: '' },
-    ossAssets: { rootDir: '', versionManifestPath: '', secretPath: '' },
-    androidStudio: { jdkPath: '', sdkPath: '' }
-  }
-}
-
-// 表单实例
-const formRef = ref<FormInstance>()
-// 是否正在读取配置
-const loading = ref(true)
-// 是否正在保存配置
-const saving = ref(false)
-// 表单数据
-const settingForm = ref<ISetting>(createEmptySetting())
-// 已保存配置的快照（序列化值）：既用于判断是否有未保存改动，也用于还原
-const savedSnapshot = ref('')
-
-// 是否存在未保存的修改
-const isDirty = computed(() => JSON.stringify(settingForm.value) !== savedSnapshot.value)
-
-// 本地根目录变化后，相对它的 .secret 目录已失效，清空待重新选择
-watch(
-  () => settingForm.value.localAssets.rootDir,
-  () => {
-    settingForm.value.localAssets.secretDir = ''
-  }
-)
-
-/**
- * 表单校验规则：路径全部必填，留空时对应发布环节必定失败
- */
-const rules: FormRules = {
-  'localAssets.rootDir': [{ required: true, message: '请选择或填写本地根目录', trigger: 'change' }],
-  'localAssets.secretDir': [
-    { required: true, message: '请填写 .secret 目录，如 .secret', trigger: 'change' }
-  ],
-  'ossAssets.rootDir': [{ required: true, message: '请填写 OSS 发布根路径', trigger: 'blur' }],
-  'ossAssets.versionManifestPath': [
-    { required: true, message: '请填写版本清单文件路径', trigger: 'blur' }
-  ],
-  'ossAssets.secretPath': [{ required: true, message: '请填写 .secret 文件路径', trigger: 'blur' }]
-}
-
-/**
- * 读取当前配置
- * @returns 读取完成的 Promise
- */
-async function fetchSetting(): Promise<void> {
-  loading.value = true
-  try {
-    const setting = await electronApi.publish.getSetting()
-    settingForm.value = setting
-    savedSnapshot.value = JSON.stringify(setting)
-  } catch (error) {
-    ElMessage.error(resolveErrorMessage(error, '获取配置失败'))
-  } finally {
-    loading.value = false
-  }
-}
-
-/**
- * 保存配置
- * @returns 保存完成的 Promise
- */
-async function handleSave(): Promise<void> {
-  const form = formRef.value
-  if (!form) return
-  const valid = await form.validate().catch(() => false)
-  if (!valid) {
-    ElMessage.warning('请先补全必填的路径配置')
-    return
-  }
-  saving.value = true
-  try {
-    const setting = await electronApi.publish.updateSetting(settingForm.value)
-    settingForm.value = setting
-    savedSnapshot.value = JSON.stringify(setting)
-    ElMessage.success('配置已保存')
-  } catch (error) {
-    ElMessage.error(resolveErrorMessage(error, '保存配置失败'))
-  } finally {
-    saving.value = false
-  }
-}
-
-/**
- * 还原到最近一次保存的配置
- *
- * 配置读取失败时没有可用快照，此时不做还原，避免把表单清成一个畸形状态
- */
-function handleReset(): void {
-  if (!savedSnapshot.value) return
-  settingForm.value = JSON.parse(savedSnapshot.value) as ISetting
-  formRef.value?.clearValidate()
-}
-
-onMounted(() => {
-  void fetchSetting()
-})
-</script>
-
 <template>
   <div class="config-management">
     <el-card v-loading="loading" shadow="never">
@@ -152,6 +34,7 @@ onMounted(() => {
               placeholder="请选择或填写本地资源根目录"
               allow-file-picker
               clearable
+              @change="handleLocalRootDirChange"
             />
           </el-form-item>
 
@@ -224,6 +107,123 @@ onMounted(() => {
     </el-card>
   </div>
 </template>
+
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
+import type { ISetting } from '@shared/types/ipc/publish'
+import { resolveErrorMessage } from '@renderer/utils/error'
+import { electronApi } from '@renderer/utils/electronApi'
+import PathInput from './components/pathInput/index.vue'
+
+defineOptions({
+  name: 'configManagement'
+})
+
+/**
+ * 生成一份空设置数据
+ * @returns 各配置路径均为空的设置数据
+ */
+function createEmptySetting(): ISetting {
+  return {
+    localAssets: { rootDir: '', secretDir: '' },
+    ossAssets: { rootDir: '', versionManifestPath: '', secretPath: '' },
+    androidStudio: { jdkPath: '', sdkPath: '' }
+  }
+}
+
+// 表单实例
+const formRef = ref<FormInstance>()
+// 是否正在读取配置
+const loading = ref(true)
+// 是否正在保存配置
+const saving = ref(false)
+// 表单数据
+const settingForm = ref<ISetting>(createEmptySetting())
+// 已保存配置的快照（序列化值）：既用于判断是否有未保存改动，也用于还原
+const savedSnapshot = ref('')
+
+// 是否存在未保存的修改
+const isDirty = computed(() => JSON.stringify(settingForm.value) !== savedSnapshot.value)
+
+/**
+ * 处理本地根目录变化：相对它的 .secret 目录已失效，清空待重新选择
+ */
+function handleLocalRootDirChange(): void {
+  settingForm.value.localAssets.secretDir = ''
+}
+
+/**
+ * 表单校验规则：路径全部必填，留空时对应发布环节必定失败
+ */
+const rules: FormRules = {
+  'localAssets.rootDir': [{ required: true, message: '请选择或填写本地根目录', trigger: 'change' }],
+  'localAssets.secretDir': [
+    { required: true, message: '请填写 .secret 目录，如 .secret', trigger: 'change' }
+  ],
+  'ossAssets.rootDir': [{ required: true, message: '请填写 OSS 发布根路径', trigger: 'blur' }],
+  'ossAssets.versionManifestPath': [
+    { required: true, message: '请填写版本清单文件路径', trigger: 'blur' }
+  ],
+  'ossAssets.secretPath': [{ required: true, message: '请填写 .secret 文件路径', trigger: 'blur' }]
+}
+
+/**
+ * 读取当前配置
+ * @returns 读取完成的 Promise
+ */
+async function fetchSetting(): Promise<void> {
+  loading.value = true
+  try {
+    const setting = await electronApi.publish.getSetting()
+    settingForm.value = setting
+    savedSnapshot.value = JSON.stringify(setting)
+  } catch (error) {
+    ElMessage.error(resolveErrorMessage(error, '获取配置失败'))
+  } finally {
+    loading.value = false
+  }
+}
+
+/**
+ * 保存配置
+ * @returns 保存完成的 Promise
+ */
+async function handleSave(): Promise<void> {
+  const form = formRef.value
+  if (!form) return
+  const valid = await form.validate().catch(() => false)
+  if (!valid) {
+    ElMessage.warning('请先补全必填的路径配置')
+    return
+  }
+  saving.value = true
+  try {
+    const setting = await electronApi.publish.updateSetting(settingForm.value)
+    settingForm.value = setting
+    savedSnapshot.value = JSON.stringify(setting)
+    ElMessage.success('配置已保存')
+  } catch (error) {
+    ElMessage.error(resolveErrorMessage(error, '保存配置失败'))
+  } finally {
+    saving.value = false
+  }
+}
+
+/**
+ * 还原到最近一次保存的配置
+ *
+ * 配置读取失败时没有可用快照，此时不做还原，避免把表单清成一个畸形状态
+ */
+function handleReset(): void {
+  if (!savedSnapshot.value) return
+  settingForm.value = JSON.parse(savedSnapshot.value) as ISetting
+  formRef.value?.clearValidate()
+}
+
+fetchSetting()
+</script>
 
 <style scoped lang="scss">
 .config-management {

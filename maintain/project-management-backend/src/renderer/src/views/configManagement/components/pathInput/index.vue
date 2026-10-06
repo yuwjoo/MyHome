@@ -10,6 +10,7 @@
     :disabled="disabled"
     :readonly="!editable"
     :clearable="clearable"
+    @change="handleChange"
     @blur="handleBlur"
   >
     <!-- 父路径展示区 -->
@@ -73,6 +74,14 @@ async function getFullPath(): Promise<string> {
 }
 
 /**
+ * 处理输入框内容变化
+ * @param value 输入框的最新内容
+ */
+function handleChange(value: string): void {
+  emit('change', String(value ?? ''))
+}
+
+/**
  * 处理输入框失焦
  * @returns 处理完成的 Promise
  */
@@ -96,6 +105,7 @@ async function handlePick(): Promise<void> {
   } else {
     path.value = picked
   }
+  handleChange(path.value)
   await updateFullPath()
 }
 

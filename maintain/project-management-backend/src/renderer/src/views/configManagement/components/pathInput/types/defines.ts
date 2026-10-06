@@ -32,6 +32,8 @@ export type IPublicPathInputProps = ExtractPublicPropTypes<typeof pathInputProps
  * 路径输入组件 emits
  */
 export type TPathInputEmits = {
+  /** 变化：输入框内容经 el-input 确认后抛出，携带输入框中的路径，供表单校验等外部监听 */
+  (e: 'change', path: string): void
   /** 完整路径变化：失焦或选择文件后、且完整路径确实变了才抛出，携带最新的完整路径 */
   (e: 'full-path-change', fullPath: string): void
 }
