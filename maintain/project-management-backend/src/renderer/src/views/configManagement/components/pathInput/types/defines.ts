@@ -3,7 +3,16 @@
  * @description 由 options 式 props 定义推导对内与对外两种类型，并声明对外抛出的事件
  */
 import type { ExtractPropTypes, ExtractPublicPropTypes } from 'vue'
-import type { pathInputProps } from '../common/props'
+import type { pathInputProps } from '../defines/props'
+
+/**
+ * 文件选择器目标
+ */
+export type TPickerTarget =
+  /** 目录 */
+  | 'directory'
+  /** 文件 */
+  | 'file'
 
 /**
  * 路径输入组件对内 props
@@ -23,6 +32,6 @@ export type IPublicPathInputProps = ExtractPublicPropTypes<typeof pathInputProps
  * 路径输入组件 emits
  */
 export type TPathInputEmits = {
-  /** 路径变化：手动输入或选择文件后抛出，携带输入框路径与完整路径 */
-  (e: 'change', path: string, fullPath: string): void
+  /** 完整路径变化：失焦或选择文件后、且完整路径确实变了才抛出，携带最新的完整路径 */
+  (e: 'full-path-change', fullPath: string): void
 }

@@ -10,10 +10,10 @@
     :disabled="disabled"
     :readonly="!editable"
     :clearable="clearable"
-    @change="handleInputChange"
+    @blur="handleBlur"
   >
     <!-- 父路径展示区 -->
-    <template v-if="showParent" #prepend>
+    <template v-if="!!parentPath" #prepend>
       <input
         class="path-input__parent"
         :value="parentPath"
@@ -24,117 +24,83 @@
     </template>
 
     <!-- 选择文件按钮 -->
-    <template v-if="showPicker" #append>
-      <el-button :icon="Folder" :disabled="disabled" @click="handlePick">
-        {{ pickerButtonText }}
-      </el-button>
+    <template v-if="!disabled && allowFilePicker" #append>
+      <el-button :icon="Folder" @click="handlePick">选择</el-button>
     </template>
   </el-input>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watchEffect } from 'vue'
+import { ref } from 'vue'
 import { Folder } from '@element-plus/icons-vue'
 import { electronApi } from '@renderer/utils/electronApi'
-import { pathInputProps } from './common/props'
+import { pathInputProps } from './defines/props'
 import type { TPathInputEmits } from './types/defines'
 
-defineOptions({ name: 'pathInput' })
+defineOptions({
+  name: 'pathInput'
+})
 
-const props = defineProps(pathInputProps)
 const emit = defineEmits<TPathInputEmits>()
 
+const props = defineProps(pathInputProps)
 // 路径
 const path = defineModel('path', pathInputProps.path)
 
-// 路径分隔符
-const pathSeparator = ref(props.separator || '/')
-watchEffect(async () => {
-  pathSeparator.value = props.separator || (await electronApi.path.sep())
-})
-
 // 完整路径
-const fullPath = computed(() => {
-  // 去掉开头的 ./ 与多余分隔符，再与父路径拼接
-  const inputPath = path.value.replace(/^\.[\\/]/, '').replace(/^[\\/]+/, '')
-  // 输入为空、本身是绝对路径、或没有父路径时，都不以父路径为基准拼接
-  if (!inputPath || !props.parentPath || isAbsolutePath(inputPath)) return inputPath
-  const joined = `${props.parentPath.replace(/[\\/]+$/, '')}${pathSeparator.value}${inputPath}`
-  return unifySeparator(joined, pathSeparator.value)
-})
+const fullPath = ref('')
 
 /**
- * 判断是否为绝对路径
- * @param value 待判断的路径
- * @returns posix 根路径或 Windows 盘符路径时为 true
+ * 更新完整路径
+ * @returns 更新完成的 Promise
  */
-function isAbsolutePath(value: string): boolean {
-  return /^\//.test(value) || /^[a-zA-Z]:[\\/]/.test(value)
+async function updateFullPath(): Promise<void> {
+  const oldFullPath = fullPath.value
+  const newFullPath = await getFullPath()
+
+  if (fullPath.value !== oldFullPath) return
+
+  fullPath.value = newFullPath
+  emit('full-path-change', newFullPath)
 }
 
 /**
- * 把路径里的分隔符统一成指定分隔符
- * @param value 路径
- * @param separator 目标分隔符
- * @returns 分隔符统一后的路径
+ * 获取完整路径
+ * @returns 完整路径
  */
-function unifySeparator(value: string, separator: string): string {
-  return separator === '/' ? value.replace(/\\/g, '/') : value.replace(/\//g, '\\')
+async function getFullPath(): Promise<string> {
+  if (!path.value) return ''
+  return electronApi.path.join(props.separatorPlatform, props.parentPath, path.value)
 }
 
-// 显示父路径区域
-const showParent = computed(() => props.showParentPath && !!props.parentPath)
+/**
+ * 处理输入框失焦
+ * @returns 处理完成的 Promise
+ */
+async function handleBlur(): Promise<void> {
+  if (path.value) {
+    path.value = await electronApi.path.normalize(props.separatorPlatform, path.value)
+  }
+  await updateFullPath()
+}
 
 /**
- * 拉起系统选择框并把选到的路径回填
- *
- * 取消选择得到空数组，此时保持原值不动
+ * 处理文件选择
  * @returns 选择完成的 Promise
  */
 async function handlePick(): Promise<void> {
   const [picked] = await electronApi.dialog.openFilePicker({
-    selectDirectory: props.pickerMode === 'directory',
+    selectDirectory: props.pickerTarget === 'directory',
     defaultPath: props.pickerDefaultPath
   })
-  if (picked) await commitFullPath(picked)
+  if (!picked || !picked.startsWith(props.parentPath)) return
+  path.value = picked.replace(props.parentPath, '')
+  await updateFullPath()
 }
 
-/**
- * 由完整路径换算输入框中的路径
- *
- * 完整路径在父路径下时取相对部分；不在父路径下（回退到上层或跨盘符）时以 ./ 带上完整路径；
- * 没有父路径时输入框中的路径就是完整路径
- * @param fullPath 完整路径
- * @param parentPath 父路径
- * @returns 输入框中的路径
- */
-async function toInputPath(fullPath: string, parentPath: string): Promise<string> {
-  if (!fullPath) return ''
-  if (!parentPath) return fullPath
-  const relativePath = await electronApi.path.relative(parentPath, fullPath)
-  // 需要回退到上层、或换算结果本身是绝对路径（跨盘符），都说明完整路径不在父路径下
-  if (relativePath.startsWith('..') || (await electronApi.path.isAbsolute(relativePath))) {
-    return `./${fullPath}`
-  }
-  return relativePath
-}
-
-/**
- * 以完整路径为准回填：通常是文件选择器选中的路径
- * @param value 选中的完整路径
- */
-async function commitFullPath(value: string): Promise<void> {
-  path.value = await toInputPath(value, props.parentPath)
-  emit('change', path.value, fullPath.value)
-}
-
-/**
- * 处理输入框内容变化：完整路径已由计算属性派生，这里只负责抛出 change
- * @param value 输入框的最新内容
- */
-function handleInputChange(value: string): void {
-  emit('change', value, fullPath.value)
-}
+defineExpose({
+  getFullPath
+})
 </script>
 
 <style scoped lang="scss">

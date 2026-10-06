@@ -25,29 +25,6 @@ function createEmptySetting(): ISetting {
   }
 }
 
-/**
- * 按本地文件系统风格拼接根目录与相对路径
- * @param rootDir 根目录绝对路径
- * @param relativePath 相对根目录的路径；填绝对路径时按绝对路径处理
- * @returns 拼接后的完整路径，任一项为空时为空字符串
- */
-function joinLocalPath(rootDir: string, relativePath: string): string {
-  if (!rootDir || !relativePath) return ''
-  const separator = rootDir.includes('\\') ? '\\' : '/'
-  return `${rootDir.replace(/[\\/]+$/, '')}${separator}${relativePath.replace(/^[\\/]+/, '')}`
-}
-
-/**
- * 按 OSS 的 posix 风格拼接根路径与相对路径
- * @param rootDir OSS 发布根路径
- * @param relativePath 相对发布根路径的路径
- * @returns 拼接后的完整 OSS 路径，任一项为空时为空字符串
- */
-function joinOssPath(rootDir: string, relativePath: string): string {
-  if (!rootDir || !relativePath) return ''
-  return `${rootDir.replace(/^\/+|\/+$/g, '')}/${relativePath.replace(/^\/+/, '')}`
-}
-
 // 表单实例
 const formRef = ref<FormInstance>()
 // 是否正在读取配置
@@ -68,19 +45,6 @@ watch(
   () => {
     settingForm.value.localAssets.secretDir = ''
   }
-)
-
-// 完整本地 .secret 目录预览
-const localSecretDirPreview = computed(() =>
-  joinLocalPath(settingForm.value.localAssets.rootDir, settingForm.value.localAssets.secretDir)
-)
-// OSS 版本清单完整路径预览
-const versionManifestPreview = computed(() =>
-  joinOssPath(settingForm.value.ossAssets.rootDir, settingForm.value.ossAssets.versionManifestPath)
-)
-// OSS .secret 文件完整路径预览
-const ossSecretPreview = computed(() =>
-  joinOssPath(settingForm.value.ossAssets.rootDir, settingForm.value.ossAssets.secretPath)
 )
 
 /**
@@ -186,7 +150,7 @@ onMounted(() => {
             <PathInput
               v-model:path="settingForm.localAssets.rootDir"
               placeholder="请选择或填写本地资源根目录"
-              show-picker
+              allow-file-picker
             />
           </el-form-item>
 
@@ -195,8 +159,7 @@ onMounted(() => {
               v-model:path="settingForm.localAssets.secretDir"
               :parent-path="settingForm.localAssets.rootDir"
               placeholder="相对本地根目录，如 .secret"
-              show-parent-path
-              :show-picker="!!settingForm.localAssets.rootDir"
+              :allow-file-picker="!!settingForm.localAssets.rootDir"
               :picker-default-path="settingForm.localAssets.rootDir"
             />
           </el-form-item>
@@ -206,7 +169,11 @@ onMounted(() => {
           <h3 class="setting-section__title">OSS 资源</h3>
 
           <el-form-item label="发布根路径" prop="ossAssets.rootDir">
-            <PathInput v-model:path="settingForm.ossAssets.rootDir" placeholder="如 MyHome" />
+            <PathInput
+              v-model:path="settingForm.ossAssets.rootDir"
+              placeholder="如 MyHome"
+              separator-platform="posix"
+            />
           </el-form-item>
 
           <el-form-item label="版本清单路径" prop="ossAssets.versionManifestPath">
@@ -214,7 +181,7 @@ onMounted(() => {
               v-model:path="settingForm.ossAssets.versionManifestPath"
               :parent-path="settingForm.ossAssets.rootDir"
               placeholder="如 ./versionManifest.json"
-              show-parent-path
+              separator-platform="posix"
             />
           </el-form-item>
 
@@ -223,7 +190,7 @@ onMounted(() => {
               v-model:path="settingForm.ossAssets.secretPath"
               :parent-path="settingForm.ossAssets.rootDir"
               placeholder="如 ./.secret.zip"
-              show-parent-path
+              separator-platform="posix"
             />
           </el-form-item>
         </section>
@@ -235,7 +202,7 @@ onMounted(() => {
             <PathInput
               v-model:path="settingForm.androidStudio.jdkPath"
               placeholder="请选择或填写 JDK 根目录"
-              show-picker
+              allow-file-picker
             />
           </el-form-item>
 
@@ -243,7 +210,7 @@ onMounted(() => {
             <PathInput
               v-model:path="settingForm.androidStudio.sdkPath"
               placeholder="请选择或填写 Android SDK 根目录"
-              show-picker
+              allow-file-picker
             />
           </el-form-item>
         </section>
