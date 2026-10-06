@@ -85,9 +85,10 @@ async function handleBlur(): Promise<void> {
  * @returns 选择完成的 Promise
  */
 async function handlePick(): Promise<void> {
+  // 选择框默认定位到父路径，没有父路径时由系统决定起始位置
   const [picked] = await electronApi.dialog.openFilePicker({
     selectDirectory: props.pickerTarget === 'directory',
-    defaultPath: props.pickerDefaultPath
+    defaultPath: props.parentPath
   })
   if (!picked || !picked.startsWith(props.parentPath)) return
   if (props.parentPath) {

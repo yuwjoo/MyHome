@@ -140,7 +140,7 @@ onMounted(() => {
         ref="formRef"
         :model="settingForm"
         :rules="rules"
-        label-width="150px"
+        label-width="140px"
         @submit.prevent
       >
         <section class="setting-section">
@@ -151,6 +151,7 @@ onMounted(() => {
               v-model:path="settingForm.localAssets.rootDir"
               placeholder="请选择或填写本地资源根目录"
               allow-file-picker
+              clearable
             />
           </el-form-item>
 
@@ -159,8 +160,8 @@ onMounted(() => {
               v-model:path="settingForm.localAssets.secretDir"
               :parent-path="settingForm.localAssets.rootDir"
               placeholder="相对本地根目录，如 .secret"
-              :allow-file-picker="!!settingForm.localAssets.rootDir"
-              :picker-default-path="settingForm.localAssets.rootDir"
+              allow-file-picker
+              clearable
             />
           </el-form-item>
         </section>
@@ -173,6 +174,7 @@ onMounted(() => {
               v-model:path="settingForm.ossAssets.rootDir"
               placeholder="如 MyHome"
               separator-platform="posix"
+              clearable
             />
           </el-form-item>
 
@@ -182,6 +184,7 @@ onMounted(() => {
               :parent-path="settingForm.ossAssets.rootDir"
               placeholder="如 ./versionManifest.json"
               separator-platform="posix"
+              clearable
             />
           </el-form-item>
 
@@ -191,6 +194,7 @@ onMounted(() => {
               :parent-path="settingForm.ossAssets.rootDir"
               placeholder="如 ./.secret.zip"
               separator-platform="posix"
+              clearable
             />
           </el-form-item>
         </section>
@@ -203,6 +207,7 @@ onMounted(() => {
               v-model:path="settingForm.androidStudio.jdkPath"
               placeholder="请选择或填写 JDK 根目录"
               allow-file-picker
+              clearable
             />
           </el-form-item>
 
@@ -211,6 +216,7 @@ onMounted(() => {
               v-model:path="settingForm.androidStudio.sdkPath"
               placeholder="请选择或填写 Android SDK 根目录"
               allow-file-picker
+              clearable
             />
           </el-form-item>
         </section>

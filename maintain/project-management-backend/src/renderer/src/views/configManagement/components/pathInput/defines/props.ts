@@ -35,11 +35,6 @@ export const pathInputProps = {
     type: String as PropType<TPickerTarget>,
     default: 'directory'
   },
-  /** 选择框默认定位的路径；为空时由系统决定起始位置 */
-  pickerDefaultPath: {
-    type: String,
-    default: ''
-  },
   /** 输入框占位提示 */
   placeholder: {
     type: String,
@@ -53,7 +48,7 @@ export const pathInputProps = {
   /** 是否可清空 */
   clearable: {
     type: Boolean,
-    default: true
+    default: false
   },
   /** 输入框是否可编辑 */
   editable: {
