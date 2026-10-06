@@ -58,10 +58,9 @@ async function updateFullPath(): Promise<void> {
   const oldFullPath = fullPath.value
   const newFullPath = await getFullPath()
 
-  if (fullPath.value !== oldFullPath) return
-
+  if (newFullPath === oldFullPath) return
   fullPath.value = newFullPath
-  emit('full-path-change', newFullPath)
+  emit('full-path-change', fullPath.value)
 }
 
 /**
@@ -78,9 +77,6 @@ async function getFullPath(): Promise<string> {
  * @returns 处理完成的 Promise
  */
 async function handleBlur(): Promise<void> {
-  if (path.value) {
-    path.value = await electronApi.path.normalize(props.separatorPlatform, path.value)
-  }
   await updateFullPath()
 }
 
@@ -94,7 +90,11 @@ async function handlePick(): Promise<void> {
     defaultPath: props.pickerDefaultPath
   })
   if (!picked || !picked.startsWith(props.parentPath)) return
-  path.value = picked.replace(props.parentPath, '')
+  if (props.parentPath) {
+    path.value = await electronApi.path.relative(props.separatorPlatform, props.parentPath, picked)
+  } else {
+    path.value = picked
+  }
   await updateFullPath()
 }
 
